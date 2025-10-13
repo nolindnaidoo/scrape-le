@@ -1,0 +1,267 @@
+{
+	"name": "scrape-le",
+	"publisher": "nolindnaidoo",
+	"displayName": "%manifest.ext.name%",
+	"description": "%manifest.ext.description%",
+	"version": "1.0.0",
+	"license": "MIT",
+	"author": {
+		"name": "Nolin D Naidoo",
+		"url": "https://github.com/nolindnaidoo"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nolindnaidoo/scrape-le.git"
+	},
+	"bugs": {
+		"url": "https://github.com/nolindnaidoo/scrape-le/issues"
+	},
+	"homepage": "https://github.com/nolindnaidoo/scrape-le#readme",
+	"engines": {
+		"vscode": "^1.105.0",
+		"node": ">=20.0.0"
+	},
+	"categories": [
+		"Other",
+		"Programming Languages",
+		"Linters"
+	],
+	"keywords": [
+		"extract",
+		"extraction",
+		"extractor",
+		"scraper",
+		"web",
+		"scraping",
+		"testing",
+		"automation",
+		"playwright",
+		"screenshot",
+		"reachability",
+		"validation",
+		"antibot",
+		"cloudflare",
+		"captcha",
+		"ratelimit",
+		"robots"
+	],
+	"icon": "src/assets/images/icon.png",
+	"main": "./dist/extension.js",
+	"l10n": "./package.nls.json",
+	"activationEvents": [
+		"onCommand:scrape-le.checkUrl",
+		"onCommand:scrape-le.checkSelection",
+		"onCommand:scrape-le.setup",
+		"onCommand:scrape-le.openSettings"
+	],
+	"capabilities": {
+		"virtualWorkspaces": {
+			"supported": "limited",
+			"description": "%manifest.capability.untrusted-workspaces.desc%"
+		},
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "%manifest.capability.untrusted-workspaces.desc%"
+		}
+	},
+	"contributes": {
+		"commands": [
+			{
+				"command": "scrape-le.checkUrl",
+				"title": "%manifest.command.check-url.title%",
+				"category": "%manifest.command.category%"
+			},
+			{
+				"command": "scrape-le.checkSelection",
+				"title": "%manifest.command.check-selection.title%",
+				"category": "%manifest.command.category%"
+			},
+			{
+				"command": "scrape-le.setup",
+				"title": "%manifest.command.setup.title%",
+				"category": "%manifest.command.category%"
+			},
+			{
+				"command": "scrape-le.openSettings",
+				"title": "%manifest.command.settings.title%",
+				"category": "%manifest.command.category%"
+			},
+			{
+				"command": "scrape-le.exportResults",
+				"title": "%manifest.command.export.title%",
+				"category": "%manifest.command.category%"
+			}
+		],
+		"keybindings": [
+			{
+				"command": "scrape-le.checkUrl",
+				"key": "ctrl+alt+s",
+				"mac": "cmd+alt+s",
+				"when": "editorTextFocus"
+			}
+		],
+		"menus": {
+			"editor/context": [
+				{
+					"command": "scrape-le.checkSelection",
+					"when": "editorHasSelection",
+					"group": "1_modification@1"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "scrape-le.checkUrl"
+				},
+				{
+					"command": "scrape-le.checkSelection"
+				},
+				{
+					"command": "scrape-le.setup"
+				},
+				{
+					"command": "scrape-le.openSettings"
+				},
+				{
+					"command": "scrape-le.exportResults"
+				}
+			]
+		},
+		"configuration": {
+			"title": "%manifest.settings.title%",
+			"properties": {
+				"scrape-le.browser.timeout": {
+					"type": "number",
+					"default": 30000,
+					"minimum": 5000,
+					"maximum": 120000,
+					"description": "%manifest.settings.browser.timeout.desc%"
+				},
+				"scrape-le.browser.viewport.width": {
+					"type": "number",
+					"default": 1280,
+					"minimum": 320,
+					"maximum": 3840,
+					"description": "%manifest.settings.browser.viewport.width.desc%"
+				},
+				"scrape-le.browser.viewport.height": {
+					"type": "number",
+					"default": 720,
+					"minimum": 240,
+					"maximum": 2160,
+					"description": "%manifest.settings.browser.viewport.height.desc%"
+				},
+				"scrape-le.screenshot.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.screenshot.enabled.desc%"
+				},
+				"scrape-le.screenshot.path": {
+					"type": "string",
+					"default": ".vscode/scrape-le",
+					"description": "%manifest.settings.screenshot.path.desc%"
+				},
+				"scrape-le.screenshot.format": {
+					"type": "string",
+					"default": "png",
+					"enum": [
+						"png",
+						"jpeg"
+					],
+					"enumDescriptions": [
+						"%manifest.settings.screenshot.format.option.png%",
+						"%manifest.settings.screenshot.format.option.jpeg%"
+					],
+					"description": "%manifest.settings.screenshot.format.desc%"
+				},
+				"scrape-le.screenshot.quality": {
+					"type": "number",
+					"default": 90,
+					"minimum": 0,
+					"maximum": 100,
+					"description": "%manifest.settings.screenshot.quality.desc%"
+				},
+				"scrape-le.browser.userAgent": {
+					"type": "string",
+					"default": "",
+					"description": "%manifest.settings.browser.user-agent.desc%"
+				},
+				"scrape-le.checkConsoleErrors": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.check-console-errors.desc%"
+				},
+				"scrape-le.notificationsLevel": {
+					"type": "string",
+					"default": "important",
+					"enum": [
+						"all",
+						"important",
+						"silent"
+					],
+					"enumDescriptions": [
+						"%manifest.settings.notifications.level.option.all%",
+						"%manifest.settings.notifications.level.option.important%",
+						"%manifest.settings.notifications.level.option.silent%"
+					],
+					"description": "%manifest.settings.notifications.level.desc%"
+				},
+				"scrape-le.statusBar.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.statusbar.enabled.desc%"
+				},
+				"scrape-le.detections.antiBot": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.detections.antibot.desc%"
+				},
+				"scrape-le.detections.rateLimit": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.detections.ratelimit.desc%"
+				},
+				"scrape-le.detections.robotsTxt": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.detections.robotstxt.desc%"
+				},
+				"scrape-le.detections.authentication": {
+					"type": "boolean",
+					"default": true,
+					"description": "%manifest.settings.detections.authentication.desc%"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"build": "bun tsc -p ./",
+		"clean": "rm -rf dist coverage node_modules",
+		"clean:i18n": "node -e \"const fs=require('fs');fs.readdirSync('.').filter(f=>f.startsWith('package.nls.')&&f.endsWith('.json')&&f!=='package.nls.json').forEach(f=>fs.unlinkSync(f));try{fs.rmSync('vsix',{recursive:true})}catch(e){}\"",
+		"copy:i18n": "cp src/i18n/package.nls.json . || echo 'No i18n files to copy'",
+		"watch": "bun tsc -watch -p ./",
+		"test": "bun --bun vitest run --pool=threads",
+		"test:watch": "bun --bun vitest --pool=threads",
+		"test:coverage": "bun vitest run --coverage --pool=threads",
+		"lint": "bunx @biomejs/biome check .",
+		"lint:fix": "bunx @biomejs/biome check --write .",
+		"vscode:prepublish": "bun run build && bun run copy:i18n",
+		"package": "mkdir -p release && bunx @vscode/vsce package --out release/${npm_package_name}-${npm_package_version}.vsix && bun run clean:i18n",
+		"package:ls": "bunx @vscode/vsce ls release/${npm_package_name}-${npm_package_version}.vsix --tree | cat",
+		"publish": "bunx @vscode/vsce publish",
+		"install:browser": "bunx playwright install chromium"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.5",
+		"@types/node": "^24.7.1",
+		"@types/vscode": "^1.105.0",
+		"@vscode/test-electron": "^2.3.0",
+		"@vscode/vsce": "^3.6.2",
+		"@vitest/coverage-istanbul": "^3.2.4",
+		"typescript": "^5.9.3",
+		"vitest": "^3.2.4"
+	},
+	"dependencies": {
+		"playwright-core": "^1.49.1",
+		"vscode-nls": "^5.2.0"
+	}
+}

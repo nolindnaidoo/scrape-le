@@ -1,0 +1,52 @@
+# Source TypeScript files  
+src/**/*
+
+# Assets (exclude all except required icon)
+src/assets/**/*
+!src/assets/images/icon.png
+!src/assets/images/preview.gif
+!src/assets/images/coverage-report-text.png
+
+# TypeScript config
+tsconfig.json
+
+# Development tools
+.biomeignore
+.cursorrules
+biome.json
+.vscode/
+.gitignore
+
+# Test files
+**/*.test.ts
+**/*.test.js
+**/__tests__/**
+**/__data__/**
+test-files/**
+
+
+# Backup files
+*.backup
+*-original.*
+
+# Exclude all node_modules except runtime dependencies
+node_modules/**
+!node_modules/playwright-core/**
+!node_modules/vscode-nls/**
+
+# Coverage and logs
+coverage/
+*.log
+.nyc_output/
+
+# Documentation that's not needed in the package
+*.md
+!README.md
+!CHANGELOG.md
+
+# CI and repository metadata
+.github/**
+.vscodeignore
+
+# Package lock
+package-lock.json
