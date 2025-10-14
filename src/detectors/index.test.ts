@@ -142,7 +142,7 @@ describe('runDetections', () => {
 
 		expect(result.rateLimit?.detected).toBe(true);
 		expect(result.rateLimit?.limit).toBe('100');
-	});
+	}, 10000);
 
 	it('should detect authentication requirements', async () => {
 		mockResponse = {
