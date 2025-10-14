@@ -5,12 +5,6 @@ All notable changes to the "Scrape-LE" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Changed
-
-- **Help command UX** - Help documentation now opens beside source code by default for better workflow
-
 ## [1.1.0] - 2025-10-14
 
 ### Added
@@ -22,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Help command UX** - Help documentation now opens beside source code by default for better workflow
 - **Infrastructure verification** - Verified activation events, command registry, and all infrastructure components
 - **Command count** - Stabilized at 6 commands (Check URL, Scrape Text, Scrape HTML, Screenshot, Settings, Help)
 
