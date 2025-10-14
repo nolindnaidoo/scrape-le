@@ -3,7 +3,7 @@
 	"publisher": "nolindnaidoo",
 	"displayName": "%manifest.ext.name%",
 	"description": "%manifest.ext.description%",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"author": {
 		"name": "Nolin D Naidoo",

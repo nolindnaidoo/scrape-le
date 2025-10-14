@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-10-14
+
+### Documentation
+
+- Fixed test coverage from outdated 84.84% to current 82.17% overall coverage
+- Updated test count from 75 to 121 passing tests (1 skipped)
+- Ensures documentation matches current test results
+
 ## [1.0.0] - 2025-10-13
 
 ### Added
