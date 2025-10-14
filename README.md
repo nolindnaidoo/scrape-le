@@ -84,14 +84,14 @@ Quickly verify that pages load, render JavaScript correctly, and are accessible 
 - **Paths-LE** - Extract and analyze file paths from imports, configs, and dependencies  
   [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.paths-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/paths-le)]
 
-- **Colors-LE** - Extract and analyze colors from CSS, HTML, JavaScript, and more  
-  _Coming October 2025_
+- **Colors-LE** - Extract and analyze colors from CSS, HTML, JavaScript, and TypeScript  
+  _Coming Soon_
 
 - **Dates-LE** - Extract and analyze dates from logs, APIs, and temporal data  
-  _Coming October 2025_
+  _Coming Soon_
 
 - **URLs-LE** - Extract and analyze URLs from web content, APIs, and resources  
-  _Coming October 2025_
+  _Coming Soon_
 
 Each tool follows the same philosophy: **Zero Hassle, Maximum Productivity**.
 
