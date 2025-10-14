@@ -269,7 +269,7 @@ Scrape-LE is optimized for fast feedback:
 
 ## 🧩 System Requirements
 
-- **VS Code**: 1.105.0 or higher
+- **VS Code**: 1.70.0 or higher
 - **Node.js**: Not required (extension uses Bun runtime)
 - **Platform**: Windows, macOS, Linux
 - **Memory**: 500MB minimum, 1GB recommended
