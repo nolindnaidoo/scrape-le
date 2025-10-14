@@ -1,17 +1,17 @@
-import * as vscode from "vscode";
-import type { Notifier, StatusBar } from "../types";
+import * as vscode from 'vscode';
+import type { Notifier, StatusBar } from '../types';
 
 export function registerHelpCommand(
-  context: vscode.ExtensionContext,
-  deps: Readonly<{
-    notifier: Notifier;
-    statusBar: StatusBar;
-  }>
+	context: vscode.ExtensionContext,
+	_deps: Readonly<{
+		notifier: Notifier;
+		statusBar: StatusBar;
+	}>,
 ): void {
-  const command = vscode.commands.registerCommand(
-    "scrape-le.help",
-    async () => {
-      const helpText = `
+	const command = vscode.commands.registerCommand(
+		'scrape-le.help',
+		async () => {
+			const helpText = `
 # Scrape-LE Help & Troubleshooting
 
 ## Commands
@@ -162,13 +162,13 @@ Key settings:
 - Documentation: https://github.com/nolindnaidoo/scrape-le#readme
 		`.trim();
 
-      const doc = await vscode.workspace.openTextDocument({
-        content: helpText,
-        language: "markdown",
-      });
-      await vscode.window.showTextDocument(doc);
-    }
-  );
+			const doc = await vscode.workspace.openTextDocument({
+				content: helpText,
+				language: 'markdown',
+			});
+			await vscode.window.showTextDocument(doc);
+		},
+	);
 
-  context.subscriptions.push(command);
+	context.subscriptions.push(command);
 }
