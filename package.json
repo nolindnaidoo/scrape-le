@@ -3,7 +3,7 @@
 	"publisher": "nolindnaidoo",
 	"displayName": "%manifest.ext.name%",
 	"description": "%manifest.ext.description%",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"license": "MIT",
 	"author": {
 		"name": "Nolin D Naidoo",
@@ -89,6 +89,11 @@
 			{
 				"command": "scrape-le.exportResults",
 				"title": "%manifest.command.export.title%",
+				"category": "%manifest.command.category%"
+			},
+			{
+				"command": "scrape-le.help",
+				"title": "%manifest.command.help.title%",
 				"category": "%manifest.command.category%"
 			}
 		],

@@ -5,6 +5,7 @@ import type * as vscode from 'vscode';
 import type { Notifier, StatusBar } from '../types';
 import { registerCheckUrlCommand } from './check';
 import { registerCheckSelectionCommand } from './checkSelection';
+import { registerHelpCommand } from './help';
 import { registerSetupCommand } from './setup';
 
 /**
@@ -20,4 +21,5 @@ export function registerCommands(
 	registerCheckUrlCommand(context, deps);
 	registerCheckSelectionCommand(context, deps);
 	registerSetupCommand(context);
+	registerHelpCommand(context, deps);
 }

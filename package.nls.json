@@ -7,6 +7,7 @@
   "manifest.command.setup.title": "Setup Browser",
   "manifest.command.settings.title": "Open Settings",
   "manifest.command.export.title": "Export Last Results",
+  "manifest.command.help.title": "Help & Troubleshooting",
   "manifest.settings.title": "Scrape-LE Settings",
   "manifest.settings.browser.timeout.desc": "Browser navigation timeout in milliseconds (5000-120000)",
   "manifest.settings.browser.viewport.width.desc": "Browser viewport width in pixels (320-3840)",

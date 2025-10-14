@@ -5,7 +5,17 @@ All notable changes to the "Scrape-LE" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.3] - 2025-10-14
+
+### Added
+
+- **Help command** - Added comprehensive help and troubleshooting documentation
+- **Command palette entry** - "Scrape-LE: Help & Troubleshooting" accessible from command palette
+- **In-editor docs** - Opens formatted markdown help covering URL checking, Playwright integration, and common use cases
+
+### Changed
+
+- **Command count** - Increased from 5 to 6 commands for better user support
 
 ## [1.0.2] - 2025-10-14
 
