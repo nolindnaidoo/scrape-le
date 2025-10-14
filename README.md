@@ -374,8 +374,8 @@ A: Yes, Scrape-LE respects your system's network configuration including VPNs an
 
 ## 📊 Test Coverage
 
-- 84.84% overall coverage with istanbul provider
-- 75 passing tests with comprehensive edge case coverage
+- 82.17% overall coverage with istanbul provider
+- 121 passing tests (1 skipped) with comprehensive edge case coverage
 - Unit tests for all detector modules
 - Integration tests for command workflows
 - Mock Playwright browser for reliable testing
