@@ -5,17 +5,19 @@ All notable changes to the "Scrape-LE" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.3] - 2025-10-14
+## [1.1.0] - 2025-10-14
 
 ### Added
 
-- **Help command** - Added comprehensive help and troubleshooting documentation
-- **Command palette entry** - "Scrape-LE: Help & Troubleshooting" accessible from command palette
-- **In-editor docs** - Opens formatted markdown help covering URL checking, Playwright integration, and common use cases
+- **Command parity achievement** - Full parity with other LE extraction extensions
+- **Help command** - Added comprehensive help and troubleshooting documentation accessible from command palette
+- **Comprehensive documentation** - Added complete command list to README with examples
+- **Documentation updates** - Updated all docs to reflect command parity achievement
 
 ### Changed
 
-- **Command count** - Increased from 5 to 6 commands for better user support
+- **Infrastructure verification** - Verified activation events, command registry, and all infrastructure components
+- **Command count** - Stabilized at 6 commands (Check URL, Scrape Text, Scrape HTML, Screenshot, Settings, Help)
 
 ## [1.0.2] - 2025-10-14
 
