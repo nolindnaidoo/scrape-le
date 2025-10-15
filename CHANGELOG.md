@@ -5,6 +5,19 @@ All notable changes to the "Scrape-LE" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-01-27
+
+### Fixed
+
+- **Help command activation** - Added missing `"onCommand:scrape-le.help"` activation event to ensure help command works properly
+- **Command palette completeness** - Added missing `scrape-le.help` command to command palette
+- **Command parity** - Fixed inconsistency where help command was defined but not properly activated or accessible
+
+### Technical
+
+- All 6 commands now have proper activation events and command palette entries for consistent functionality
+- Maintained 100% backward compatibility with existing installations
+
 ## [1.1.0] - 2025-10-14
 
 ### Added

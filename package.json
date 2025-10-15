@@ -3,7 +3,7 @@
 	"publisher": "nolindnaidoo",
 	"displayName": "%manifest.ext.name%",
 	"description": "%manifest.ext.description%",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"license": "MIT",
 	"author": {
 		"name": "Nolin D Naidoo",
@@ -52,7 +52,8 @@
 		"onCommand:scrape-le.checkUrl",
 		"onCommand:scrape-le.checkSelection",
 		"onCommand:scrape-le.setup",
-		"onCommand:scrape-le.openSettings"
+		"onCommand:scrape-le.openSettings",
+		"onCommand:scrape-le.help"
 	],
 	"capabilities": {
 		"virtualWorkspaces": {
@@ -128,6 +129,9 @@
 				},
 				{
 					"command": "scrape-le.exportResults"
+				},
+				{
+					"command": "scrape-le.help"
 				}
 			]
 		},

@@ -2,7 +2,10 @@
  * Status bar management for Scrape-LE
  */
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import type { StatusBar } from '../types';
+
+const localize = nls.config({ messageFormat: nls.MessageFormat.file })();
 
 /**
  * Creates a status bar item for the extension
@@ -14,8 +17,11 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 	);
 
 	statusBarItem.command = 'scrape-le.checkUrl';
-	statusBarItem.text = '$(globe) Scrape-LE';
-	statusBarItem.tooltip = 'Click to check URL scrapeability';
+	statusBarItem.text = localize('runtime.statusbar.text', '$(globe) Scrape-LE');
+	statusBarItem.tooltip = localize(
+		'runtime.statusbar.tooltip',
+		'Click to check URL scrapeability',
+	);
 
 	context.subscriptions.push(statusBarItem);
 

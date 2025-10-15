@@ -2,10 +2,13 @@
  * Setup command for browser installation
  */
 import * as vscode from 'vscode';
+import * as nls from 'vscode-nls';
 import {
 	ensureBrowserInstalled,
 	showManualInstallInstructions,
 } from '../scraper/install';
+
+const localize = nls.config({ messageFormat: nls.MessageFormat.file })();
 
 /**
  * Registers the setup command for browser installation
@@ -17,24 +20,45 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 			const choice = await vscode.window.showQuickPick(
 				[
 					{
-						label: '$(cloud-download) Install Chromium Browser',
-						description: 'Automatic installation (~130MB download)',
+						label: localize(
+							'runtime.setup.install.label',
+							'$(cloud-download) Install Chromium Browser',
+						),
+						description: localize(
+							'runtime.setup.install.description',
+							'Automatic installation (~130MB download)',
+						),
 						action: 'install',
 					},
 					{
-						label: '$(info) Manual Installation Instructions',
-						description: 'Show command to run manually',
+						label: localize(
+							'runtime.setup.manual.label',
+							'$(info) Manual Installation Instructions',
+						),
+						description: localize(
+							'runtime.setup.manual.description',
+							'Show command to run manually',
+						),
 						action: 'manual',
 					},
 					{
-						label: '$(check) Test Browser Installation',
-						description: 'Check if Chromium is already installed',
+						label: localize(
+							'runtime.setup.test.label',
+							'$(check) Test Browser Installation',
+						),
+						description: localize(
+							'runtime.setup.test.description',
+							'Check if Chromium is already installed',
+						),
 						action: 'test',
 					},
 				],
 				{
-					placeHolder: 'Choose a setup option',
-					title: 'Scrape-LE Browser Setup',
+					placeHolder: localize(
+						'runtime.setup.placeholder',
+						'Choose a setup option',
+					),
+					title: localize('runtime.setup.title', 'Scrape-LE Browser Setup'),
 				},
 			);
 
