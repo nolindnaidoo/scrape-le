@@ -85,12 +85,8 @@ Disallow: /admin
 			expect(result.allowsCrawling).toBe(true); // Safe default
 		});
 
-		// Skip timeout test - difficult to test AbortController in unit tests
-		// The timeout behavior is covered by the general error handling test
-		it.skip('should handle timeout', async () => {
-			// This test is skipped because testing AbortController timeout is complex
-			// The error handling path is already tested in "should handle fetch errors gracefully"
-		});
+		// Note: Timeout behavior is covered by "should handle fetch errors gracefully" test
+		// Testing AbortController.timeout() requires complex mock setup that doesn't add value
 
 		it('should ignore comments and empty lines', async () => {
 			const robotsTxt = `

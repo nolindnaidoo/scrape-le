@@ -229,9 +229,23 @@ describe('detectAuthenticationWall', () => {
 		expect(Object.isFrozen(result.indicators)).toBe(true);
 	});
 
-	it.skip('should handle detection errors and return default', async () => {
-		// Skipped: Error handling test needs fix
-		expect(true).toBe(true);
+	it('should handle detection errors and return default', async () => {
+		// Force error by making page.url throw
+		mockPage = {
+			url: () => {
+				throw new Error('Fatal error');
+			},
+			evaluate: async () => {
+				throw new Error('Fatal error');
+			},
+		};
+
+		const result = await detectAuthenticationWall(mockPage as Page, 200);
+
+		// Should return safe default result
+		expect(result.required).toBe(false);
+		expect(result.indicators).toBeDefined();
+		expect(Object.isFrozen(result)).toBe(true);
 	});
 
 	it('should not set optional fields when not detected', async () => {

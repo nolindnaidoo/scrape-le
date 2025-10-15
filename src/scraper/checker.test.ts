@@ -139,9 +139,27 @@ describe('checker', () => {
 			expect(result.error).toContain('ERR_NAME_NOT_RESOLVED');
 		});
 
-		it.skip('should handle screenshot capture', async () => {
-			// Skipped: vi.mocked not available in current vitest version
-			expect(true).toBe(true);
+		it('should handle screenshot capture', async () => {
+			const mockPage = {
+				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+				title: vi.fn().mockResolvedValue('Test Page'),
+				screenshot: vi.fn().mockResolvedValue(Buffer.from('screenshot-data')),
+				close: vi.fn().mockResolvedValue(undefined),
+				on: vi.fn(),
+			};
+
+			const mockBrowser = {
+				newPage: vi.fn().mockResolvedValue(mockPage),
+			} as unknown as Browser;
+
+			const result = await checkPageScrapeability(
+				mockBrowser,
+				'https://example.com',
+				mockOptions,
+			);
+
+			expect(result.screenshotPath).toBeDefined();
+			expect(mockPage.screenshot).toHaveBeenCalled();
 		});
 
 		it('should skip screenshot when disabled', async () => {
@@ -223,9 +241,28 @@ describe('checker', () => {
 			expect(mockPage.close).toHaveBeenCalled(); // ← Page should be closed
 		});
 
-		it.skip('should close page even when screenshot fails', async () => {
-			// Skipped: vi.mocked not available in current vitest version
-			expect(true).toBe(true);
+		it('should close page even when screenshot fails', async () => {
+			const mockPage = {
+				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+				title: vi.fn().mockResolvedValue('Test Page'),
+				screenshot: vi.fn().mockRejectedValue(new Error('Screenshot failed')),
+				close: vi.fn().mockResolvedValue(undefined),
+				on: vi.fn(),
+			};
+
+			const mockBrowser = {
+				newPage: vi.fn().mockResolvedValue(mockPage),
+			} as unknown as Browser;
+
+			const result = await checkPageScrapeability(
+				mockBrowser,
+				'https://example.com',
+				mockOptions,
+			);
+
+			// Should still return a result even if screenshot fails
+			expect(result.success).toBe(true);
+			expect(mockPage.close).toHaveBeenCalled(); // Page should be closed
 		});
 	});
 });
