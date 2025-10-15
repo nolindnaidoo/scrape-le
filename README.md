@@ -288,11 +288,23 @@ See [`docs/PRIVACY.md`](docs/PRIVACY.md).
 
 ## 🌍 Language Support
 
-- **English** - Full support
+**13 languages supported** with full localization:
 
-**Note**: Scrape-LE currently supports English only. Multi-language support is planned for future releases.
+- 🇺🇸 **English** (en) - Default language
+- 🇩🇪 **German** (de) - Deutsche Lokalisierung
+- 🇪🇸 **Spanish** (es) - Localización en español
+- 🇫🇷 **French** (fr) - Localisation française
+- 🇮🇩 **Indonesian** (id) - Lokalisasi bahasa Indonesia
+- 🇮🇹 **Italian** (it) - Localizzazione italiana
+- 🇯🇵 **Japanese** (ja) - 日本語サポート
+- 🇰🇷 **Korean** (ko) - 한국어 지원
+- 🇧🇷 **Portuguese (Brazil)** (pt-br) - Localização em português brasileiro
+- 🇷🇺 **Russian** (ru) - Русская локализация
+- 🇺🇦 **Ukrainian** (uk) - Українська локалізація
+- 🇻🇳 **Vietnamese** (vi) - Hỗ trợ tiếng Việt
+- 🇨🇳 **Chinese Simplified** (zh-cn) - 简体中文支持
 
-Interested in helping translate Scrape-LE? We welcome contributions for additional languages! [Open an issue](https://github.com/nolindnaidoo/scrape-le/issues) to get started.
+All commands, settings, notifications, and help content automatically adapt to your VS Code language preference.
 
 ## 🔧 Troubleshooting
 

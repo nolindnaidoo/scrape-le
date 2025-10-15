@@ -5,6 +5,18 @@ All notable changes to the "Scrape-LE" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-01-27
+
+### Changed
+
+- **Documentation update** - Updated README to reflect comprehensive multi-language support with 13 languages
+- **User experience** - Enhanced README language support section with flag emojis and native descriptions
+
+### Technical
+
+- Updated README to accurately document existing multi-language capabilities
+- Maintained 100% backward compatibility with existing installations
+
 ## [1.1.1] - 2025-01-27
 
 ### Fixed
