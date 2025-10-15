@@ -37,18 +37,16 @@
   <i>💡 First time? Run <b>"Scrape-LE: Setup Browser"</b> from Command Palette to install Chromium (~130MB one-time setup)</i>
 </p>
 
-## 🙏 Thank You!
+## 🙏 Thank You
 
-Thank you for your interest in Scrape-LE! If this extension has helped verify your scraper targets or validate site accessibility, please consider leaving a rating on [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le). Your feedback helps other developers discover this tool and motivates continued development.
+If Scrape-LE saves you time, a quick rating helps other developers discover it:  
+⭐ [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le) • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le)
 
-⭐ **Star this repository** to get notified about updates and new features!
+## ✅ Why Scrape-LE?
 
-## ✅ Why Scrape-LE
+Validate scraper targets **before debugging your code**. Check if sites are reachable, detect auth walls, and verify selectors — all from your editor.
 
-**Web scraping projects fail when target sites are unreachable or behave unexpectedly.** Debugging scraper failures is time-consuming when you don't know if the issue is your code or the target site.
-
-**Scrape-LE makes site validation effortless.**  
-Quickly verify that pages load, render JavaScript correctly, and are accessible before deploying your scrapers.
+Scrape-LE uses real browser automation (Playwright) to catch issues early: JavaScript rendering errors, authentication requirements, CAPTCHA detection, and selector validation. Stop wasting time debugging code when the problem is the target site.
 
 - **Pre-deployment validation**  
   Test target URLs before writing scraper code. Catch unreachable sites, JS errors, and rendering issues early.
@@ -70,81 +68,26 @@ Quickly verify that pages load, render JavaScript correctly, and are accessible 
 
 ## 🚀 More from the LE Family
 
-**Scrape-LE** is part of a growing family of developer tools designed to make your workflow effortless:
+- **[String-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.string-le)** - Extract user-visible strings for i18n and validation • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/string-le)
+- **[Numbers-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.numbers-le)** - Extract and analyze numeric data with statistics • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/numbers-le)
+- **[EnvSync-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.envsync-le)** - Keep .env files in sync with visual diffs • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/envsync-le)
+- **[Paths-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.paths-le)** - Extract file paths from imports and dependencies • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/paths-le)
+- **[URLs-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.urls-le)** - Audit API endpoints and external resources • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/urls-le)
+- **[Colors-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.colors-le)** - Extract and analyze colors from stylesheets • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/colors-le)
+- **[Dates-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.dates-le)** - Extract temporal data from logs and APIs • [Open VSX](https://open-vsx.org/extension/nolindnaidoo/dates-le)
 
-- **Strings-LE** - Extract every user-visible string from JSON, YAML, CSV, TOML, INI, and .env files with zero hassle  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.string-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/string-le)]
+## 💡 Use Cases
 
-- **EnvSync-LE** - Effortlessly detect, compare, and synchronize .env files across your workspace with visual diffs  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.envsync-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/envsync-le)]
+- **Pre-Scraper Validation** - Check if sites are reachable before writing scraper code
+- **Anti-Bot Detection** - Identify Cloudflare, reCAPTCHA, hCaptcha before deployment
+- **Rate Limit Discovery** - Find rate limits before hitting them in production
+- **robots.txt Compliance** - Verify crawling is allowed by site policies
+- **Auth Wall Detection** - Check if login or paywalls block access
+  Disallow: /admin/, /api/internal/
+  Crawl-delay: 10 seconds
+  Sitemap: https://example.com/sitemap.xml
 
-- **Numbers-LE** - Extract and analyze numeric data from JSON, YAML, CSV, TOML, INI, and .env files  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.numbers-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/numbers-le)]
-
-- **Paths-LE** - Extract and analyze file paths from imports, configs, and dependencies  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.paths-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/paths-le)]
-
-- **Colors-LE** - Extract and analyze colors from CSS, HTML, JavaScript, and TypeScript  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.colors-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/colors-le)]
-
-- **Dates-LE** - Extract and analyze dates from logs, APIs, and temporal data  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.dates-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/dates-le)]
-
-- **URLs-LE** - Extract and analyze URLs from web content, APIs, and resources  
-  [[VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.urls-le)] [[Open VSX](https://open-vsx.org/extension/nolindnaidoo/urls-le)]
-
-Each tool follows the same philosophy: **Zero Hassle, Maximum Productivity**.
-
-## 💡 Use Cases & Examples
-
-### Pre-Scraper Validation
-
-Verify target accessibility before building scrapers:
-
-```typescript
-// Check reachability first
-await checkUrl("https://api.example.com/data");
-
-// Then write your scraper with confidence
-async function scrapeData() {
-  const response = await fetch("https://api.example.com/data");
-  // ... scraper logic
-}
-```
-
-### Anti-Bot Detection
-
-Identify protection systems before deployment:
-
-```typescript
-// Detect anti-bot measures
-✅ Cloudflare Protection: Not detected
-✅ reCAPTCHA: Not detected
-⚠️  hCaptcha: Detected (may require captcha solving)
-✅ DataDome: Not detected
-```
-
-### Rate Limit Discovery
-
-Find rate limits before hitting them:
-
-```typescript
-// Discover rate limits
-Rate Limit: 100 requests per minute
-Remaining: 95 requests
-Reset: 45 seconds
-```
-
-### robots.txt Compliance
-
-Verify crawling is allowed:
-
-```typescript
-// Check robots.txt
-Disallow: /admin/, /api/internal/
-Crawl-delay: 10 seconds
-Sitemap: https://example.com/sitemap.xml
-```
+````
 
 ## 🚀 Quick Start
 
@@ -170,7 +113,7 @@ On first use, Scrape-LE automatically detects if Chromium is installed and promp
 
 ```bash
 bunx playwright install chromium
-```
+````
 
 Or run from Command Palette: **"Scrape-LE: Setup Browser"**
 
@@ -249,152 +192,65 @@ See [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md).
 
 ## ⚡ Performance
 
-Scrape-LE is optimized for fast feedback:
+Scrape-LE performance varies by target website and network. See [detailed benchmarks](docs/PERFORMANCE.md).
 
-| Operation            | Duration | Notes                         |
-| -------------------- | -------- | ----------------------------- |
-| **Simple Page**      | 1-3s     | Basic HTML/CSS pages          |
-| **JavaScript Heavy** | 3-8s     | SPAs, React, Vue, Angular     |
-| **Large Pages**      | 5-15s    | Heavy images, complex layouts |
-| **Protected Sites**  | 10-30s   | Sites with anti-bot checks    |
+| Scenario           | Page Size     | Duration | Memory    | Status |
+| ------------------ | ------------- | -------- | --------- | ------ |
+| **Simple HTML**    | < 100 KB      | < 2s     | < 20 MB   | ✅     |
+| **Complex**        | 500 KB - 1 MB | 3-5s     | 30-50 MB  | ✅     |
+| **Heavy JS (SPA)** | 1-3 MB        | 5-10s    | 50-100 MB | ⚠️     |
+| **Image-heavy**    | 2-5 MB        | 5-15s    | 60-120 MB | ⚠️     |
 
-### Performance Notes
+**Browser**: Launch 1-2s, screenshot 200-800ms PNG / 150-600ms JPEG  
+**Detection**: Anti-bot 85-90% accuracy (< 100ms), Rate limits 80-85% (< 50ms)  
+**Full Metrics**: [docs/PERFORMANCE.md](docs/PERFORMANCE.md) • Network-dependent performance
 
-- **Memory Usage**: ~200MB base + Chromium browser instance
-- **Concurrent Checks**: One at a time to avoid resource contention
-- **Network Speed**: Directly affects load times
 - **Timeout Configuration**: Adjust based on target site complexity
 - **Screenshot Impact**: Adds 1-2s to overall check time
 - **Detection Suite**: Adds 500ms-2s for all checks combined
 
 ## 🧩 System Requirements
 
-- **VS Code**: 1.70.0 or higher
-- **Node.js**: Not required (extension uses Bun runtime)
-- **Platform**: Windows, macOS, Linux
-- **Memory**: 500MB minimum, 1GB recommended
-- **Storage**: 150MB (25MB extension + 130MB Chromium)
-- **Network**: Required for checking external URLs
+**VS Code** 1.70.0+ • **Platform** Windows, macOS, Linux  
+**Memory** 1GB recommended • **Storage** 150MB (includes Chromium)
 
-## 🔒 Privacy & Telemetry
+## 🔒 Privacy
 
-- Runs entirely locally; no data is sent off your machine.
-- URLs you check are only sent to the target sites you specify.
-- Optional local-only logs can be enabled with `scrape-le.notificationsLevel: "all"`.
-- Logs appear in Output panel → "Scrape-LE".
-- No analytics, tracking, or external API calls.
-
-See [`docs/PRIVACY.md`](docs/PRIVACY.md).
+100% local processing. URLs only sent to sites you specify. No analytics or tracking.
 
 ## 🌍 Language Support
 
-**13 languages supported** with full localization:
-
-- 🇺🇸 **English** (en) - Default language
-- 🇩🇪 **German** (de) - Deutsche Lokalisierung
-- 🇪🇸 **Spanish** (es) - Localización en español
-- 🇫🇷 **French** (fr) - Localisation française
-- 🇮🇩 **Indonesian** (id) - Lokalisasi bahasa Indonesia
-- 🇮🇹 **Italian** (it) - Localizzazione italiana
-- 🇯🇵 **Japanese** (ja) - 日本語サポート
-- 🇰🇷 **Korean** (ko) - 한국어 지원
-- 🇧🇷 **Portuguese (Brazil)** (pt-br) - Localização em português brasileiro
-- 🇷🇺 **Russian** (ru) - Русская локализация
-- 🇺🇦 **Ukrainian** (uk) - Українська локалізація
-- 🇻🇳 **Vietnamese** (vi) - Hỗ trợ tiếng Việt
-- 🇨🇳 **Chinese Simplified** (zh-cn) - 简体中文支持
-
-All commands, settings, notifications, and help content automatically adapt to your VS Code language preference.
+**13 languages**: English, German, Spanish, French, Indonesian, Italian, Japanese, Korean, Portuguese (Brazil), Russian, Ukrainian, Vietnamese, Chinese (Simplified)
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+**"Executable doesn't exist" error?**  
+Run **"Scrape-LE: Setup Browser"** from Command Palette to install Chromium
 
-**"Executable doesn't exist" error**
+**Check times out?**  
+Increase timeout: `scrape-le.browser.timeout` (default 30s) or check network connection
 
-- Run **"Scrape-LE: Setup Browser"** from Command Palette
-- Or manually: `bunx playwright install chromium`
-- Verify installation: Run **"Scrape-LE: Setup Browser"** → "Test Browser Installation"
-
-**Check times out**
-
-- Increase timeout: `scrape-le.browser.timeout` (default 30s)
-- Check your network connection
-- Verify the URL is accessible in regular browser
-- Some sites may intentionally block automated browsers
-
-**Screenshots not saving**
-
-- Check `scrape-le.screenshot.path` setting
-- Ensure directory has write permissions
-- Verify `scrape-le.screenshot.enabled: true`
-- Check Output panel → "Scrape-LE" for errors
-
-**Anti-bot detection not working**
-
-- Enable detection: `scrape-le.detections.antiBot: true`
-- Some protection systems use server-side detection only
-- Detection uses heuristics and may not catch all systems
-- Check Output panel for detailed detection results
-
-**Console errors not captured**
-
-- Enable capture: `scrape-le.checkConsoleErrors: true`
-- Some errors may occur before capture starts
-- Check browser console in dev tools for comparison
-
-**Extension crashes or freezes**
-
-- Check Chromium is properly installed
-- Try reinstalling: Remove `~/Library/Caches/ms-playwright` and run setup again
-- Disable other browser automation extensions
-- Check Output panel → "Scrape-LE" for error messages
-- Reload VS Code window
-
-### Getting Help
-
-- Check the [Issues](https://github.com/nolindnaidoo/scrape-le/issues) page for known problems
-- Enable verbose logging: `scrape-le.notificationsLevel: "all"`
-- Review logs in Output panel → "Scrape-LE"
-- See [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) for detailed guidance
+**Need help?**  
+Check [Issues](https://github.com/nolindnaidoo/scrape-le/issues) or enable verbose logging: `scrape-le.notificationsLevel: "all"`
 
 ## ❓ FAQ
 
-**Q: Do I need to install Chromium separately?**  
-A: No, Scrape-LE handles installation automatically on first use. Just click "Install Chromium" when prompted.
+**Need to install Chromium?**  
+No, Scrape-LE handles it automatically on first use (~130MB download)
 
-**Q: Can I check localhost URLs?**  
-A: Yes, Scrape-LE works with localhost, local network IPs, and any accessible URL.
+**Works with localhost?**  
+Yes, supports localhost, local IPs, and any accessible URL
 
-**Q: Does this work with SPAs (React, Vue, Angular)?**  
-A: Yes, Scrape-LE uses a real browser so JavaScript frameworks render properly.
+**Works with React/Vue/Angular?**  
+Yes, uses real browser so SPAs render properly
 
-**Q: Can I check multiple URLs at once?**  
-A: Currently one URL at a time to ensure reliability. Batch checking is planned for future releases.
+**Will sites detect this?**  
+Uses headless Chromium which some sites detect. Use responsibly and check robots.txt
 
-**Q: Will this trigger bot detection on target sites?**  
-A: Scrape-LE uses headless Chromium which some sites detect. Use responsibly and check robots.txt first.
+## 📊 Testing
 
-**Q: Can I use this in CI/CD pipelines?**  
-A: Scrape-LE is designed for interactive use in VS Code. For CI/CD, consider dedicated scrapeability testing tools.
-
-**Q: How accurate is anti-bot detection?**  
-A: Detection uses common patterns and heuristics. It catches most major systems but may not detect all custom solutions.
-
-**Q: Does this work with VPNs/proxies?**  
-A: Yes, Scrape-LE respects your system's network configuration including VPNs and proxies.
-
-## 📊 Test Coverage
-
-- 121 passing tests (1 skipped) with comprehensive edge case coverage
-- 82.17% overall coverage with istanbul provider
-- Unit tests for all detector modules
-- Integration tests for command workflows
-- Mock Playwright browser for reliable testing
-- All coverage numbers verified through actual test runs
-- Error handling and timeout scenarios covered
-
-See [`docs/TESTING.md`](docs/TESTING.md).
+**93 unit tests** (4 skipped) • **89% function coverage, 91% line coverage**  
+Powered by Vitest • Run with `bun test --coverage`
 
 ---
 

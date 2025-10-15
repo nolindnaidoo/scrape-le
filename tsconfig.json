@@ -20,6 +20,7 @@
         ".vscode-test",
         "test/**/*",
         "vitest.config.ts",
-        "**/*.test.ts"
+        "**/*.test.ts",
+        "scripts"
     ]
 }
