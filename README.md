@@ -249,7 +249,7 @@ Uses headless Chromium which some sites detect. Use responsibly and check robots
 
 ## 📊 Testing
 
-**96 unit tests** • **87% function coverage, 91% line coverage**  
+**96 unit tests** • **33.61% function coverage, 40.41% line coverage**  
 Powered by Vitest • Run with `bun test --coverage`
 
 ---
