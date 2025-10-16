@@ -5,6 +5,14 @@ All notable changes to the "Scrape-LE" extension will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.6] - 2025-10-16
+
+### Technical
+
+- **Code quality maintenance** - Ran lint:fix to ensure code quality standards
+- **Package generation** - Created fresh extension package (scrape-le-1.4.6.vsix)
+- **Build verification** - Verified all build processes and dependencies are working correctly
+
 ## [1.4.5] - 2025-10-15
 
 ### Changed
