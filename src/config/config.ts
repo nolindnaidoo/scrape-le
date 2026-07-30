@@ -7,9 +7,12 @@ import type { Config, NotificationLevel } from '../types';
 const EXTENSION_ID = 'scrape-le';
 
 /**
- * Default configuration values
+ * Default configuration values — must stay identical to the defaults
+ * declared in package.json contributes.configuration (enforced by
+ * config.test.ts). The single manifest divergence: browser.userAgent
+ * declares '' while the runtime maps empty/whitespace to undefined.
  */
-const DEFAULT_CONFIG: Config = Object.freeze({
+export const DEFAULT_CONFIG: Config = Object.freeze({
 	browser: Object.freeze({
 		timeout: 30000,
 		viewport: Object.freeze({
