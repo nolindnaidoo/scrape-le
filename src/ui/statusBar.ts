@@ -2,10 +2,17 @@
  * Status bar management for Scrape-LE
  */
 import * as vscode from 'vscode';
+import { getConfiguration } from '../config/config';
 import type { StatusBar } from '../types';
 
+const IDLE_TEXT = '$(globe) Scrape-LE';
+const IDLE_TOOLTIP = 'Click to check URL scrapeability';
+
 /**
- * Creates a status bar item for the extension
+ * Creates the status bar item. Visibility is owned here and follows
+ * scrape-le.statusBar.enabled live — show() only surfaces the item when
+ * the setting allows it, and toggling the setting takes effect without
+ * a reload.
  */
 export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 	const statusBarItem = vscode.window.createStatusBarItem(
@@ -14,10 +21,26 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 	);
 
 	statusBarItem.command = 'scrape-le.checkUrl';
-	statusBarItem.text = '$(globe) Scrape-LE';
-	statusBarItem.tooltip = 'Click to check URL scrapeability';
+	statusBarItem.text = IDLE_TEXT;
+	statusBarItem.tooltip = IDLE_TOOLTIP;
+
+	const applyVisibility = (): void => {
+		if (getConfiguration().statusBar.enabled) {
+			statusBarItem.show();
+		} else {
+			statusBarItem.hide();
+		}
+	};
+	applyVisibility();
 
 	context.subscriptions.push(statusBarItem);
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration((event) => {
+			if (event.affectsConfiguration('scrape-le.statusBar.enabled')) {
+				applyVisibility();
+			}
+		}),
+	);
 
 	return Object.freeze({
 		show(message: string, tooltip?: string): void {
@@ -25,7 +48,7 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 			if (tooltip) {
 				statusBarItem.tooltip = tooltip;
 			}
-			statusBarItem.show();
+			applyVisibility();
 		},
 
 		hide(): void {

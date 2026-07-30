@@ -32,6 +32,7 @@ export const workspace = {
 	getConfiguration: () => ({
 		get: () => undefined,
 	}),
+	onDidChangeConfiguration: () => ({ dispose: () => {} }),
 	workspaceFolders: [],
 };
 
