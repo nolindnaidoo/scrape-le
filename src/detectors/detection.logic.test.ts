@@ -277,7 +277,7 @@ describe('Detection Logic Tests', () => {
 
 	describe('Edge Cases & Security', () => {
 		it('should handle missing headers gracefully', () => {
-			const headers = {};
+			const headers: Record<string, string> = {};
 			expect(headers['cf-ray']).toBeUndefined();
 			expect(headers['x-ratelimit-limit']).toBeUndefined();
 		});

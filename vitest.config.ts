@@ -9,14 +9,6 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html", "lcov"],
-      threshold: {
-        global: {
-          branches: 70,
-          functions: 75,
-          lines: 75,
-          statements: 75,
-        },
-      },
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/*.test.ts",

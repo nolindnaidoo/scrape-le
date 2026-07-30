@@ -12,7 +12,7 @@ describe('detectAuthentication', () => {
 	beforeEach(() => {
 		mockPage = {
 			url: () => 'https://example.com',
-			evaluate: async (fn: any) => false,
+			evaluate: async (_fn: any) => false,
 		};
 	});
 
@@ -130,7 +130,7 @@ describe('detectAuthentication', () => {
 	it('should detect authentication via URL path', async () => {
 		mockPage = {
 			url: () => 'https://example.com/login',
-			evaluate: async (fn: any) => false,
+			evaluate: async (_fn: any) => false,
 		};
 
 		const result = await AuthenticationDetector.detectAuthentication(
@@ -206,7 +206,7 @@ describe('detectAuthentication', () => {
 		// URL indicator alone is not enough
 		mockPage = {
 			url: () => 'https://example.com/login',
-			evaluate: async (fn: any) => {
+			evaluate: async (_fn: any) => {
 				return { hasPasswordInput: false };
 			},
 		};
@@ -250,7 +250,7 @@ describe('detectAuthentication', () => {
 			url: () => {
 				throw new Error('URL unavailable');
 			},
-			evaluate: async (fn: any) => false,
+			evaluate: async (_fn: any) => false,
 		};
 
 		const result = await AuthenticationDetector.detectAuthentication(

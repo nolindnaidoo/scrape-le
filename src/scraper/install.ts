@@ -4,8 +4,6 @@
 import * as vscode from 'vscode';
 import { isBrowserAvailable } from './browser';
 
-let _installCheckPerformed = false;
-
 /**
  * Checks if browser is installed and prompts user to install if not
  * Returns true if browser is available, false otherwise
@@ -129,15 +127,7 @@ This is a one-time setup (~130MB download).`;
 		});
 }
 
-/**
- * Resets the install check flag (for testing)
- */
-export function resetInstallCheck(): void {
-	_installCheckPerformed = false;
-}
-
 export const BrowserInstaller = Object.freeze({
 	ensureBrowserInstalled,
 	showManualInstallInstructions,
-	resetInstallCheck,
 });

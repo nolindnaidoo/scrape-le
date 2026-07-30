@@ -35,13 +35,12 @@ describe('checker', () => {
 
 	describe('checkPageScrapeability', () => {
 		it('should successfully check a reachable page', async () => {
-			const _mockConsoleMessages: Array<{ type: string; text: string }> = [];
 			const mockPage = {
 				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
 				title: vi.fn().mockResolvedValue('Test Page'),
 				screenshot: vi.fn().mockResolvedValue(Buffer.from('test')),
 				close: vi.fn().mockResolvedValue(undefined),
-				on: vi.fn((event, handler) => {
+				on: vi.fn((_event, _handler) => {
 					// Don't trigger any console events for this test
 				}),
 			};

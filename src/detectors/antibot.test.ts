@@ -12,7 +12,7 @@ describe('detectAntiBot', () => {
 
 	beforeEach(() => {
 		mockPage = {
-			evaluate: async (fn: any) => false,
+			evaluate: async (_fn: any) => false,
 		};
 
 		mockResponse = {
@@ -104,7 +104,7 @@ describe('detectAntiBot', () => {
 	it('should detect hCaptcha via script', async () => {
 		let callCount = 0;
 		mockPage = {
-			evaluate: async (fn: any) => {
+			evaluate: async (_fn: any) => {
 				callCount++;
 				// First call is for reCAPTCHA, second for hCaptcha
 				return callCount === 2;
@@ -155,7 +155,7 @@ describe('detectAntiBot', () => {
 	it('should detect DataDome via script', async () => {
 		let callCount = 0;
 		mockPage = {
-			evaluate: async (fn: any) => {
+			evaluate: async (_fn: any) => {
 				callCount++;
 				// Third call is for DataDome
 				return callCount === 3;
@@ -206,7 +206,7 @@ describe('detectAntiBot', () => {
 	it('should detect Perimeter81 via script', async () => {
 		let callCount = 0;
 		mockPage = {
-			evaluate: async (fn: any) => {
+			evaluate: async (_fn: any) => {
 				callCount++;
 				// Fourth call is for Perimeter81
 				return callCount === 4;

@@ -1,46 +1,14 @@
-# Security: Exclude coverage files that expose development paths
-coverage/
-*.lcov
-lcov-report/
+# Allow-list packaging: everything is excluded except what the extension
+# needs at runtime. dist/extension.js is an esbuild bundle that is fully
+# self-contained except for playwright-core, which cannot be bundled and
+# ships under node_modules/ — both enforced by scripts/check-bundle.js.
+**
 
-# Build artifacts and development files
-.vscodeignore
-.gitignore
-.gitattributes
-.cursorignore
-.cursorrules
-biome.json
-codecov.yml
-package-lock.json
-bun.lock
-tsconfig.json
-vitest.config.ts
-
-# Development directories
-.github/
-docs/
-test/
-scripts/
-
-# Source files (only include compiled dist/)
-src/
-!src/assets/images/preview.gif
+!dist/extension.js
+!node_modules/playwright-core/**
+!package.nls.json
+!package.nls.*.json
 !src/assets/images/icon.png
-src/**/*.test.ts
-src/**/*.bench.ts
-
-# Build artifacts
-dist/**/*.js.map
-dist/__mocks__/
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Sample/demo files
-sample/
-README-STRINGLE.md
-
-# Node modules (will be bundled)
-node_modules/
+!README.md
+!CHANGELOG.md
+!LICENSE

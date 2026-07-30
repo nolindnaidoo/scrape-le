@@ -15,7 +15,7 @@ describe('runDetections', () => {
 	beforeEach(() => {
 		mockPage = {
 			url: () => 'https://example.com',
-			evaluate: async (fn: any) => false,
+			evaluate: async (_fn: any) => false,
 		};
 
 		mockResponse = {
