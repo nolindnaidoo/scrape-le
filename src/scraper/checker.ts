@@ -7,7 +7,10 @@ import * as path from 'node:path';
 import type { Browser } from 'playwright-core';
 import { runDetections } from '../detectors';
 import type { CheckOptions, CheckResult, ConsoleMessage } from '../types';
-import { extractErrorMessage } from '../utils/errorHandling';
+import {
+	extractErrorMessage,
+	sanitizeErrorMessage,
+} from '../utils/errorHandling';
 import { convertUrlToFilename } from '../utils/url';
 
 /**
@@ -112,7 +115,7 @@ export async function checkPageScrapeability(
 		});
 	} catch (error) {
 		const loadTimeMs = Date.now() - startTime;
-		const errorMessage = extractErrorMessage(error);
+		const errorMessage = sanitizeErrorMessage(extractErrorMessage(error));
 
 		// Build error result
 		return Object.freeze({

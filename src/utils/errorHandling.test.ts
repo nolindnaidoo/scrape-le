@@ -7,6 +7,7 @@ import {
 	formatErrorForUser,
 	isNetworkError,
 	isTimeoutError,
+	sanitizeErrorMessage,
 } from './errorHandling';
 
 describe('Error Handling', () => {
@@ -73,6 +74,42 @@ describe('Error Handling', () => {
 			const formatted = formatErrorForUser(new Error('Generic error'));
 			expect(formatted).toContain('❌');
 			expect(formatted).toContain('Generic error');
+		});
+
+		it('should sanitize user paths in formatted errors', () => {
+			const formatted = formatErrorForUser(
+				new Error('ENOENT /Users/jane/project/file.txt'),
+			);
+			expect(formatted).toContain('/Users/***/');
+			expect(formatted).not.toContain('jane');
+		});
+	});
+
+	describe('sanitizeErrorMessage', () => {
+		it('redacts macOS, Linux and Windows user directories', () => {
+			expect(sanitizeErrorMessage('/Users/jane/x failed')).toBe(
+				'/Users/***/x failed',
+			);
+			expect(sanitizeErrorMessage('/home/jane/x failed')).toBe(
+				'/home/***/x failed',
+			);
+			expect(sanitizeErrorMessage('C:\\Users\\jane\\x failed')).toBe(
+				'C:\\Users\\***\\x failed',
+			);
+		});
+
+		it('redacts credential-shaped fragments', () => {
+			expect(sanitizeErrorMessage('auth password=hunter2 rejected')).toBe(
+				'auth password=*** rejected',
+			);
+			expect(sanitizeErrorMessage('token: abc123')).toBe('token=***');
+			expect(sanitizeErrorMessage('apikey=secret')).toBe('apikey=***');
+		});
+
+		it('leaves clean messages untouched', () => {
+			expect(sanitizeErrorMessage('net::ERR_CONNECTION_REFUSED')).toBe(
+				'net::ERR_CONNECTION_REFUSED',
+			);
 		});
 	});
 });
