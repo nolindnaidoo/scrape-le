@@ -1,6 +1,4 @@
 {
-	"manifest.ext.name": "Scrape-LE",
-	"manifest.ext.description": "Lightweight Web Scrapeability Checker - Verify page reachability, capture titles, take screenshots, and detect anti-scraping measures",
 	"manifest.command.category": "Scrape-LE",
 	"manifest.command.check-url.title": "Check URL Scrapeability",
 	"manifest.command.check-selection.title": "Check Selected URL",

@@ -1,24 +1,24 @@
 {
 	"name": "scrape-le",
-	"publisher": "OffensiveEdge",
-	"displayName": "%manifest.ext.name%",
+	"publisher": "nolindnaidoo",
+	"displayName": "Scrape-LE",
 	"description": "Zero Hassle Web Scrapeability Checker - Validate scraper targets before debugging",
 	"version": "1.8.1",
 	"license": "MIT",
 	"author": {
-		"name": "OffensiveEdge",
-		"url": "https://github.com/OffensiveEdge"
+		"name": "nolindnaidoo",
+		"url": "https://github.com/nolindnaidoo"
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/OffensiveEdge/scrape-le.git"
+		"url": "https://github.com/nolindnaidoo/scrape-le.git"
 	},
 	"bugs": {
-		"url": "https://github.com/OffensiveEdge/scrape-le/issues"
+		"url": "https://github.com/nolindnaidoo/scrape-le/issues"
 	},
-	"homepage": "https://github.com/OffensiveEdge/scrape-le#readme",
+	"homepage": "https://github.com/nolindnaidoo/scrape-le#readme",
 	"engines": {
-		"vscode": "^1.70.0",
+		"vscode": "^1.90.0",
 		"node": ">=20.0.0"
 	},
 	"categories": [
@@ -47,13 +47,6 @@
 	],
 	"icon": "src/assets/images/icon.png",
 	"main": "./dist/extension.js",
-	"activationEvents": [
-		"onCommand:scrape-le.checkUrl",
-		"onCommand:scrape-le.checkSelection",
-		"onCommand:scrape-le.setup",
-		"onCommand:scrape-le.openSettings",
-		"onCommand:scrape-le.help"
-	],
 	"capabilities": {
 		"virtualWorkspaces": {
 			"supported": "limited",
@@ -255,7 +248,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.5",
 		"@types/node": "^24.7.1",
-		"@types/vscode": "^1.70.0",
+		"@types/vscode": "^1.90.0",
 		"@vitest/coverage-istanbul": "^3.2.4",
 		"@vscode/vsce": "^3.6.2",
 		"esbuild": "^0.28.1",
