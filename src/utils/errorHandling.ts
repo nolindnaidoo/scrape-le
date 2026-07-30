@@ -72,11 +72,3 @@ export function formatErrorForUser(error: unknown): string {
 
 	return `❌ Error: ${message}`;
 }
-
-export const ErrorHandling = Object.freeze({
-	createEnhancedError,
-	extractErrorMessage,
-	isTimeoutError,
-	isNetworkError,
-	formatErrorForUser,
-});

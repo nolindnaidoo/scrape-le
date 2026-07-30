@@ -86,10 +86,3 @@ export function convertUrlToFilename(url: string): string {
 			.substring(0, 100);
 	}
 }
-
-export const UrlUtils = Object.freeze({
-	validateUrl,
-	normalizeUrl,
-	extractUrl,
-	convertUrlToFilename,
-});

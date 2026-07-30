@@ -164,7 +164,3 @@ async function captureScreenshot(
 		return '';
 	}
 }
-
-export const Checker = Object.freeze({
-	checkPageScrapeability,
-});

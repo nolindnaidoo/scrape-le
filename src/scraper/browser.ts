@@ -55,9 +55,3 @@ export async function isBrowserAvailable(): Promise<boolean> {
 		return false;
 	}
 }
-
-export const BrowserManager = Object.freeze({
-	createBrowser,
-	closeBrowser,
-	isBrowserAvailable,
-});

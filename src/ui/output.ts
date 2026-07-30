@@ -9,20 +9,11 @@ let outputChannel: vscode.OutputChannel | null = null;
 /**
  * Gets or creates the output channel
  */
-export function getOutputChannel(): vscode.OutputChannel {
+function getOutputChannel(): vscode.OutputChannel {
 	if (!outputChannel) {
 		outputChannel = vscode.window.createOutputChannel('Scrape-LE');
 	}
 	return outputChannel;
-}
-
-/**
- * Logs a message to the output channel
- */
-export function log(message: string): void {
-	const channel = getOutputChannel();
-	const timestamp = new Date().toISOString();
-	channel.appendLine(`[${timestamp}] ${message}`);
 }
 
 /**
@@ -188,19 +179,3 @@ export function showOutput(): void {
 	const channel = getOutputChannel();
 	channel.show(true);
 }
-
-/**
- * Clears the output channel
- */
-export function clearOutput(): void {
-	const channel = getOutputChannel();
-	channel.clear();
-}
-
-export const Output = Object.freeze({
-	getOutputChannel,
-	log,
-	logCheckResult,
-	showOutput,
-	clearOutput,
-});

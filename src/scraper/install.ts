@@ -126,8 +126,3 @@ This is a one-time setup (~130MB download).`;
 			}
 		});
 }
-
-export const BrowserInstaller = Object.freeze({
-	ensureBrowserInstalled,
-	showManualInstallInstructions,
-});

@@ -87,11 +87,6 @@
 				"category": "%manifest.command.category%"
 			},
 			{
-				"command": "scrape-le.exportResults",
-				"title": "%manifest.command.export.title%",
-				"category": "%manifest.command.category%"
-			},
-			{
 				"command": "scrape-le.help",
 				"title": "%manifest.command.help.title%",
 				"category": "%manifest.command.category%"
@@ -125,9 +120,6 @@
 				},
 				{
 					"command": "scrape-le.openSettings"
-				},
-				{
-					"command": "scrape-le.exportResults"
 				},
 				{
 					"command": "scrape-le.help"
@@ -265,7 +257,6 @@
 		"@types/node": "^24.7.1",
 		"@types/vscode": "^1.70.0",
 		"@vitest/coverage-istanbul": "^3.2.4",
-		"@vscode/test-electron": "^2.3.0",
 		"@vscode/vsce": "^3.6.2",
 		"esbuild": "^0.28.1",
 		"typescript": "^5.9.3",
