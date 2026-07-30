@@ -1,0 +1,136 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`url utils characterization > input: "192.168.1.1/admin" 1`] = `
+{
+  "extract": "https://192.168.1.1/admin",
+  "filename": "192-168-1-1-admin",
+  "normalize": "https://192.168.1.1/admin",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "Check out https://first.example.com and https://second.example.com too" 1`] = `
+{
+  "extract": "https://first.example.com",
+  "filename": "check-out-https---first-example-com-and-https---second-example-com-too",
+  "normalize": "https://Check out https://first.example.com and https://second.example.com too",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "a-very-long-string-without-any-url-in-it-that-goes-on-and-on-and-should-exceed-one-hundred-characters-total-for-the-truncation-fallback" 1`] = `
+{
+  "extract": "https://a-very-long-string-without-any-url-in-it-that-goes-on-and-on-and-should-exceed-one-hundred-characters-total-for-the-truncation-fallback",
+  "filename": "a-very-long-string-without-any-url-in-it-that-goes-on-and-on-and-should-exceed-one-hundred-character",
+  "normalize": "https://a-very-long-string-without-any-url-in-it-that-goes-on-and-on-and-should-exceed-one-hundred-characters-total-for-the-truncation-fallback",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "example.com" 1`] = `
+{
+  "extract": "https://example.com",
+  "filename": "example-com",
+  "normalize": "https://example.com",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "ftp://example.com/file" 1`] = `
+{
+  "extract": "https://ftp://example.com/file",
+  "filename": "example-com-2026-07-29",
+  "normalize": "https://ftp://example.com/file",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "http://sub.domain.example.co.uk/deep/path" 1`] = `
+{
+  "extract": "http://sub.domain.example.co.uk/deep/path",
+  "filename": "sub-domain-example-co-uk-2026-07-29",
+  "normalize": "http://sub.domain.example.co.uk/deep/path",
+  "validate": true,
+}
+`;
+
+exports[`url utils characterization > input: "https://" 1`] = `
+{
+  "extract": null,
+  "filename": "https---",
+  "normalize": "https://",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "https://example.com" 1`] = `
+{
+  "extract": "https://example.com",
+  "filename": "example-com-2026-07-29",
+  "normalize": "https://example.com",
+  "validate": true,
+}
+`;
+
+exports[`url utils characterization > input: "https://example.com/path?query=1#frag" 1`] = `
+{
+  "extract": "https://example.com/path?query=1#frag",
+  "filename": "example-com-2026-07-29",
+  "normalize": "https://example.com/path?query=1#frag",
+  "validate": true,
+}
+`;
+
+exports[`url utils characterization > input: "https://xn--r8jz45g.jp/path" 1`] = `
+{
+  "extract": "https://xn--r8jz45g.jp/path",
+  "filename": "xn--r8jz45g-jp-2026-07-29",
+  "normalize": "https://xn--r8jz45g.jp/path",
+  "validate": true,
+}
+`;
+
+exports[`url utils characterization > input: "javascript:alert(1)" 1`] = `
+{
+  "extract": null,
+  "filename": "-2026-07-29",
+  "normalize": "https://javascript:alert(1)",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "localhost:3000/api" 1`] = `
+{
+  "extract": "https://localhost:3000/api",
+  "filename": "-2026-07-29",
+  "normalize": "https://localhost:3000/api",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "not a url at all" 1`] = `
+{
+  "extract": null,
+  "filename": "not-a-url-at-all",
+  "normalize": "https://not a url at all",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "text with example.com/embedded inside" 1`] = `
+{
+  "extract": null,
+  "filename": "text-with-example-com-embedded-inside",
+  "normalize": "https://text with example.com/embedded inside",
+  "validate": false,
+}
+`;
+
+exports[`url utils characterization > input: "www.example.com/foo" 1`] = `
+{
+  "extract": "https://www.example.com/foo",
+  "filename": "www-example-com-foo",
+  "normalize": "https://www.example.com/foo",
+  "validate": false,
+}
+`;

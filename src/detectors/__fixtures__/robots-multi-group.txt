@@ -1,0 +1,13 @@
+User-agent: Googlebot
+Disallow: /google-only/
+
+User-agent: *
+Disallow: /everyone/
+
+User-agent: FooBot
+User-agent: *
+Disallow: /grouped-star-last/
+
+User-agent: *
+User-agent: BarBot
+Disallow: /grouped-star-first/

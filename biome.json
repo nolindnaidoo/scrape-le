@@ -11,6 +11,8 @@
 			"src/**/*.ts",
 			"!src/**/__performance__",
 			"!src/**/__data__",
+			"!src/**/__fixtures__",
+			"!src/**/__snapshots__",
 			"!src/**/__mocks__",
 			"!src/**/sample",
 			"!src/**/test-fixtures",

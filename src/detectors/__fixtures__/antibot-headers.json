@@ -1,0 +1,9 @@
+{
+	"cloudflare-cf-ray": { "cf-ray": "8abc123-EWR" },
+	"cloudflare-cache-status": { "cf-cache-status": "HIT" },
+	"cloudflare-server": { "server": "cloudflare" },
+	"datadome-cid": { "x-datadome-cid": "abc" },
+	"datadome-server": { "server": "DataDome" },
+	"perimeter81-request-id": { "x-per-request-id": "xyz" },
+	"clean": { "server": "nginx" }
+}

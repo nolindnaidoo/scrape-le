@@ -1,0 +1,25 @@
+{
+	"x-prefixed-full": {
+		"x-ratelimit-limit": "100",
+		"x-ratelimit-remaining": "95",
+		"x-ratelimit-reset": "1234567890"
+	},
+	"unprefixed": {
+		"ratelimit-limit": "50",
+		"ratelimit-remaining": "10"
+	},
+	"retry-after-only": {
+		"retry-after": "120"
+	},
+	"zero-values": {
+		"x-ratelimit-limit": "0",
+		"x-ratelimit-remaining": "0"
+	},
+	"empty-strings": {
+		"x-ratelimit-limit": "",
+		"retry-after": ""
+	},
+	"none": {
+		"content-type": "text/html"
+	}
+}

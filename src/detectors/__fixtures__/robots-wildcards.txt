@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /*.json$
+Disallow: /private*
+Disallow:
+Allow: /public/
+Crawl-delay: not-a-number
+Sitemap: https://example.com/map1.xml
+Sitemap: https://example.com/map2.xml

@@ -1,0 +1,460 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`anti-bot characterization > all script probes positive, clean headers 1`] = `
+{
+  "cloudflare": false,
+  "datadome": true,
+  "details": [
+    "reCAPTCHA detected",
+    "hCaptcha detected",
+    "DataDome (script detected)",
+    "Perimeter81 (script detected)",
+  ],
+  "hcaptcha": true,
+  "perimeter81": true,
+  "recaptcha": true,
+}
+`;
+
+exports[`anti-bot characterization > headers only: clean 1`] = `
+{
+  "cloudflare": false,
+  "datadome": false,
+  "details": [],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > headers only: cloudflare-cache-status 1`] = `
+{
+  "cloudflare": true,
+  "datadome": false,
+  "details": [
+    "Cloudflare (cf-cache-status header detected)",
+  ],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > headers only: cloudflare-cf-ray 1`] = `
+{
+  "cloudflare": true,
+  "datadome": false,
+  "details": [
+    "Cloudflare (cf-ray header detected)",
+  ],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > headers only: cloudflare-server 1`] = `
+{
+  "cloudflare": true,
+  "datadome": false,
+  "details": [
+    "Cloudflare (server header)",
+  ],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > headers only: datadome-cid 1`] = `
+{
+  "cloudflare": false,
+  "datadome": true,
+  "details": [
+    "DataDome (headers detected)",
+  ],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > headers only: datadome-server 1`] = `
+{
+  "cloudflare": false,
+  "datadome": true,
+  "details": [
+    "DataDome (headers detected)",
+  ],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > headers only: perimeter81-request-id 1`] = `
+{
+  "cloudflare": false,
+  "datadome": false,
+  "details": [
+    "Perimeter81 (headers detected)",
+  ],
+  "hcaptcha": false,
+  "perimeter81": true,
+  "recaptcha": false,
+}
+`;
+
+exports[`anti-bot characterization > null response with clean page 1`] = `
+{
+  "cloudflare": false,
+  "datadome": false,
+  "details": [],
+  "hcaptcha": false,
+  "perimeter81": false,
+  "recaptcha": false,
+}
+`;
+
+exports[`authentication characterization > HTTP 401 1`] = `
+{
+  "indicators": [
+    "HTTP 401 Unauthorized",
+  ],
+  "loginUrl": undefined,
+  "required": true,
+  "type": undefined,
+}
+`;
+
+exports[`authentication characterization > HTTP 403 1`] = `
+{
+  "indicators": [
+    "HTTP 403 Forbidden",
+  ],
+  "loginUrl": undefined,
+  "required": true,
+  "type": undefined,
+}
+`;
+
+exports[`authentication characterization > bare password input outside a form 1`] = `
+{
+  "indicators": [
+    "Password input detected",
+  ],
+  "loginUrl": undefined,
+  "required": true,
+  "type": "form",
+}
+`;
+
+exports[`authentication characterization > keyword alone is not enough 1`] = `
+{
+  "indicators": [],
+  "required": false,
+}
+`;
+
+exports[`authentication characterization > keyword plus /auth-substring URL false positive (/author) 1`] = `
+{
+  "indicators": [
+    "Authentication keyword: "sign in"",
+    "URL contains auth path: /auth",
+  ],
+  "loginUrl": undefined,
+  "required": true,
+  "type": undefined,
+}
+`;
+
+exports[`authentication characterization > login form with username and action 1`] = `
+{
+  "indicators": [
+    "Login form detected (username + password fields)",
+  ],
+  "loginUrl": "https://example.com/login",
+  "required": true,
+  "type": "form",
+}
+`;
+
+exports[`authentication characterization > nothing detected 1`] = `
+{
+  "indicators": [],
+  "required": false,
+}
+`;
+
+exports[`rate-limit characterization > headers: empty-strings 1`] = `
+{
+  "detected": false,
+}
+`;
+
+exports[`rate-limit characterization > headers: none 1`] = `
+{
+  "detected": false,
+}
+`;
+
+exports[`rate-limit characterization > headers: retry-after-only 1`] = `
+{
+  "detected": true,
+  "limit": undefined,
+  "remaining": undefined,
+  "reset": undefined,
+  "retryAfter": "120",
+}
+`;
+
+exports[`rate-limit characterization > headers: unprefixed 1`] = `
+{
+  "detected": true,
+  "limit": "50",
+  "remaining": "10",
+  "reset": undefined,
+  "retryAfter": undefined,
+}
+`;
+
+exports[`rate-limit characterization > headers: x-prefixed-full 1`] = `
+{
+  "detected": true,
+  "limit": "100",
+  "remaining": "95",
+  "reset": "1234567890",
+  "retryAfter": undefined,
+}
+`;
+
+exports[`rate-limit characterization > headers: zero-values 1`] = `
+{
+  "detected": true,
+  "limit": "0",
+  "remaining": "0",
+  "reset": undefined,
+  "retryAfter": undefined,
+}
+`;
+
+exports[`rate-limit characterization > null response 1`] = `
+{
+  "detected": false,
+}
+`;
+
+exports[`robots.txt characterization > missing robots.txt (404) 1`] = `
+{
+  "allowsCrawling": true,
+  "disallowedPaths": [],
+  "exists": false,
+}
+`;
+
+exports[`robots.txt characterization > network failure 1`] = `
+{
+  "allowsCrawling": true,
+  "disallowedPaths": [],
+  "exists": false,
+}
+`;
+
+exports[`robots.txt characterization > robots-disallow-all.txt for path / 1`] = `
+{
+  "allowsCrawling": false,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/",
+  ],
+  "exists": true,
+  "sitemap": undefined,
+}
+`;
+
+exports[`robots.txt characterization > robots-disallow-all.txt for path /anything 1`] = `
+{
+  "allowsCrawling": false,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/",
+  ],
+  "exists": true,
+  "sitemap": undefined,
+}
+`;
+
+exports[`robots.txt characterization > robots-multi-group.txt for path /everyone/x 1`] = `
+{
+  "allowsCrawling": false,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/everyone/",
+    "/grouped-star-last/",
+  ],
+  "exists": true,
+  "sitemap": undefined,
+}
+`;
+
+exports[`robots.txt characterization > robots-multi-group.txt for path /google-only/x 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/everyone/",
+    "/grouped-star-last/",
+  ],
+  "exists": true,
+  "sitemap": undefined,
+}
+`;
+
+exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-star-first/x 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/everyone/",
+    "/grouped-star-last/",
+  ],
+  "exists": true,
+  "sitemap": undefined,
+}
+`;
+
+exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-star-last/x 1`] = `
+{
+  "allowsCrawling": false,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/everyone/",
+    "/grouped-star-last/",
+  ],
+  "exists": true,
+  "sitemap": undefined,
+}
+`;
+
+exports[`robots.txt characterization > robots-simple.txt for path / 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": 10,
+  "disallowedPaths": [
+    "/admin/",
+    "/api/internal/",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/sitemap.xml",
+}
+`;
+
+exports[`robots.txt characterization > robots-simple.txt for path /admin/panel 1`] = `
+{
+  "allowsCrawling": false,
+  "crawlDelay": 10,
+  "disallowedPaths": [
+    "/admin/",
+    "/api/internal/",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/sitemap.xml",
+}
+`;
+
+exports[`robots.txt characterization > robots-simple.txt for path /api/internal/x 1`] = `
+{
+  "allowsCrawling": false,
+  "crawlDelay": 10,
+  "disallowedPaths": [
+    "/admin/",
+    "/api/internal/",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/sitemap.xml",
+}
+`;
+
+exports[`robots.txt characterization > robots-simple.txt for path /apiary 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": 10,
+  "disallowedPaths": [
+    "/admin/",
+    "/api/internal/",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/sitemap.xml",
+}
+`;
+
+exports[`robots.txt characterization > robots-wildcards.txt for path /data.json 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/*.json$",
+    "/private*",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/map2.xml",
+}
+`;
+
+exports[`robots.txt characterization > robots-wildcards.txt for path /private/data 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/*.json$",
+    "/private*",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/map2.xml",
+}
+`;
+
+exports[`robots.txt characterization > robots-wildcards.txt for path /public/page 1`] = `
+{
+  "allowsCrawling": true,
+  "crawlDelay": undefined,
+  "disallowedPaths": [
+    "/*.json$",
+    "/private*",
+  ],
+  "exists": true,
+  "sitemap": "https://example.com/map2.xml",
+}
+`;
+
+exports[`runDetections aggregation characterization > all detections disabled returns empty object 1`] = `{}`;
+
+exports[`runDetections aggregation characterization > all detections enabled on a clean page 1`] = `
+{
+  "antiBot": {
+    "cloudflare": false,
+    "datadome": false,
+    "details": [],
+    "hcaptcha": false,
+    "perimeter81": false,
+    "recaptcha": false,
+  },
+  "authentication": {
+    "indicators": [],
+    "required": false,
+  },
+  "rateLimit": {
+    "detected": false,
+  },
+  "robotsTxt": {
+    "allowsCrawling": true,
+    "crawlDelay": 10,
+    "disallowedPaths": [
+      "/admin/",
+      "/api/internal/",
+    ],
+    "exists": true,
+    "sitemap": "https://example.com/sitemap.xml",
+  },
+}
+`;

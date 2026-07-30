@@ -1,0 +1,15 @@
+https://example.com
+https://example.com/path?query=1#frag
+http://sub.domain.example.co.uk/deep/path
+example.com
+www.example.com/foo
+ftp://example.com/file
+javascript:alert(1)
+not a url at all
+localhost:3000/api
+192.168.1.1/admin
+https://xn--r8jz45g.jp/path
+Check out https://first.example.com and https://second.example.com too
+text with example.com/embedded inside
+https://
+a-very-long-string-without-any-url-in-it-that-goes-on-and-on-and-should-exceed-one-hundred-characters-total-for-the-truncation-fallback
