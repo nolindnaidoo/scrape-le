@@ -29,7 +29,13 @@ for (const match of source.matchAll(/\brequire\(\s*["']([^"']+)["']\s*\)/g)) {
 	const specifier = match[1];
 	if (specifier === 'vscode') continue;
 	if (Module.isBuiltin(specifier)) continue;
-	if (ALLOWED_EXTERNALS.has(specifier)) continue;
+	// the whole package ships in the VSIX, so subpaths resolve too
+	if (
+		[...ALLOWED_EXTERNALS].some(
+			(pkg) => specifier === pkg || specifier.startsWith(`${pkg}/`),
+		)
+	)
+		continue;
 	offenders.add(specifier);
 }
 if (offenders.size > 0) {
