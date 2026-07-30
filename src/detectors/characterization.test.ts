@@ -128,23 +128,45 @@ describe('anti-bot characterization', () => {
 		fixture('antibot-headers.json'),
 	);
 
+	const CLEAN_PROBE = {
+		script: false,
+		selector: false,
+		global: false,
+	};
+	const cleanProbeResult = {
+		cloudflare: CLEAN_PROBE,
+		recaptcha: CLEAN_PROBE,
+		hcaptcha: CLEAN_PROBE,
+		datadome: CLEAN_PROBE,
+		perimeterx: CLEAN_PROBE,
+	};
+
 	for (const [name, headers] of Object.entries(headerSets)) {
 		it(`headers only: ${name}`, async () => {
-			// evaluate order: recaptcha, hcaptcha, datadome, perimeter81
-			const page = makePage([false, false, false, false]);
+			// single page.evaluate probe covering all vendors
+			const page = makePage([cleanProbeResult]);
 			const result = await detectAntiBot(page, makeResponse(headers));
 			expect(result).toMatchSnapshot();
 		});
 	}
 
 	it('all script probes positive, clean headers', async () => {
-		const page = makePage([true, true, true, true]);
+		const HIT = { script: true, selector: false, global: false };
+		const page = makePage([
+			{
+				cloudflare: HIT,
+				recaptcha: HIT,
+				hcaptcha: HIT,
+				datadome: HIT,
+				perimeterx: HIT,
+			},
+		]);
 		const result = await detectAntiBot(page, makeResponse({ server: 'nginx' }));
 		expect(result).toMatchSnapshot();
 	});
 
 	it('null response with clean page', async () => {
-		const page = makePage([false, false, false, false]);
+		const page = makePage([cleanProbeResult]);
 		expect(await detectAntiBot(page, null)).toMatchSnapshot();
 	});
 });

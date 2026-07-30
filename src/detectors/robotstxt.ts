@@ -1,5 +1,19 @@
 /**
- * robots.txt fetching and parsing
+ * robots.txt fetching and parsing.
+ *
+ * Follows RFC 9309 group and matching semantics for the rules that
+ * apply to all crawlers (User-agent: *):
+ * - consecutive User-agent lines form one group header; any other
+ *   directive closes the header, and the group's rules apply when any
+ *   of its agents is '*'
+ * - Allow and Disallow both participate; the longest matching pattern
+ *   wins, Allow winning ties
+ * - patterns support '*' (any characters) and a trailing '$' anchor
+ *
+ * Honest limitations: agent-specific groups are ignored entirely (we
+ * only report the generic rules — a site may treat your specific
+ * scraper differently), and crawl-delay is a de-facto extension, not
+ * part of the RFC.
  */
 
 import type { RobotsTxtInfo } from '../types';
@@ -20,7 +34,7 @@ export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
 		const response = await fetch(robotsUrl, {
 			signal: controller.signal,
 			headers: {
-				'User-Agent': 'Scrape-LE/1.0 (VS Code Extension)',
+				'User-Agent': 'Scrape-LE/2.0 (VS Code Extension)',
 			},
 		});
 
@@ -40,74 +54,86 @@ export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
 	}
 }
 
+type RobotsRule = Readonly<{ allow: boolean; pattern: string }>;
+
 /**
- * Parses robots.txt content
+ * Parses robots.txt content against the generic (User-agent: *) rules
  */
 function parseRobotsTxt(content: string, pathname: string): RobotsTxtInfo {
 	try {
-		const lines = content.split('\n');
-		const disallowedPaths: string[] = [];
+		const rules: RobotsRule[] = [];
+		const sitemaps: string[] = [];
 		let crawlDelay: number | undefined;
-		let sitemap: string | undefined;
-		let inUserAgentBlock = false;
-		let appliesToAll = false;
 
-		for (const line of lines) {
-			const trimmed = line.trim();
+		let groupAgents: string[] = [];
+		let inGroupHeader = false;
 
-			// Skip comments and empty lines
-			if (!trimmed || trimmed.startsWith('#')) {
+		for (const rawLine of content.split('\n')) {
+			// comments run from '#' to end of line
+			const hashIndex = rawLine.indexOf('#');
+			const line = (
+				hashIndex === -1 ? rawLine : rawLine.slice(0, hashIndex)
+			).trim();
+			if (!line) {
 				continue;
 			}
 
-			// Parse directive
-			const colonIndex = trimmed.indexOf(':');
+			const colonIndex = line.indexOf(':');
 			if (colonIndex === -1) {
 				continue;
 			}
 
-			const directive = trimmed.substring(0, colonIndex).trim().toLowerCase();
-			const value = trimmed.substring(colonIndex + 1).trim();
+			const directive = line.substring(0, colonIndex).trim().toLowerCase();
+			const value = line.substring(colonIndex + 1).trim();
 
 			if (directive === 'user-agent') {
-				// Check if this applies to all user agents
-				inUserAgentBlock = true;
-				appliesToAll = value === '*';
+				if (!inGroupHeader) {
+					groupAgents = [];
+					inGroupHeader = true;
+				}
+				groupAgents.push(value.toLowerCase());
 				continue;
 			}
 
-			if (
-				directive === 'disallow' &&
-				inUserAgentBlock &&
-				appliesToAll &&
-				value
-			) {
-				disallowedPaths.push(value);
-				continue;
-			}
+			// any non-user-agent directive closes the group header
+			inGroupHeader = false;
+			const groupAppliesToAll = groupAgents.includes('*');
 
-			if (directive === 'crawl-delay' && inUserAgentBlock && appliesToAll) {
-				const delay = Number.parseInt(value, 10);
-				if (!Number.isNaN(delay)) {
-					crawlDelay = delay;
+			if (directive === 'sitemap') {
+				// sitemap is not group-scoped
+				if (value) {
+					sitemaps.push(value);
 				}
 				continue;
 			}
 
-			if (directive === 'sitemap') {
-				sitemap = value;
+			if (!groupAppliesToAll) {
+				continue;
+			}
+
+			if ((directive === 'disallow' || directive === 'allow') && value) {
+				rules.push(
+					Object.freeze({ allow: directive === 'allow', pattern: value }),
+				);
+				continue;
+			}
+
+			if (directive === 'crawl-delay') {
+				const delay = Number.parseFloat(value);
+				if (!Number.isNaN(delay) && delay >= 0) {
+					crawlDelay = delay;
+				}
 			}
 		}
 
-		// Check if the current path is allowed
-		const allowsCrawling = !checkPathDisallowed(pathname, disallowedPaths);
-
 		return Object.freeze({
 			exists: true,
-			allowsCrawling,
+			allowsCrawling: isPathAllowed(pathname, rules),
 			crawlDelay,
-			disallowedPaths: Object.freeze(disallowedPaths),
-			sitemap,
+			disallowedPaths: Object.freeze(
+				rules.filter((r) => !r.allow).map((r) => r.pattern),
+			),
+			sitemaps: Object.freeze(sitemaps),
 		});
 	} catch (error) {
 		console.error('Error parsing robots.txt:', error);
@@ -117,19 +143,50 @@ function parseRobotsTxt(content: string, pathname: string): RobotsTxtInfo {
 }
 
 /**
- * Checks if path is disallowed by robots.txt rules
+ * RFC 9309 matching: longest matching pattern wins, Allow wins ties;
+ * no matching rule means allowed.
  */
-function checkPathDisallowed(
+function isPathAllowed(
 	pathname: string,
-	disallowedPaths: string[],
+	rules: readonly RobotsRule[],
 ): boolean {
-	for (const disallowed of disallowedPaths) {
-		// Simple prefix matching (real robots.txt parsers are more complex)
-		if (pathname.startsWith(disallowed)) {
-			return true;
+	let bestLength = -1;
+	let bestAllow = true;
+
+	for (const rule of rules) {
+		if (!matchesRobotsPattern(rule.pattern, pathname)) {
+			continue;
+		}
+		if (
+			rule.pattern.length > bestLength ||
+			(rule.pattern.length === bestLength && rule.allow && !bestAllow)
+		) {
+			bestLength = rule.pattern.length;
+			bestAllow = rule.allow;
 		}
 	}
-	return false;
+
+	return bestAllow;
+}
+
+/**
+ * Matches a robots.txt pattern against a path: anchored at the start,
+ * '*' matches any character sequence, a trailing '$' anchors the end.
+ */
+export function matchesRobotsPattern(
+	pattern: string,
+	pathname: string,
+): boolean {
+	const anchored = pattern.endsWith('$');
+	const body = anchored ? pattern.slice(0, -1) : pattern;
+
+	const escaped = body
+		.split('*')
+		.map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+		.join('[\\s\\S]*');
+
+	const regex = new RegExp(`^${escaped}${anchored ? '$' : ''}`);
+	return regex.test(pathname);
 }
 
 /**
@@ -140,6 +197,7 @@ function createDefaultRobotsTxtInfo(exists: boolean): RobotsTxtInfo {
 		exists,
 		allowsCrawling: true, // Default to allowing if uncertain
 		disallowedPaths: Object.freeze([]),
+		sitemaps: Object.freeze([]),
 	});
 }
 

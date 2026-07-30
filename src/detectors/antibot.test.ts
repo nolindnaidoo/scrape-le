@@ -5,16 +5,37 @@
 import type { Page, Response } from 'playwright-core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { AntiBotDetector } from './antibot';
+import type { PageProbeResult, VendorKey } from './heuristics';
+
+const NO_HIT = { script: false, selector: false, global: false };
+
+function probeResult(
+	overrides: Partial<
+		Record<VendorKey, { script: boolean; selector: boolean; global: boolean }>
+	> = {},
+): PageProbeResult {
+	return {
+		cloudflare: NO_HIT,
+		recaptcha: NO_HIT,
+		hcaptcha: NO_HIT,
+		datadome: NO_HIT,
+		perimeterx: NO_HIT,
+		...overrides,
+	};
+}
+
+function pageWithProbe(result: PageProbeResult): Page {
+	return {
+		evaluate: async () => result,
+	} as unknown as Page;
+}
 
 describe('detectAntiBot', () => {
-	let mockPage: Partial<Page>;
+	let mockPage: Page;
 	let mockResponse: Partial<Response>;
 
 	beforeEach(() => {
-		mockPage = {
-			evaluate: async (_fn: any) => false,
-		};
-
+		mockPage = pageWithProbe(probeResult());
 		mockResponse = {
 			headers: () => ({}),
 		};
@@ -22,7 +43,7 @@ describe('detectAntiBot', () => {
 
 	it('should detect no anti-bot measures on clean page', async () => {
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
@@ -30,53 +51,31 @@ describe('detectAntiBot', () => {
 		expect(result.recaptcha).toBe(false);
 		expect(result.hcaptcha).toBe(false);
 		expect(result.datadome).toBe(false);
-		expect(result.perimeter81).toBe(false);
+		expect(result.perimeterx).toBe(false);
 		expect(result.details).toEqual([]);
 	});
 
-	it('should detect Cloudflare via cf-ray header', async () => {
-		mockResponse = {
-			headers: () => ({
-				'cf-ray': 'abc123',
-			}),
-		};
+	it.each([
+		['cf-ray', 'abc123'],
+		['cf-cache-status', 'HIT'],
+		['cf-mitigated', 'challenge'],
+	])('should detect Cloudflare via %s header', async (name, value) => {
+		mockResponse = { headers: () => ({ [name]: value }) };
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
 		expect(result.cloudflare).toBe(true);
-		expect(result.details).toContain('Cloudflare (cf-ray header detected)');
+		expect(result.details).toContain(`Cloudflare (${name} header)`);
 	});
 
-	it('should detect Cloudflare via cf-cache-status header', async () => {
-		mockResponse = {
-			headers: () => ({
-				'cf-cache-status': 'HIT',
-			}),
-		};
+	it('should detect Cloudflare via server header substring', async () => {
+		mockResponse = { headers: () => ({ server: 'Cloudflare-nginx' }) };
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
-			mockResponse as Response,
-		);
-
-		expect(result.cloudflare).toBe(true);
-		expect(result.details).toContain(
-			'Cloudflare (cf-cache-status header detected)',
-		);
-	});
-
-	it('should detect Cloudflare via server header', async () => {
-		mockResponse = {
-			headers: () => ({
-				server: 'cloudflare',
-			}),
-		};
-
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
@@ -84,142 +83,129 @@ describe('detectAntiBot', () => {
 		expect(result.details).toContain('Cloudflare (server header)');
 	});
 
-	it('should detect reCAPTCHA via script', async () => {
-		mockPage = {
-			evaluate: async (fn: any) => {
-				// Simulate reCAPTCHA script present
-				return !!fn.toString().includes('recaptcha');
-			},
-		};
+	it('should NOT detect Cloudflare from an unrelated server header', async () => {
+		mockResponse = { headers: () => ({ server: 'nginx' }) };
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
+			mockResponse as Response,
+		);
+
+		expect(result.cloudflare).toBe(false);
+	});
+
+	it('should detect reCAPTCHA via script src', async () => {
+		mockPage = pageWithProbe(
+			probeResult({
+				recaptcha: { script: true, selector: false, global: false },
+			}),
+		);
+
+		const result = await AntiBotDetector.detectAntiBot(
+			mockPage,
 			mockResponse as Response,
 		);
 
 		expect(result.recaptcha).toBe(true);
-		expect(result.details).toContain('reCAPTCHA detected');
+		expect(result.details).toContain('reCAPTCHA (script src)');
 	});
 
-	it('should detect hCaptcha via script', async () => {
-		let callCount = 0;
-		mockPage = {
-			evaluate: async (_fn: any) => {
-				callCount++;
-				// First call is for reCAPTCHA, second for hCaptcha
-				return callCount === 2;
-			},
-		};
+	it('should detect reCAPTCHA via window global', async () => {
+		mockPage = pageWithProbe(
+			probeResult({
+				recaptcha: { script: false, selector: false, global: true },
+			}),
+		);
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
+			mockResponse as Response,
+		);
+
+		expect(result.recaptcha).toBe(true);
+		expect(result.details).toContain('reCAPTCHA (window global)');
+	});
+
+	it('should detect hCaptcha via DOM element', async () => {
+		mockPage = pageWithProbe(
+			probeResult({
+				hcaptcha: { script: false, selector: true, global: false },
+			}),
+		);
+
+		const result = await AntiBotDetector.detectAntiBot(
+			mockPage,
 			mockResponse as Response,
 		);
 
 		expect(result.hcaptcha).toBe(true);
-		expect(result.details).toContain('hCaptcha detected');
+		expect(result.details).toContain('hCaptcha (DOM element)');
 	});
 
-	it('should detect DataDome via headers', async () => {
-		mockResponse = {
-			headers: () => ({
-				'x-datadome-cid': 'test123',
+	it.each([['x-datadome-cid'], ['x-dd-b']])(
+		'should detect DataDome via %s header',
+		async (name) => {
+			mockResponse = { headers: () => ({ [name]: 'test123' }) };
+
+			const result = await AntiBotDetector.detectAntiBot(
+				mockPage,
+				mockResponse as Response,
+			);
+
+			expect(result.datadome).toBe(true);
+			expect(result.details).toContain(`DataDome (${name} header)`);
+		},
+	);
+
+	it('should detect DataDome via script src', async () => {
+		mockPage = pageWithProbe(
+			probeResult({
+				datadome: { script: true, selector: false, global: false },
 			}),
-		};
+		);
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
 		expect(result.datadome).toBe(true);
-		expect(result.details).toContain('DataDome (headers detected)');
+		expect(result.details).toContain('DataDome (script src)');
 	});
 
-	it('should detect DataDome via x-dd-b header', async () => {
-		mockResponse = {
-			headers: () => ({
-				'x-dd-b': 'test',
+	it('should detect PerimeterX via script src', async () => {
+		mockPage = pageWithProbe(
+			probeResult({
+				perimeterx: { script: true, selector: false, global: false },
 			}),
-		};
+		);
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
-		expect(result.datadome).toBe(true);
-		expect(result.details).toContain('DataDome (headers detected)');
+		expect(result.perimeterx).toBe(true);
+		expect(result.details).toContain('PerimeterX (script src)');
 	});
 
-	it('should detect DataDome via script', async () => {
-		let callCount = 0;
-		mockPage = {
-			evaluate: async (_fn: any) => {
-				callCount++;
-				// Third call is for DataDome
-				return callCount === 3;
-			},
-		};
-
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
-			mockResponse as Response,
-		);
-
-		expect(result.datadome).toBe(true);
-		expect(result.details).toContain('DataDome (script detected)');
-	});
-
-	it('should detect Perimeter81 via headers', async () => {
-		mockResponse = {
-			headers: () => ({
-				'x-per-request-id': 'test123',
+	it('should report header detection once, not duplicated by the probe', async () => {
+		mockResponse = { headers: () => ({ 'cf-ray': 'abc123' }) };
+		mockPage = pageWithProbe(
+			probeResult({
+				cloudflare: { script: true, selector: true, global: true },
 			}),
-		};
+		);
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
-		expect(result.perimeter81).toBe(true);
-		expect(result.details).toContain('Perimeter81 (headers detected)');
-	});
-
-	it('should detect Perimeter81 via x-per-session-id header', async () => {
-		mockResponse = {
-			headers: () => ({
-				'x-per-session-id': 'test',
-			}),
-		};
-
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
-			mockResponse as Response,
-		);
-
-		expect(result.perimeter81).toBe(true);
-		expect(result.details).toContain('Perimeter81 (headers detected)');
-	});
-
-	it('should detect Perimeter81 via script', async () => {
-		let callCount = 0;
-		mockPage = {
-			evaluate: async (_fn: any) => {
-				callCount++;
-				// Fourth call is for Perimeter81
-				return callCount === 4;
-			},
-		};
-
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
-			mockResponse as Response,
-		);
-
-		expect(result.perimeter81).toBe(true);
-		expect(result.details).toContain('Perimeter81 (script detected)');
+		expect(result.cloudflare).toBe(true);
+		expect(
+			result.details.filter((d) => d.startsWith('Cloudflare')),
+		).toHaveLength(1);
 	});
 
 	it('should detect multiple anti-bot systems', async () => {
@@ -231,7 +217,7 @@ describe('detectAntiBot', () => {
 		};
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
@@ -241,7 +227,7 @@ describe('detectAntiBot', () => {
 	});
 
 	it('should handle null response gracefully', async () => {
-		const result = await AntiBotDetector.detectAntiBot(mockPage as Page, null);
+		const result = await AntiBotDetector.detectAntiBot(mockPage, null);
 
 		expect(result.cloudflare).toBe(false);
 		expect(result.details).toEqual([]);
@@ -252,10 +238,10 @@ describe('detectAntiBot', () => {
 			evaluate: async () => {
 				throw new Error('Evaluation failed');
 			},
-		};
+		} as unknown as Page;
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
@@ -263,24 +249,30 @@ describe('detectAntiBot', () => {
 		expect(result.hcaptcha).toBe(false);
 	});
 
-	it('should handle response.headers() errors gracefully', async () => {
+	it('should still probe the page when response.headers() throws', async () => {
 		mockResponse = {
 			headers: () => {
 				throw new Error('Headers unavailable');
 			},
 		};
+		mockPage = pageWithProbe(
+			probeResult({
+				recaptcha: { script: true, selector: false, global: false },
+			}),
+		);
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
 		expect(result.cloudflare).toBe(false);
+		expect(result.recaptcha).toBe(true);
 	});
 
 	it('should return frozen result object', async () => {
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
@@ -288,15 +280,12 @@ describe('detectAntiBot', () => {
 		expect(Object.isFrozen(result.details)).toBe(true);
 	});
 
-	it('should handle detection errors and return default', async () => {
-		// Force error by making evaluate throw
+	it('should return default when both headers and probe fail', async () => {
 		mockPage = {
 			evaluate: async () => {
 				throw new Error('Fatal error');
 			},
-		};
-
-		// Make headers also throw to trigger catch in main function
+		} as unknown as Page;
 		mockResponse = {
 			headers: () => {
 				throw new Error('Fatal error');
@@ -304,7 +293,7 @@ describe('detectAntiBot', () => {
 		};
 
 		const result = await AntiBotDetector.detectAntiBot(
-			mockPage as Page,
+			mockPage,
 			mockResponse as Response,
 		);
 
@@ -312,7 +301,7 @@ describe('detectAntiBot', () => {
 		expect(result.recaptcha).toBe(false);
 		expect(result.hcaptcha).toBe(false);
 		expect(result.datadome).toBe(false);
-		expect(result.perimeter81).toBe(false);
+		expect(result.perimeterx).toBe(false);
 		expect(result.details).toEqual([]);
 	});
 });

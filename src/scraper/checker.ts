@@ -57,11 +57,23 @@ export async function checkPageScrapeability(
 			});
 		}
 
-		// Navigate to the URL
+		// Navigate to the URL. 'load' instead of 'networkidle': pages with
+		// long-polling/analytics never go idle and would burn the whole
+		// timeout and fail the check despite loading fine.
 		const response = await page.goto(url, {
 			timeout: options.timeout,
-			waitUntil: 'networkidle',
+			waitUntil: 'load',
 		});
+
+		// Best-effort settle so SPA-rendered content (login forms, captcha
+		// widgets) is present for the detectors; never fails the check.
+		try {
+			await page.waitForLoadState('networkidle', {
+				timeout: Math.min(5000, options.timeout),
+			});
+		} catch {
+			// page kept making requests — proceed with what we have
+		}
 
 		// Get status code
 		statusCode = response?.status() ?? null;

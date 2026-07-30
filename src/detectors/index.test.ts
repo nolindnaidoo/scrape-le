@@ -3,9 +3,19 @@
  */
 
 import type { Page, Response } from 'playwright-core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CheckOptions } from '../types';
 import { runDetections } from './index';
+
+// robots.txt detection must never hit the real network from tests
+const mockFetch = vi.fn(async () => ({
+	ok: false,
+	status: 404,
+}));
+vi.stubGlobal('fetch', mockFetch);
+afterAll(() => {
+	vi.unstubAllGlobals();
+});
 
 describe('runDetections', () => {
 	let mockPage: Partial<Page>;

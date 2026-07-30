@@ -184,19 +184,21 @@ async function detectAuthKeywords(
 }
 
 /**
- * Checks URL for authentication indicators
+ * Checks URL for authentication indicators. Matches whole path
+ * segments, not substrings — '/author/jane' must not match 'auth'.
  */
 async function checkUrlForAuth(
 	page: Page,
 	indicators: string[],
 ): Promise<boolean> {
 	try {
-		const url = page.url().toLowerCase();
-		const authPaths = ['/login', '/signin', '/auth', '/authenticate'];
+		const authSegments = ['login', 'signin', 'sign-in', 'auth', 'authenticate'];
+		const pathname = new URL(page.url()).pathname.toLowerCase();
+		const segments = pathname.split('/').filter((s) => s.length > 0);
 
-		for (const path of authPaths) {
-			if (url.includes(path)) {
-				indicators.push(`URL contains auth path: ${path}`);
+		for (const segment of segments) {
+			if (authSegments.includes(segment)) {
+				indicators.push(`URL contains auth path segment: /${segment}`);
 				return true;
 			}
 		}

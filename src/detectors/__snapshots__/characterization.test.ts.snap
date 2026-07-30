@@ -2,16 +2,17 @@
 
 exports[`anti-bot characterization > all script probes positive, clean headers 1`] = `
 {
-  "cloudflare": false,
+  "cloudflare": true,
   "datadome": true,
   "details": [
-    "reCAPTCHA detected",
-    "hCaptcha detected",
-    "DataDome (script detected)",
-    "Perimeter81 (script detected)",
+    "Cloudflare (script src)",
+    "reCAPTCHA (script src)",
+    "hCaptcha (script src)",
+    "DataDome (script src)",
+    "PerimeterX (script src)",
   ],
   "hcaptcha": true,
-  "perimeter81": true,
+  "perimeterx": true,
   "recaptcha": true,
 }
 `;
@@ -22,7 +23,7 @@ exports[`anti-bot characterization > headers only: clean 1`] = `
   "datadome": false,
   "details": [],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -32,10 +33,10 @@ exports[`anti-bot characterization > headers only: cloudflare-cache-status 1`] =
   "cloudflare": true,
   "datadome": false,
   "details": [
-    "Cloudflare (cf-cache-status header detected)",
+    "Cloudflare (cf-cache-status header)",
   ],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -45,10 +46,10 @@ exports[`anti-bot characterization > headers only: cloudflare-cf-ray 1`] = `
   "cloudflare": true,
   "datadome": false,
   "details": [
-    "Cloudflare (cf-ray header detected)",
+    "Cloudflare (cf-ray header)",
   ],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -61,7 +62,7 @@ exports[`anti-bot characterization > headers only: cloudflare-server 1`] = `
     "Cloudflare (server header)",
   ],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -71,10 +72,10 @@ exports[`anti-bot characterization > headers only: datadome-cid 1`] = `
   "cloudflare": false,
   "datadome": true,
   "details": [
-    "DataDome (headers detected)",
+    "DataDome (x-datadome-cid header)",
   ],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -84,10 +85,10 @@ exports[`anti-bot characterization > headers only: datadome-server 1`] = `
   "cloudflare": false,
   "datadome": true,
   "details": [
-    "DataDome (headers detected)",
+    "DataDome (server header)",
   ],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -96,11 +97,9 @@ exports[`anti-bot characterization > headers only: perimeter81-request-id 1`] = 
 {
   "cloudflare": false,
   "datadome": false,
-  "details": [
-    "Perimeter81 (headers detected)",
-  ],
+  "details": [],
   "hcaptcha": false,
-  "perimeter81": true,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -111,7 +110,7 @@ exports[`anti-bot characterization > null response with clean page 1`] = `
   "datadome": false,
   "details": [],
   "hcaptcha": false,
-  "perimeter81": false,
+  "perimeterx": false,
   "recaptcha": false,
 }
 `;
@@ -158,13 +157,8 @@ exports[`authentication characterization > keyword alone is not enough 1`] = `
 
 exports[`authentication characterization > keyword plus /auth-substring URL false positive (/author) 1`] = `
 {
-  "indicators": [
-    "Authentication keyword: "sign in"",
-    "URL contains auth path: /auth",
-  ],
-  "loginUrl": undefined,
-  "required": true,
-  "type": undefined,
+  "indicators": [],
+  "required": false,
 }
 `;
 
@@ -249,6 +243,7 @@ exports[`robots.txt characterization > missing robots.txt (404) 1`] = `
   "allowsCrawling": true,
   "disallowedPaths": [],
   "exists": false,
+  "sitemaps": [],
 }
 `;
 
@@ -257,6 +252,7 @@ exports[`robots.txt characterization > network failure 1`] = `
   "allowsCrawling": true,
   "disallowedPaths": [],
   "exists": false,
+  "sitemaps": [],
 }
 `;
 
@@ -268,7 +264,7 @@ exports[`robots.txt characterization > robots-disallow-all.txt for path / 1`] = 
     "/",
   ],
   "exists": true,
-  "sitemap": undefined,
+  "sitemaps": [],
 }
 `;
 
@@ -280,7 +276,7 @@ exports[`robots.txt characterization > robots-disallow-all.txt for path /anythin
     "/",
   ],
   "exists": true,
-  "sitemap": undefined,
+  "sitemaps": [],
 }
 `;
 
@@ -291,9 +287,10 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /everyone
   "disallowedPaths": [
     "/everyone/",
     "/grouped-star-last/",
+    "/grouped-star-first/",
   ],
   "exists": true,
-  "sitemap": undefined,
+  "sitemaps": [],
 }
 `;
 
@@ -304,22 +301,24 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /google-o
   "disallowedPaths": [
     "/everyone/",
     "/grouped-star-last/",
+    "/grouped-star-first/",
   ],
   "exists": true,
-  "sitemap": undefined,
+  "sitemaps": [],
 }
 `;
 
 exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-star-first/x 1`] = `
 {
-  "allowsCrawling": true,
+  "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
     "/everyone/",
     "/grouped-star-last/",
+    "/grouped-star-first/",
   ],
   "exists": true,
-  "sitemap": undefined,
+  "sitemaps": [],
 }
 `;
 
@@ -330,9 +329,10 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-
   "disallowedPaths": [
     "/everyone/",
     "/grouped-star-last/",
+    "/grouped-star-first/",
   ],
   "exists": true,
-  "sitemap": undefined,
+  "sitemaps": [],
 }
 `;
 
@@ -345,7 +345,9 @@ exports[`robots.txt characterization > robots-simple.txt for path / 1`] = `
     "/api/internal/",
   ],
   "exists": true,
-  "sitemap": "https://example.com/sitemap.xml",
+  "sitemaps": [
+    "https://example.com/sitemap.xml",
+  ],
 }
 `;
 
@@ -358,7 +360,9 @@ exports[`robots.txt characterization > robots-simple.txt for path /admin/panel 1
     "/api/internal/",
   ],
   "exists": true,
-  "sitemap": "https://example.com/sitemap.xml",
+  "sitemaps": [
+    "https://example.com/sitemap.xml",
+  ],
 }
 `;
 
@@ -371,7 +375,9 @@ exports[`robots.txt characterization > robots-simple.txt for path /api/internal/
     "/api/internal/",
   ],
   "exists": true,
-  "sitemap": "https://example.com/sitemap.xml",
+  "sitemaps": [
+    "https://example.com/sitemap.xml",
+  ],
 }
 `;
 
@@ -384,33 +390,41 @@ exports[`robots.txt characterization > robots-simple.txt for path /apiary 1`] = 
     "/api/internal/",
   ],
   "exists": true,
-  "sitemap": "https://example.com/sitemap.xml",
+  "sitemaps": [
+    "https://example.com/sitemap.xml",
+  ],
 }
 `;
 
 exports[`robots.txt characterization > robots-wildcards.txt for path /data.json 1`] = `
 {
-  "allowsCrawling": true,
+  "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
     "/*.json$",
     "/private*",
   ],
   "exists": true,
-  "sitemap": "https://example.com/map2.xml",
+  "sitemaps": [
+    "https://example.com/map1.xml",
+    "https://example.com/map2.xml",
+  ],
 }
 `;
 
 exports[`robots.txt characterization > robots-wildcards.txt for path /private/data 1`] = `
 {
-  "allowsCrawling": true,
+  "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
     "/*.json$",
     "/private*",
   ],
   "exists": true,
-  "sitemap": "https://example.com/map2.xml",
+  "sitemaps": [
+    "https://example.com/map1.xml",
+    "https://example.com/map2.xml",
+  ],
 }
 `;
 
@@ -423,7 +437,10 @@ exports[`robots.txt characterization > robots-wildcards.txt for path /public/pag
     "/private*",
   ],
   "exists": true,
-  "sitemap": "https://example.com/map2.xml",
+  "sitemaps": [
+    "https://example.com/map1.xml",
+    "https://example.com/map2.xml",
+  ],
 }
 `;
 
@@ -436,7 +453,7 @@ exports[`runDetections aggregation characterization > all detections enabled on 
     "datadome": false,
     "details": [],
     "hcaptcha": false,
-    "perimeter81": false,
+    "perimeterx": false,
     "recaptcha": false,
   },
   "authentication": {
@@ -454,7 +471,9 @@ exports[`runDetections aggregation characterization > all detections enabled on 
       "/api/internal/",
     ],
     "exists": true,
-    "sitemap": "https://example.com/sitemap.xml",
+    "sitemaps": [
+      "https://example.com/sitemap.xml",
+    ],
   },
 }
 `;

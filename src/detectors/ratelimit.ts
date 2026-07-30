@@ -25,9 +25,11 @@ export async function detectRateLimit(
 		const reset = headers['x-ratelimit-reset'] || headers['ratelimit-reset'];
 		const retryAfter = headers['retry-after'];
 
-		// Early return if no rate limit headers found
+		// HTTP 429 is rate limiting even without advertised headers
+		const rateLimited = readStatus(response) === 429;
+
 		const hasRateLimitHeaders = !!(limit || remaining || reset || retryAfter);
-		if (!hasRateLimitHeaders) {
+		if (!hasRateLimitHeaders && !rateLimited) {
 			return createDefaultRateLimitInfo();
 		}
 
@@ -42,6 +44,14 @@ export async function detectRateLimit(
 		// If header reading fails, return default
 		console.error('Error detecting rate limits:', error);
 		return createDefaultRateLimitInfo();
+	}
+}
+
+function readStatus(response: Response): number | null {
+	try {
+		return response.status();
+	} catch {
+		return null;
 	}
 }
 

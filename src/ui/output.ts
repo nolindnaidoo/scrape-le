@@ -78,7 +78,7 @@ export function logCheckResult(result: CheckResult): void {
 					ab.recaptcha ||
 					ab.hcaptcha ||
 					ab.datadome ||
-					ab.perimeter81;
+					ab.perimeterx;
 
 				if (detected) {
 					channel.appendLine('   🤖 Anti-Bot Measures: Detected');
@@ -94,8 +94,8 @@ export function logCheckResult(result: CheckResult): void {
 					if (ab.datadome) {
 						channel.appendLine('      - DataDome: Yes');
 					}
-					if (ab.perimeter81) {
-						channel.appendLine('      - Perimeter81: Yes');
+					if (ab.perimeterx) {
+						channel.appendLine('      - PerimeterX: Yes');
 					}
 					if (ab.details.length > 0) {
 						channel.appendLine('      Details:');
@@ -130,8 +130,8 @@ export function logCheckResult(result: CheckResult): void {
 							);
 						}
 					}
-					if (rt.sitemap) {
-						channel.appendLine(`      - Sitemap: ${rt.sitemap}`);
+					for (const sitemap of rt.sitemaps) {
+						channel.appendLine(`      - Sitemap: ${sitemap}`);
 					}
 				} else {
 					channel.appendLine('   🤖 robots.txt: Not found');

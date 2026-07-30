@@ -121,7 +121,7 @@ export type AntiBotDetection = Readonly<{
 	recaptcha: boolean;
 	hcaptcha: boolean;
 	datadome: boolean;
-	perimeter81: boolean;
+	perimeterx: boolean;
 	details: readonly string[];
 }>;
 
@@ -144,7 +144,7 @@ export type RobotsTxtInfo = Readonly<{
 	allowsCrawling: boolean;
 	crawlDelay?: number | undefined;
 	disallowedPaths: readonly string[];
-	sitemap?: string | undefined;
+	sitemaps: readonly string[];
 }>;
 
 /**

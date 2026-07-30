@@ -52,7 +52,7 @@ Sitemap: https://example.com/sitemap.xml
 			expect(result.crawlDelay).toBe(1);
 			expect(result.disallowedPaths).toContain('/admin');
 			expect(result.disallowedPaths).toContain('/private');
-			expect(result.sitemap).toBe('https://example.com/sitemap.xml');
+			expect(result.sitemaps).toEqual(['https://example.com/sitemap.xml']);
 		});
 
 		it('should detect disallowed path', async () => {
@@ -109,6 +109,117 @@ Disallow: /test
 			expect(result.exists).toBe(true);
 			expect(result.disallowedPaths).toHaveLength(1);
 			expect(result.disallowedPaths).toContain('/test');
+		});
+
+		it('should match wildcard patterns', async () => {
+			const robotsTxt = `
+User-agent: *
+Disallow: /private*
+Disallow: /*.json$
+			`.trim();
+
+			mockFetch.mockResolvedValue({
+				ok: true,
+				text: async () => robotsTxt,
+			});
+
+			const blocked = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/private/data',
+			);
+			expect(blocked.allowsCrawling).toBe(false);
+
+			const blockedJson = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/api/data.json',
+			);
+			expect(blockedJson.allowsCrawling).toBe(false);
+
+			const allowed = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/api/data.jsonl',
+			);
+			expect(allowed.allowsCrawling).toBe(true);
+		});
+
+		it('should let the longest matching rule win, allow on ties', async () => {
+			const robotsTxt = `
+User-agent: *
+Disallow: /shop
+Allow: /shop/public
+			`.trim();
+
+			mockFetch.mockResolvedValue({
+				ok: true,
+				text: async () => robotsTxt,
+			});
+
+			const blocked = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/shop/checkout',
+			);
+			expect(blocked.allowsCrawling).toBe(false);
+
+			const allowed = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/shop/public/catalog',
+			);
+			expect(allowed.allowsCrawling).toBe(true);
+		});
+
+		it('should honor grouped User-agent lines regardless of order', async () => {
+			const robotsTxt = `
+User-agent: *
+User-agent: SomeBot
+Disallow: /blocked
+			`.trim();
+
+			mockFetch.mockResolvedValue({
+				ok: true,
+				text: async () => robotsTxt,
+			});
+
+			const result = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/blocked/page',
+			);
+			expect(result.allowsCrawling).toBe(false);
+		});
+
+		it('should ignore agent-specific groups', async () => {
+			const robotsTxt = `
+User-agent: Googlebot
+Disallow: /google-only
+
+User-agent: *
+Disallow: /everyone
+			`.trim();
+
+			mockFetch.mockResolvedValue({
+				ok: true,
+				text: async () => robotsTxt,
+			});
+
+			const result = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/google-only/page',
+			);
+			expect(result.allowsCrawling).toBe(true);
+			expect(result.disallowedPaths).toEqual(['/everyone']);
+		});
+
+		it('should collect every sitemap', async () => {
+			const robotsTxt = `
+User-agent: *
+Sitemap: https://example.com/map1.xml
+Sitemap: https://example.com/map2.xml
+			`.trim();
+
+			mockFetch.mockResolvedValue({
+				ok: true,
+				text: async () => robotsTxt,
+			});
+
+			const result = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com',
+			);
+			expect(result.sitemaps).toEqual([
+				'https://example.com/map1.xml',
+				'https://example.com/map2.xml',
+			]);
 		});
 
 		it('should handle malformed robots.txt', async () => {

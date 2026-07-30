@@ -1,9 +1,18 @@
 /**
- * Anti-bot protection detection
+ * Anti-bot protection detection — drives the shared vendor signatures
+ * in heuristics.ts: one header pass plus one page.evaluate round-trip
+ * for all vendors.
  */
 
 import type { Page, Response } from 'playwright-core';
 import type { AntiBotDetection } from '../types';
+import {
+	ANTI_BOT_SIGNATURES,
+	buildPageProbes,
+	matchHeaders,
+	type PageProbeResult,
+	pageProbeScan,
+} from './heuristics';
 
 /**
  * Detects anti-bot measures on a page
@@ -14,20 +23,41 @@ export async function detectAntiBot(
 ): Promise<AntiBotDetection> {
 	try {
 		const details: string[] = [];
+		const detected: Record<string, boolean> = {};
 
-		// Check response headers for anti-bot signatures
-		const cloudflare = detectCloudflare(response, details);
-		const recaptcha = await detectRecaptcha(page, details);
-		const hcaptcha = await detectHcaptcha(page, details);
-		const datadome = await detectDatadome(page, response, details);
-		const perimeter81 = await detectPerimeter81(page, response, details);
+		const headers = readHeaders(response);
+		for (const signature of ANTI_BOT_SIGNATURES) {
+			const headerDetail = matchHeaders(headers, signature);
+			if (headerDetail !== null) {
+				detected[signature.key] = true;
+				details.push(headerDetail);
+			}
+		}
+
+		const probeResult = await runPageProbe(page);
+		for (const signature of ANTI_BOT_SIGNATURES) {
+			const probe = probeResult?.[signature.key];
+			if (!probe || detected[signature.key]) {
+				continue;
+			}
+			if (probe.script) {
+				detected[signature.key] = true;
+				details.push(`${signature.label} (script src)`);
+			} else if (probe.selector) {
+				detected[signature.key] = true;
+				details.push(`${signature.label} (DOM element)`);
+			} else if (probe.global) {
+				detected[signature.key] = true;
+				details.push(`${signature.label} (window global)`);
+			}
+		}
 
 		return Object.freeze({
-			cloudflare,
-			recaptcha,
-			hcaptcha,
-			datadome,
-			perimeter81,
+			cloudflare: detected.cloudflare === true,
+			recaptcha: detected.recaptcha === true,
+			hcaptcha: detected.hcaptcha === true,
+			datadome: detected.datadome === true,
+			perimeterx: detected.perimeterx === true,
 			details: Object.freeze(details),
 		});
 	} catch (error) {
@@ -36,192 +66,28 @@ export async function detectAntiBot(
 	}
 }
 
-/**
- * Detects Cloudflare protection
- */
-function detectCloudflare(
-	response: Response | null,
-	details: string[],
-): boolean {
+function readHeaders(response: Response | null): Record<string, string> {
 	if (!response) {
-		return false;
+		return {};
 	}
-
 	try {
-		const headers = response.headers();
-
-		// Check for Cloudflare headers
-		if (headers['cf-ray']) {
-			details.push('Cloudflare (cf-ray header detected)');
-			return true;
-		}
-
-		if (headers['cf-cache-status']) {
-			details.push('Cloudflare (cf-cache-status header detected)');
-			return true;
-		}
-
-		if (headers.server?.toLowerCase().includes('cloudflare')) {
-			details.push('Cloudflare (server header)');
-			return true;
-		}
+		return response.headers();
 	} catch (error) {
-		console.error('Error checking Cloudflare:', error);
+		console.error('Error reading response headers:', error);
+		return {};
 	}
-
-	return false;
 }
 
-/**
- * Detects reCAPTCHA
- */
-async function detectRecaptcha(
-	page: Page,
-	details: string[],
-): Promise<boolean> {
+async function runPageProbe(page: Page): Promise<PageProbeResult> {
 	try {
-		// Check for reCAPTCHA scripts and elements
-		const hasRecaptcha = await page.evaluate(() => {
-			// Check for reCAPTCHA script
-			const scripts = Array.from(document.getElementsByTagName('script'));
-			const hasScript = scripts.some(
-				(script) =>
-					script.src.includes('recaptcha') ||
-					script.src.includes('gstatic.com'),
-			);
-
-			// Check for reCAPTCHA global variables
-			const hasGlobal =
-				typeof (window as typeof window & { grecaptcha?: unknown })
-					.grecaptcha !== 'undefined';
-
-			// Check for reCAPTCHA elements
-			const hasElement =
-				document.querySelector('.g-recaptcha') !== null ||
-				document.querySelector('[data-sitekey]') !== null;
-
-			return hasScript || hasGlobal || hasElement;
-		});
-
-		if (hasRecaptcha) {
-			details.push('reCAPTCHA detected');
-			return true;
-		}
+		return (await page.evaluate(
+			pageProbeScan,
+			buildPageProbes(),
+		)) as PageProbeResult;
 	} catch (error) {
-		console.error('Error checking reCAPTCHA:', error);
+		console.error('Error probing page for anti-bot vendors:', error);
+		return {};
 	}
-
-	return false;
-}
-
-/**
- * Detects hCaptcha
- */
-async function detectHcaptcha(page: Page, details: string[]): Promise<boolean> {
-	try {
-		const hasHcaptcha = await page.evaluate(() => {
-			// Check for hCaptcha script
-			const scripts = Array.from(document.getElementsByTagName('script'));
-			const hasScript = scripts.some((script) =>
-				script.src.includes('hcaptcha.com'),
-			);
-
-			// Check for hCaptcha global variables
-			const hasGlobal =
-				typeof (window as typeof window & { hcaptcha?: unknown }).hcaptcha !==
-				'undefined';
-
-			// Check for hCaptcha elements
-			const hasElement =
-				document.querySelector('.h-captcha') !== null ||
-				document.querySelector('[data-hcaptcha-response]') !== null;
-
-			return hasScript || hasGlobal || hasElement;
-		});
-
-		if (hasHcaptcha) {
-			details.push('hCaptcha detected');
-			return true;
-		}
-	} catch (error) {
-		console.error('Error checking hCaptcha:', error);
-	}
-
-	return false;
-}
-
-/**
- * Detects DataDome protection
- */
-async function detectDatadome(
-	page: Page,
-	response: Response | null,
-	details: string[],
-): Promise<boolean> {
-	try {
-		// Check headers
-		if (response) {
-			const headers = response.headers();
-			if (
-				headers['x-datadome-cid'] ||
-				headers['x-dd-b'] ||
-				headers.server?.toLowerCase().includes('datadome')
-			) {
-				details.push('DataDome (headers detected)');
-				return true;
-			}
-		}
-
-		// Check page content
-		const hasDatadome = await page.evaluate(() => {
-			const scripts = Array.from(document.getElementsByTagName('script'));
-			return scripts.some((script) => script.src.includes('datadome.co'));
-		});
-
-		if (hasDatadome) {
-			details.push('DataDome (script detected)');
-			return true;
-		}
-	} catch (error) {
-		console.error('Error checking DataDome:', error);
-	}
-
-	return false;
-}
-
-/**
- * Detects Perimeter81 protection
- */
-async function detectPerimeter81(
-	page: Page,
-	response: Response | null,
-	details: string[],
-): Promise<boolean> {
-	try {
-		// Check headers
-		if (response) {
-			const headers = response.headers();
-			if (headers['x-per-request-id'] || headers['x-per-session-id']) {
-				details.push('Perimeter81 (headers detected)');
-				return true;
-			}
-		}
-
-		// Check page content
-		const hasPerimeter = await page.evaluate(() => {
-			const scripts = Array.from(document.getElementsByTagName('script'));
-			return scripts.some((script) => script.src.includes('perimeter81'));
-		});
-
-		if (hasPerimeter) {
-			details.push('Perimeter81 (script detected)');
-			return true;
-		}
-	} catch (error) {
-		console.error('Error checking Perimeter81:', error);
-	}
-
-	return false;
 }
 
 /**
@@ -233,7 +99,7 @@ function createDefaultAntiBotDetection(): AntiBotDetection {
 		recaptcha: false,
 		hcaptcha: false,
 		datadome: false,
-		perimeter81: false,
+		perimeterx: false,
 		details: Object.freeze([]),
 	});
 }
