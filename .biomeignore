@@ -1,1 +1,2 @@
-src/extraction/__data__/
+src/**/__fixtures__/
+src/**/__snapshots__/

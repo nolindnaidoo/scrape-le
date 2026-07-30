@@ -3,7 +3,7 @@
 	"publisher": "nolindnaidoo",
 	"displayName": "Scrape-LE",
 	"description": "Zero Hassle Web Scrapeability Checker - Validate scraper targets before debugging",
-	"version": "1.8.1",
+	"version": "2.0.0",
 	"license": "MIT",
 	"author": {
 		"name": "nolindnaidoo",
@@ -23,27 +23,25 @@
 	},
 	"categories": [
 		"Other",
-		"Programming Languages",
-		"Linters"
+		"Testing"
 	],
 	"keywords": [
-		"extract",
-		"extraction",
-		"extractor",
+		"scrape",
 		"scraper",
-		"web",
 		"scraping",
-		"testing",
-		"automation",
+		"scrapeability",
+		"web scraping",
 		"playwright",
-		"screenshot",
-		"reachability",
-		"validation",
+		"chromium",
 		"antibot",
 		"cloudflare",
 		"captcha",
+		"recaptcha",
 		"ratelimit",
-		"robots"
+		"robots.txt",
+		"authentication",
+		"screenshot",
+		"reachability"
 	],
 	"icon": "src/assets/images/icon.png",
 	"main": "./dist/extension.js",

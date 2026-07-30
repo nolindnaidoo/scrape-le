@@ -5,80 +5,111 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.1] - 2025-11-02
+## [2.0.0] - 2026-07-30
 
-### Documentation
+Full rehabilitation release. The headline fix: **v1.x VSIXes could not
+activate at all** — the build shipped per-file `tsc` output that
+`require`d `vscode-nls` and `playwright-core` at runtime while
+`.vscodeignore` excluded `node_modules` from the package. Every install
+from the marketplace was dead on arrival.
 
-- **LE Family Updates** - Added Regex-LE and Secrets-LE to the "More from the LE Family" section in README
+### Fixed
 
-## [1.8.0] - 2025-10-26
+- **Packaging**: esbuild now produces a self-contained bundle
+  (playwright-core ships alongside it in the VSIX — it cannot be
+  bundled); a three-part bundle gate (static require scan, runtime load
+  with `vscode` stubbed, packaging allow-list check) runs in
+  `vscode:prepublish` and CI. The old package also leaked
+  `.claude/settings.local.json`, `ENTERPRISE_QUALITY.md`, `.mailmap`,
+  and `.vscode/` into the VSIX; packaging is now an allow-list.
+- **`scrape-le.exportResults`** appeared in the command palette but was
+  never implemented — invoking it errored with "command not found".
+  Removed from the manifest.
+- **`screenshot.format` / `screenshot.quality` were ignored**:
+  screenshots were always PNG at default compression. Both settings now
+  reach Playwright (`.jpg` extension and quality for JPEG).
+- **`notificationsLevel` / `statusBar.enabled` were read once at
+  activation**: changing either required a reload, and the status bar
+  re-appeared during checks even when disabled. Both now apply live.
+- **Browser install froze the extension host**: `execSync('npx
+  playwright install chromium')` blocked the UI for the entire ~130MB
+  download and depended on `npx`. The install now runs the bundled
+  playwright-core CLI asynchronously in a child process, and manual
+  instructions pin the exact playwright-core version so the downloaded
+  Chromium build always matches the library.
+- **Runtime localization never worked**: `vscode-nls` was configured
+  without a file argument, so users always saw the inline English
+  strings. The dead layer is removed; the English strings stay; the 13
+  manifest catalogues (a separate, working mechanism) remain.
 
-### Security & Enterprise Readiness
+### Changed — detection behavior ledger
 
-- **Command Injection Prevention** - Added 65 comprehensive security tests covering:
-  - Shell metacharacter sanitization (`;`, `|`, `&`, `$`, backticks)
-  - Browser command validation
-  - Filename sanitization for screenshots
-  - URL validation and normalization
-  - Protocol restriction enforcement
-- **Detection Logic Validation** - Added 46 tests for reliability:
-  - Anti-bot detection (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)
-  - Authentication detection (401/403, login forms, OAuth, SSO, API keys)
-  - Rate limit detection (X-RateLimit headers, Retry-After, HTTP 429)
-  - robots.txt parsing and interpretation
-- **Test Suite Expansion** - Increased from 96 to 207 unit tests (+115%)
-  - 87% function coverage, 91% line coverage
-  - Zero critical vulnerabilities
-  - Enterprise-grade reliability
+- **Perimeter81 → PerimeterX**: v1.x fingerprinted "Perimeter81", a
+  VPN/SASE product that is not a bot-protection vendor, via headers
+  that identify neither. Result field `antiBot.perimeter81` is now
+  `antiBot.perimeterx` with real PerimeterX signatures.
+- **reCAPTCHA false positives removed**: any `gstatic.com` script
+  (e.g. Google Fonts) and any bare `[data-sitekey]` element (also used
+  by hCaptcha and Turnstile) no longer count as reCAPTCHA.
+- **Cloudflare**: challenge-page signatures added
+  (`challenges.cloudflare.com`, `.cf-turnstile`, `#challenge-form`,
+  `cf-mitigated` header).
+- **robots.txt** now follows RFC 9309: consecutive `User-agent` lines
+  form one group (v1.x missed rules when `*` was not the last grouped
+  line), `Allow` rules participate with longest-match semantics (v1.x
+  ignored `Allow`), `*` wildcards and `$` anchors match (v1.x compared
+  literal prefixes, so `/private*` never matched anything), inline `#`
+  comments are stripped, all `Sitemap` entries are collected (result
+  field `sitemap` → `sitemaps: string[]`), and crawl-delay accepts
+  decimals.
+- **Rate limiting**: HTTP 429 counts as rate-limited even without
+  advertised headers.
+- **Authentication**: URL heuristic matches whole path segments —
+  `/author/...` no longer counts toward "authentication required";
+  `sign-in` added to the segment list.
+- **Navigation**: waits for `load` plus a best-effort 5s network-idle
+  settle instead of full `networkidle` — pages with long-polling or
+  analytics no longer burn the whole timeout and fail the check.
+- **`notificationsLevel: silent`** now means errors-only (previously it
+  suppressed errors too, making failures invisible).
+- Detail strings normalized to `<Vendor> (<mechanism>)`.
 
-### Quality Improvements
+### Removed
 
-- **Type Safety** - 100% TypeScript strict mode compliance
-- **Immutability** - All exports frozen with `Object.freeze()`
-- **Dependency Security** - Zero vulnerabilities in dependency chain
+- Fabricated documentation: `ENTERPRISE_QUALITY.md`, `docs/`
+  (invented performance metrics, governance theater), `sample/`, and
+  the help page's phantom features (export results, "Use Playwright"
+  toggle, telemetry and export-format settings that never existed).
+- Dead code: `utils/performance.ts` (448 lines, zero importers),
+  unused export bags, `detection.logic.test.ts` (46 "tests" that
+  imported nothing from the codebase and asserted on their own inline
+  literals).
+- `vscode-nls` dependency, legacy `onCommand` activation events,
+  invalid top-level `l10n` field.
 
-## [1.7.0] - 2025-01-27
+### Added
 
-### Initial Public Release
+- Characterization golden suite pinning detector output per fixture.
+- Config-defaults parity test across every declared setting, and an
+  nls-parity test across all 13 catalogues.
+- Integration tests in a real extension host; 3-OS CI with bundle gate
+  and VSIX artifact; manual-dispatch release workflow (vsce + ovsx).
+- Coverage thresholds enforced (80% lines / 80% functions / 75%
+  branches / 80% statements).
 
-Scrape-LE brings zero-hassle web scrapeability checking to VS Code. Simple, reliable, focused.
+### Migration notes
 
-#### Core Features
+- The publisher changed: the extension id is now
+  `nolindnaidoo.scrape-le`, and installs under the previous id will not
+  auto-update to this version.
+- Minimum VS Code is now 1.90.
+- If you parse the output programmatically: `antiBot.perimeter81` →
+  `antiBot.perimeterx`, `robotsTxt.sitemap` → `robotsTxt.sitemaps`.
 
-- **Pre-deployment validation** - Test target URLs before writing scraper code
-- **Visual confirmation** - Full-page screenshots provide instant visual proof
-- **Advanced detection suite** - Identify anti-bot systems:
-  - Cloudflare protection
-  - reCAPTCHA detection
-  - hCaptcha detection
-  - Rate limits
-  - robots.txt policies
-  - Authentication walls
-- **Console error detection** - Identify JavaScript errors that might break scrapers
-- **Fast feedback loop** - Get results in seconds, not minutes
-- **One-click setup** - Automatic Chromium installation
+## Pre-2.0 releases
 
-#### Technology Stack
-
-- **Real browser automation** - Uses Playwright for authentic browser testing
-- **Chromium integration** - Automatic browser setup and management
-- **Screenshot capture** - Full-page visual verification
-- **Console monitoring** - JavaScript error detection and reporting
-- **Network analysis** - Request/response monitoring and validation
-
-#### Features
-
-- **Multi-language support** - Comprehensive localization
-- **Status bar integration** - Shows check progress without blocking workflow
-- **Command palette integration** - Easy access to all features
-- **One-command checking** - `Ctrl+Alt+S` (`Cmd+Alt+S` on macOS)
-- **Sample test cases** - 10 categorized test cases including static sites, SPAs, APIs, protected sites
-- **Developer-friendly** - 96 passing tests (86.99% function coverage, 91.37% line coverage), TypeScript strict mode, functional programming, MIT licensed
-
-#### Use Cases
-
-- **Pre-Scraper Validation** - Check if sites are reachable before writing scraper code
-- **Anti-Bot Detection** - Identify Cloudflare, reCAPTCHA, hCaptcha before deployment
-- **Rate Limit Discovery** - Find rate limits before hitting them in production
-- **robots.txt Compliance** - Verify crawling is allowed by site policies
-- **Auth Wall Detection** - Check if login or paywalls block access
+Entries for 1.0.0–1.8.1 have been removed: they described features
+that did not exist (settings export, telemetry controls), test counts
+padded by suites that tested nothing, and coverage numbers that could
+not be reproduced — and every 1.x package was unable to activate in
+the first place. See git history for the raw entries.
