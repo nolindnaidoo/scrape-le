@@ -71,11 +71,7 @@ export async function checkPageScrapeability(
 
 		// Take screenshot if enabled
 		if (options.screenshotEnabled) {
-			screenshotPath = await captureScreenshot(
-				page,
-				url,
-				options.screenshotPath,
-			);
+			screenshotPath = await captureScreenshot(page, url, options);
 		}
 
 		// Run detections if any are enabled
@@ -131,30 +127,39 @@ export async function checkPageScrapeability(
 }
 
 /**
- * Captures screenshot of the page
+ * Captures screenshot of the page honoring format and quality settings
+ * (quality applies to jpeg only — Playwright rejects it for png)
  */
 async function captureScreenshot(
 	page: {
 		screenshot: (options: {
 			path: string;
 			fullPage: boolean;
+			type: 'png' | 'jpeg';
+			quality?: number;
 		}) => Promise<Buffer | undefined>;
 	},
 	url: string,
-	screenshotBasePath: string,
+	options: Pick<
+		CheckOptions,
+		'screenshotPath' | 'screenshotFormat' | 'screenshotQuality'
+	>,
 ): Promise<string> {
 	try {
-		// Create filename from URL
-		const filename = `${convertUrlToFilename(url)}.png`;
-		const fullPath = path.join(screenshotBasePath, filename);
+		const extension = options.screenshotFormat === 'jpeg' ? 'jpg' : 'png';
+		const filename = `${convertUrlToFilename(url)}.${extension}`;
+		const fullPath = path.join(options.screenshotPath, filename);
 
 		// Ensure directory exists
-		await fs.mkdir(screenshotBasePath, { recursive: true });
+		await fs.mkdir(options.screenshotPath, { recursive: true });
 
-		// Take full page screenshot
 		await page.screenshot({
 			path: fullPath,
 			fullPage: true,
+			type: options.screenshotFormat,
+			...(options.screenshotFormat === 'jpeg'
+				? { quality: options.screenshotQuality }
+				: {}),
 		});
 
 		return fullPath;

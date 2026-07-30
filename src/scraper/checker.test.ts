@@ -158,7 +158,44 @@ describe('checker', () => {
 			);
 
 			expect(result.screenshotPath).toBeDefined();
-			expect(mockPage.screenshot).toHaveBeenCalled();
+			expect(mockPage.screenshot).toHaveBeenCalledWith(
+				expect.objectContaining({ type: 'png' }),
+			);
+			expect(mockPage.screenshot).toHaveBeenCalledWith(
+				expect.not.objectContaining({ quality: expect.anything() }),
+			);
+			expect(result.screenshotPath).toMatch(/\.png$/);
+		});
+
+		it('should pass jpeg format and quality through to the screenshot', async () => {
+			const mockPage = {
+				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+				title: vi.fn().mockResolvedValue('Test Page'),
+				screenshot: vi.fn().mockResolvedValue(Buffer.from('screenshot-data')),
+				close: vi.fn().mockResolvedValue(undefined),
+				on: vi.fn(),
+			};
+
+			const mockBrowser = {
+				newPage: vi.fn().mockResolvedValue(mockPage),
+			} as unknown as Browser;
+
+			const jpegOptions: CheckOptions = {
+				...mockOptions,
+				screenshotFormat: 'jpeg',
+				screenshotQuality: 55,
+			};
+
+			const result = await checkPageScrapeability(
+				mockBrowser,
+				'https://example.com',
+				jpegOptions,
+			);
+
+			expect(mockPage.screenshot).toHaveBeenCalledWith(
+				expect.objectContaining({ type: 'jpeg', quality: 55 }),
+			);
+			expect(result.screenshotPath).toMatch(/\.jpg$/);
 		});
 
 		it('should skip screenshot when disabled', async () => {
