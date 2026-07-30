@@ -47,7 +47,6 @@
 	],
 	"icon": "src/assets/images/icon.png",
 	"main": "./dist/extension.js",
-	"l10n": "./package.nls.json",
 	"activationEvents": [
 		"onCommand:scrape-le.checkUrl",
 		"onCommand:scrape-le.checkSelection",
@@ -273,7 +272,6 @@
 		"vitest": "^3.2.4"
 	},
 	"dependencies": {
-		"playwright-core": "^1.49.1",
-		"vscode-nls": "^5.2.0"
+		"playwright-core": "^1.49.1"
 	}
 }

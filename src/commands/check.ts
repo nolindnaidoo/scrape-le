@@ -4,7 +4,6 @@
 
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { getConfiguration } from '../config/config';
 import { closeBrowser, createBrowser } from '../scraper/browser';
 import { checkPageScrapeability } from '../scraper/checker';
@@ -13,8 +12,6 @@ import type { CheckOptions, Notifier, StatusBar } from '../types';
 import { logCheckResult, showOutput } from '../ui/output';
 import { formatErrorForUser } from '../utils/errorHandling';
 import { normalizeUrl, validateUrl } from '../utils/url';
-
-const localize = nls.config({ messageFormat: nls.MessageFormat.file })();
 
 /**
  * Registers the check URL command
@@ -31,11 +28,8 @@ export function registerCheckUrlCommand(
 		async () => {
 			// Prompt for URL
 			const urlInput = await vscode.window.showInputBox({
-				prompt: localize('runtime.check.url.prompt', 'Enter URL to check'),
-				placeHolder: localize(
-					'runtime.check.url.placeholder',
-					'https://example.com',
-				),
+				prompt: 'Enter URL to check',
+				placeHolder: 'https://example.com',
 				validateInput: (value: string) => {
 					if (!value || value.trim() === '') {
 						return 'URL cannot be empty';
