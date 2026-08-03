@@ -73,6 +73,9 @@ All settings live under "scrape-le." in VS Code settings:
 ## Support
 - GitHub Issues: https://github.com/nolindnaidoo/scrape-le/issues
 - Documentation: https://github.com/nolindnaidoo/scrape-le#readme
+- LE Tools: https://letools.dev
+
+Built by nolindnaidoo (https://github.com/nolindnaidoo) — MIT licensed.
 		`.trim();
 
 			const doc = await vscode.workspace.openTextDocument({
