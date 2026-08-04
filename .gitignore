@@ -27,8 +27,7 @@ lerna-debug.log*
 *.lcov
 
 # Coverage - ignore all except main summary
-coverage/*
-!coverage/index.html
+coverage/
 
 # Dependency directories
 node_modules/
