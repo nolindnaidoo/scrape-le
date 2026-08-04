@@ -22,8 +22,9 @@
 		"node": ">=20.0.0"
 	},
 	"categories": [
-		"Other",
-		"Testing"
+		"Testing",
+		"Data Science",
+		"Debuggers"
 	],
 	"keywords": [
 		"scrape",
