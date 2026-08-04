@@ -29,8 +29,10 @@ describe('help command', () => {
 
 		expect(openSpy).toHaveBeenCalledOnce();
 		const content = (
-			openSpy.mock.calls[0]?.[0] as { content: string; language: string }
-		).content;
+			openSpy.mock.calls[0]?.[0] as
+				| { content: string; language: string }
+				| undefined
+		)?.content;
 
 		expect(content).toContain('# Scrape-LE Help & Troubleshooting');
 		// real features
