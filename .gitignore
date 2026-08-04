@@ -105,3 +105,4 @@ dist/
 !src/detection/__data__/*.env.*
 release/
 out-test/
+benchmark-results.json
