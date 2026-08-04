@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.2.5/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.5.7/schema.json",
 	"vcs": {
 		"enabled": false,
 		"clientKind": "git",
@@ -9,10 +9,9 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"src/**/*.ts",
+			"vitest.config.ts",
 			"!src/**/__performance__",
 			"!src/**/__data__",
-			"!src/**/__fixtures__",
-			"!src/**/__snapshots__",
 			"!src/**/__mocks__",
 			"!src/**/sample",
 			"!src/**/test-fixtures",
@@ -40,6 +39,23 @@
 		}
 	},
 	"overrides": [
+		{
+			"includes": [
+				"**/__performance__/**",
+				"**/__data__/**",
+				"**/__fixtures__/**",
+				"**/__snapshots__/**"
+			],
+			"linter": {
+				"enabled": false
+			},
+			"formatter": {
+				"enabled": false
+			},
+			"assist": {
+				"enabled": false
+			}
+		},
 		{
 			"includes": ["**/*.test.ts", "**/__mocks__/**"],
 			"linter": {
