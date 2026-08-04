@@ -5,7 +5,25 @@
 **
 
 !dist/extension.js
-!node_modules/playwright-core/**
+# playwright-core ships its whole distribution. Only what the runtime loads is
+# included: it launches chromium and reads pages, and never runs the test
+# runner, the HTML reporter, or the trace viewer. .d.ts files are never read
+# at runtime at all.
+!node_modules/playwright-core/package.json
+!node_modules/playwright-core/index.js
+!node_modules/playwright-core/index.d.ts
+!node_modules/playwright-core/cli.js
+!node_modules/playwright-core/browsers.json
+!node_modules/playwright-core/lib/bootstrap.js
+!node_modules/playwright-core/lib/coreBundle.js
+!node_modules/playwright-core/lib/package.js
+!node_modules/playwright-core/lib/serverRegistry.js
+!node_modules/playwright-core/lib/utilsBundle.js
+!node_modules/playwright-core/lib/webp_codec.wasm
+!node_modules/playwright-core/lib/entry/**
+!node_modules/playwright-core/lib/server/**
+!node_modules/playwright-core/lib/tools/**
+!node_modules/playwright-core/lib/xdg-open
 !package.nls.json
 !package.nls.*.json
 !src/assets/images/icon.png
