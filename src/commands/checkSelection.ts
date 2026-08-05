@@ -22,7 +22,7 @@ export function registerCheckSelectionCommand(
 			const editor = vscode.window.activeTextEditor;
 
 			if (!editor) {
-				deps.notifier.warn('No active editor');
+				deps.notifier.warn(vscode.l10n.t('No active editor'));
 				return;
 			}
 
@@ -31,7 +31,7 @@ export function registerCheckSelectionCommand(
 			const selectedText = editor.document.getText(selection);
 
 			if (!selectedText || selectedText.trim() === '') {
-				deps.notifier.warn('No text selected');
+				deps.notifier.warn(vscode.l10n.t('No text selected'));
 				return;
 			}
 
@@ -39,7 +39,7 @@ export function registerCheckSelectionCommand(
 			const url = extractUrl(selectedText);
 
 			if (!url) {
-				deps.notifier.warn('No valid URL found in selection');
+				deps.notifier.warn(vscode.l10n.t('No valid URL found in selection'));
 				return;
 			}
 

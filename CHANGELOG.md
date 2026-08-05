@@ -5,14 +5,66 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.2] - 2026-08-04
+## [2.1.0] - 2026-08-04
 
 ### Added
+
+- Runtime strings are localized, and this time they render. All 11 of them —
+  notifications, status bar, quick-picks and prompts — go through
+  `vscode.l10n` and ship as twelve translated bundles in `l10n/`. The v1.x
+  line carried manifest catalogues that worked and runtime catalogues that
+  never reached the screen: `vscode-nls` was configured without
+  `__filename`, so every runtime string fell back to English while the VSIX
+  looked correct.
+- An integration test covering both localization mechanisms — manifest
+  substitution, key parity across all thirteen catalogues, and placeholder
+  integrity in every translation. A translation that silently drops `{0}`
+  now fails the build instead of shipping a message with the value missing.
 
 - Dependency review on pull requests, failing on a high-severity addition
   before Dependabot's auto-merge can act.
 
+### Fixed
+
+- Every detector turned an error into a confident negative. `detectAntiBot`,
+  `detectAuthentication`, `detectRateLimit` and `fetchRobotsTxt` each caught
+  any failure, wrote a `console.error` the user never sees, and returned a
+  default "nothing found" result — so a check that crashed reported
+  "Anti-Bot: Not detected" and "Authentication: Not required" exactly as a
+  check that had run cleanly. The robots.txt case was the sharpest: a failed
+  fetch returned `allowsCrawling: true`, commented in the test as the "safe
+  default", which told the user crawling was permitted because the check had
+  failed. Failures now propagate, are collected per detection, and are printed
+  in the report.
+- The browser launched with `--no-sandbox --disable-setuid-sandbox` on every
+  run. The Chromium sandbox is the boundary between a hostile page and the
+  user's machine, and this extension points a real browser at whatever URL it
+  is given. The sandboxed configuration is now tried first, with the opt-out
+  kept only as a fallback for environments (containers, hardened kernels) that
+  genuinely cannot start it.
+- The Chromium install prompt was never localized — the message, all five
+  button labels and the three result notifications. The labels are now bound
+  to constants and compared by reference: `showWarningMessage` returns the
+  label that was clicked, so localizing them without binding would have made
+  the install prompt impossible to accept outside English.
+- The URL input validators and the five progress messages were never
+  localized — validation text is returned from a callback and progress text
+  goes through `progress.report()`, so neither was a property the
+  localization pass inspected.
+
 ### Changed
+
+- Test coverage raised from 79.51% to 84.90% of branches (88.95% to 96.70% of
+  statements, 85.71% to 98.09% of functions). Four files sat below one of the
+  repo's own floors; none do now. `scraper/install.ts` was the least-covered
+  at 41% statements: it is only reached when Chromium is missing, and every
+  branch past that depends on which button the user clicks. The child process
+  that performs the ~130MB download is stubbed, so the accept path is
+  exercised without touching the network. The `page.evaluate` callbacks in the
+  authentication detector — where the login-form and keyword heuristics
+  actually live — run inside the browser and were never invoked by a stubbed
+  page; they are now driven against a document stub.
+
 
 - CI gains fleet-wide checks that no single repo can perform: shared config is
   compared across all ten extensions, and every README link is verified —

@@ -72,16 +72,19 @@ describe('RateLimitDetector', () => {
 			expect(result.detected).toBe(false);
 		});
 
-		it('should handle errors gracefully', async () => {
+		it('propagates a header-read failure instead of reporting no limit', async () => {
+			// This asserted `detected === false` on error, which is the same answer
+			// the detector gives for a page that genuinely has no rate limiting.
+			// runDetections records the rejection and the report shows it.
 			const mockResponse = {
 				headers: () => {
 					throw new Error('Headers error');
 				},
 			} as unknown as Response;
 
-			const result = await RateLimitDetector.detectRateLimit(mockResponse);
-
-			expect(result.detected).toBe(false);
+			await expect(
+				RateLimitDetector.detectRateLimit(mockResponse),
+			).rejects.toThrow('Headers error');
 		});
 	});
 });

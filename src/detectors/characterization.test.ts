@@ -102,8 +102,11 @@ describe('robots.txt characterization', () => {
 	});
 
 	it('network failure', async () => {
+		// Previously snapshotted a default result claiming crawling was allowed.
+		// A failed fetch is now propagated so the caller can report it rather
+		// than presenting the all-clear for a check that never completed.
 		stubRobotsFetch(null);
-		expect(await fetchRobotsTxt('https://example.com/')).toMatchSnapshot();
+		await expect(fetchRobotsTxt('https://example.com/')).rejects.toThrow();
 	});
 });
 

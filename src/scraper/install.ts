@@ -40,21 +40,28 @@ export async function ensureBrowserInstalled(): Promise<boolean> {
 		return true;
 	}
 
-	const message =
-		'Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)';
+	// Bound once and compared by reference. showWarningMessage returns the label
+	// that was clicked, so a localized label compared against an English literal
+	// silently reads as "dismissed" in every other language — here that would
+	// mean the install prompt could never be accepted outside English.
+	const installLabel = vscode.l10n.t('Install Chromium');
+	const cancelLabel = vscode.l10n.t('Cancel');
+	const learnMoreLabel = vscode.l10n.t('Learn More');
 
 	const choice = await vscode.window.showWarningMessage(
-		message,
-		'Install Chromium',
-		'Cancel',
-		'Learn More',
+		vscode.l10n.t(
+			'Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)',
+		),
+		installLabel,
+		cancelLabel,
+		learnMoreLabel,
 	);
 
-	if (choice === 'Install Chromium') {
+	if (choice === installLabel) {
 		return await installBrowser();
 	}
 
-	if (choice === 'Learn More') {
+	if (choice === learnMoreLabel) {
 		await vscode.env.openExternal(
 			vscode.Uri.parse('https://playwright.dev/docs/browsers#install-browsers'),
 		);
@@ -75,36 +82,45 @@ async function installBrowser(): Promise<boolean> {
 	return await vscode.window.withProgress(
 		{
 			location: vscode.ProgressLocation.Notification,
-			title: 'Installing Chromium',
+			title: vscode.l10n.t('Installing Chromium'),
 			cancellable: false,
 		},
 		async (progress) => {
 			try {
-				progress.report({ message: 'Downloading Chromium browser...' });
+				progress.report({
+					message: vscode.l10n.t('Downloading Chromium browser...'),
+				});
 
 				await runPlaywrightInstall();
 
-				progress.report({ message: 'Installation complete!' });
+				progress.report({ message: vscode.l10n.t('Installation complete!') });
 
 				// Verify installation
 				const isNowAvailable = await isBrowserAvailable();
 
 				if (isNowAvailable) {
 					vscode.window.showInformationMessage(
-						'✅ Chromium installed successfully!',
+						vscode.l10n.t('✅ Chromium installed successfully!'),
 					);
 					return true;
 				}
 
 				vscode.window.showErrorMessage(
-					`❌ Chromium installation completed but browser is not available. Please try running "${manualInstallCommand()}" manually.`,
+					vscode.l10n.t(
+						'❌ Chromium installation completed but browser is not available. Please try running "{0}" manually.',
+						manualInstallCommand(),
+					),
 				);
 				return false;
 			} catch (error) {
 				const errorMessage =
 					error instanceof Error ? error.message : 'Unknown error';
 				vscode.window.showErrorMessage(
-					`❌ Failed to install Chromium: ${errorMessage}. Please run "${manualInstallCommand()}" manually.`,
+					vscode.l10n.t(
+						'❌ Failed to install Chromium: {0}. Please run "{1}" manually.',
+						errorMessage,
+						manualInstallCommand(),
+					),
 				);
 				return false;
 			}
@@ -155,14 +171,19 @@ ${command}
 
 This is a one-time setup (~130MB download).`;
 
+	const copyLabel = vscode.l10n.t('Copy Command');
+	const learnMoreLabel = vscode.l10n.t('Learn More');
+
 	vscode.window
-		.showInformationMessage(message, 'Copy Command', 'Learn More')
+		.showInformationMessage(message, copyLabel, learnMoreLabel)
 		.then(async (choice) => {
 			try {
-				if (choice === 'Copy Command') {
+				if (choice === copyLabel) {
 					await vscode.env.clipboard.writeText(command);
-					vscode.window.showInformationMessage('Command copied to clipboard!');
-				} else if (choice === 'Learn More') {
+					vscode.window.showInformationMessage(
+						vscode.l10n.t('Command copied to clipboard!'),
+					);
+				} else if (choice === learnMoreLabel) {
 					await vscode.env.openExternal(
 						vscode.Uri.parse(
 							'https://playwright.dev/docs/browsers#install-browsers',

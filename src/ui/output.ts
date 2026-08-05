@@ -159,6 +159,23 @@ export function logCheckResult(result: CheckResult): void {
 					channel.appendLine('   🔐 Authentication: Not required');
 				}
 			}
+
+			// A detector that threw leaves its field absent, and every block above
+			// skips absent fields — so without this the check silently reports
+			// nothing at all for that detection and reads as if it had passed.
+			if (result.detections.failures) {
+				const labels: Record<string, string> = {
+					rateLimit: 'Rate Limiting',
+					antiBot: 'Anti-Bot',
+					robotsTxt: 'robots.txt',
+					authentication: 'Authentication',
+				};
+				for (const failure of result.detections.failures) {
+					channel.appendLine(
+						`   ⚠️ ${labels[failure.detection] ?? failure.detection}: check failed — ${failure.message}`,
+					);
+				}
+			}
 		}
 	} else {
 		channel.appendLine(`❌ FAILED: ${result.url}`);

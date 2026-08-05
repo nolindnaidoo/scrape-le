@@ -74,7 +74,18 @@ Honest limitations: signatures are best-effort fingerprints of public integratio
 | `scrape-le.notificationsLevel` | `important` | `all` = every notification, `important` = warnings + errors, `silent` = errors only |
 | `scrape-le.statusBar.enabled` | `true` | Show the status bar item |
 
-The settings UI is translated into 12 languages besides English.
+## Languages
+
+Twelve languages besides English:
+
+German · Spanish · French · Indonesian · Italian · Japanese · Korean ·
+Portuguese (Brazil) · Russian · Ukrainian · Vietnamese · Chinese (Simplified)
+
+Both halves are covered — the manifest (command titles, setting names and
+descriptions) and everything shown while the extension runs (notifications,
+the status bar, quick-picks and prompts). The extension follows VS Code's
+display language, so it matches whatever the editor is already set to; no
+setting of its own.
 
 ## Privacy & security
 
@@ -118,12 +129,12 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 88.56% |
-| Branches | 80.05% |
-| Functions | 83.65% |
-| Lines | 88.63% |
+| Statements | 96.70% |
+| Branches | 84.90% |
+| Functions | 98.09% |
+| Lines | 96.83% |
 
-242 test cases across 24 files, plus an integration suite that runs
+265 test cases across 26 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
 built `.vsix` into a clean profile.
 

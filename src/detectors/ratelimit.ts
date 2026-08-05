@@ -41,9 +41,11 @@ export async function detectRateLimit(
 			retryAfter: retryAfter || undefined,
 		});
 	} catch (error) {
-		// If header reading fails, return default
-		console.error('Error detecting rate limits:', error);
-		return createDefaultRateLimitInfo();
+		// Rethrown rather than swallowed into a default result. Returning the
+		// all-clear on error made a crashed check indistinguishable from a clean
+		// one — the report stated "Not detected" for a detection that never ran.
+		// runDetections records the failure and the report shows it.
+		throw error;
 	}
 }
 

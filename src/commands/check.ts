@@ -28,16 +28,16 @@ export function registerCheckUrlCommand(
 		async () => {
 			// Prompt for URL
 			const urlInput = await vscode.window.showInputBox({
-				prompt: 'Enter URL to check',
+				prompt: vscode.l10n.t('Enter URL to check'),
 				placeHolder: 'https://example.com',
 				validateInput: (value: string) => {
 					if (!value || value.trim() === '') {
-						return 'URL cannot be empty';
+						return vscode.l10n.t('URL cannot be empty');
 					}
 
 					const normalized = normalizeUrl(value);
 					if (!validateUrl(normalized)) {
-						return 'Please enter a valid URL';
+						return vscode.l10n.t('Please enter a valid URL');
 					}
 
 					return null;
@@ -109,7 +109,7 @@ export async function executeCheck(
 			cancellable: false,
 		},
 		async (progress) => {
-			progress.report({ message: `Checking ${url}...` });
+			progress.report({ message: vscode.l10n.t('Checking {0}...', url) });
 
 			// Update status bar
 			deps.statusBar.show(
@@ -121,11 +121,11 @@ export async function executeCheck(
 
 			try {
 				// Launch browser
-				progress.report({ message: 'Launching browser...' });
+				progress.report({ message: vscode.l10n.t('Launching browser...') });
 				browser = await createBrowser();
 
 				// Perform the check
-				progress.report({ message: 'Loading page...' });
+				progress.report({ message: vscode.l10n.t('Loading page...') });
 				const result = await checkPageScrapeability(browser, url, checkOptions);
 
 				// Log result to output channel
@@ -144,11 +144,21 @@ export async function executeCheck(
 							`✓ Page reachable but found ${errorCount} console error(s). Check output for details.`,
 						);
 					} else {
-						deps.notifier.info(`✓ Page is reachable and scrapeable`);
+						deps.notifier.info(
+							vscode.l10n.t('✓ Page is reachable and scrapeable'),
+						);
 					}
 				} else {
 					deps.statusBar.show('$(x) Failed', result.error || 'Check failed');
-					deps.notifier.error(`✗ Failed to reach page: ${result.error}`);
+					// result.error is optional; the template literal this replaced
+					// rendered the string "undefined" when it was absent. The status
+					// bar line directly above already falls back to 'Check failed'.
+					deps.notifier.error(
+						vscode.l10n.t(
+							'✗ Failed to reach page: {0}',
+							result.error || 'Check failed',
+						),
+					);
 				}
 
 				// Show output channel

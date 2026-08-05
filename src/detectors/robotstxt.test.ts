@@ -74,15 +74,16 @@ Disallow: /admin
 			expect(result.allowsCrawling).toBe(false); // /admin is disallowed
 		});
 
-		it('should handle fetch errors gracefully', async () => {
+		it('propagates a fetch failure instead of reporting crawling allowed', async () => {
+			// The previous default was `exists: false, allowsCrawling: true`,
+			// commented "safe default" — but reporting that crawling is permitted
+			// because the check failed is the least safe answer available. The
+			// caller records the failure and the report states it.
 			mockFetch.mockRejectedValue(new Error('Network error'));
 
-			const result = await RobotsTxtChecker.fetchRobotsTxt(
-				'https://example.com',
-			);
-
-			expect(result.exists).toBe(false);
-			expect(result.allowsCrawling).toBe(true); // Safe default
+			await expect(
+				RobotsTxtChecker.fetchRobotsTxt('https://example.com'),
+			).rejects.toThrow('Network error');
 		});
 
 		// Note: Timeout behavior is covered by "should handle fetch errors gracefully" test

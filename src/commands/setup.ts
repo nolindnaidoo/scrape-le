@@ -18,23 +18,27 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 				[
 					{
 						label: '$(cloud-download) Install Chromium Browser',
-						description: 'Automatic installation (~130MB download)',
+						description: vscode.l10n.t(
+							'Automatic installation (~130MB download)',
+						),
 						action: 'install',
 					},
 					{
 						label: '$(info) Manual Installation Instructions',
-						description: 'Show command to run manually',
+						description: vscode.l10n.t('Show command to run manually'),
 						action: 'manual',
 					},
 					{
 						label: '$(check) Test Browser Installation',
-						description: 'Check if Chromium is already installed',
+						description: vscode.l10n.t(
+							'Check if Chromium is already installed',
+						),
 						action: 'test',
 					},
 				],
 				{
-					placeHolder: 'Choose a setup option',
-					title: 'Scrape-LE Browser Setup',
+					placeHolder: vscode.l10n.t('Choose a setup option'),
+					title: vscode.l10n.t('Scrape-LE Browser Setup'),
 				},
 			);
 

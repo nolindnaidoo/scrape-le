@@ -45,8 +45,11 @@ export async function detectAuthentication(
 			indicators: Object.freeze(indicators),
 		});
 	} catch (error) {
-		console.error('Error detecting authentication:', error);
-		return createDefaultAuthInfo();
+		// Rethrown rather than swallowed into a default result. Returning the
+		// all-clear on error made a crashed check indistinguishable from a clean
+		// one — the report stated "Not detected" for a detection that never ran.
+		// runDetections records the failure and the report shows it.
+		throw error;
 	}
 }
 

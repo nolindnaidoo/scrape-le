@@ -111,6 +111,22 @@ export type DetectionResults = Readonly<{
 	rateLimit?: RateLimitInfo | undefined;
 	robotsTxt?: RobotsTxtInfo | undefined;
 	authentication?: AuthenticationInfo | undefined;
+	/**
+	 * Detections that were requested but threw.
+	 *
+	 * Each detector runs independently so one failure cannot take the whole
+	 * check down, but a failure used to leave its field simply absent — and the
+	 * report skips absent fields. A detector that errored was therefore
+	 * indistinguishable from one that was switched off, with the only record a
+	 * console.error the user never opens. Reporting the failure is the point of
+	 * running the check.
+	 */
+	failures?: readonly DetectionFailure[] | undefined;
+}>;
+
+export type DetectionFailure = Readonly<{
+	detection: 'antiBot' | 'rateLimit' | 'robotsTxt' | 'authentication';
+	message: string;
 }>;
 
 /**

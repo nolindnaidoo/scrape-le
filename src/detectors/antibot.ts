@@ -61,8 +61,11 @@ export async function detectAntiBot(
 			details: Object.freeze(details),
 		});
 	} catch (error) {
-		console.error('Error detecting anti-bot measures:', error);
-		return createDefaultAntiBotDetection();
+		// Rethrown rather than swallowed into a default result. Returning the
+		// all-clear on error made a crashed check indistinguishable from a clean
+		// one — the report stated "Not detected" for a detection that never ran.
+		// runDetections records the failure and the report shows it.
+		throw error;
 	}
 }
 
@@ -88,20 +91,6 @@ async function runPageProbe(page: Page): Promise<PageProbeResult> {
 		console.error('Error probing page for anti-bot vendors:', error);
 		return {};
 	}
-}
-
-/**
- * Creates default anti-bot detection (nothing detected)
- */
-function createDefaultAntiBotDetection(): AntiBotDetection {
-	return Object.freeze({
-		cloudflare: false,
-		recaptcha: false,
-		hcaptcha: false,
-		datadome: false,
-		perimeterx: false,
-		details: Object.freeze([]),
-	});
 }
 
 export const AntiBotDetector = Object.freeze({

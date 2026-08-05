@@ -145,10 +145,28 @@ export function _respondToQuickPick(
 	quickPickResponder = responder;
 }
 
+let informationResponder: ((items: unknown[]) => unknown) | undefined;
+
+export function _respondToInformation(
+	responder: ((items: unknown[]) => unknown) | undefined,
+): void {
+	informationResponder = responder;
+}
+
 export function _respondToWarning(
 	responder: ((items: unknown[]) => unknown) | undefined,
 ): void {
 	warningResponder = responder;
+}
+
+/** Values an input-box validator refused, in order. */
+const inputBoxRejections: Array<{ value: string; message: string }> = [];
+
+export function _inputBoxRejections(): readonly {
+	value: string;
+	message: string;
+}[] {
+	return inputBoxRejections;
 }
 
 export function _respondToInputBox(
@@ -202,7 +220,10 @@ export const window = {
 	},
 	showInformationMessage: async (message: string, ...items: unknown[]) => {
 		shownMessages.push({ kind: 'info', message, items });
-		return undefined;
+		// Information messages can carry action buttons and resolve to the one
+		// clicked, exactly like warnings. Without a responder here a test has to
+		// monkey-patch the mock to reach any of those branches.
+		return informationResponder?.(items);
 	},
 	showWarningMessage: async (message: string, ...items: unknown[]) => {
 		shownMessages.push({ kind: 'warning', message, items });
@@ -214,8 +235,24 @@ export const window = {
 	},
 	showQuickPick: async (items: unknown[], _options?: unknown) =>
 		quickPickResponder ? quickPickResponder(items) : undefined,
-	showInputBox: async (_options?: unknown) =>
-		inputBoxResponder ? inputBoxResponder() : undefined,
+	showInputBox: async (options?: unknown) => {
+		const value = inputBoxResponder ? inputBoxResponder() : undefined;
+
+		// VS Code runs validateInput against what the user types and refuses to
+		// accept a value the validator rejects. Ignoring it leaves the validators
+		// uncovered AND lets a test hand a command a value the real UI would
+		// never deliver.
+		const validate = (options as { validateInput?: (v: string) => unknown })
+			?.validateInput;
+		if (typeof validate === 'function' && typeof value === 'string') {
+			const message = validate(value);
+			if (message !== undefined && message !== null && message !== '') {
+				inputBoxRejections.push({ value, message: String(message) });
+				return undefined;
+			}
+		}
+		return value;
+	},
 	showTextDocument: async (_document: unknown, _column?: unknown) => undefined,
 	withProgress: async <T>(
 		_options: unknown,
@@ -335,6 +372,8 @@ export type MockExtensionContext = ReturnType<typeof _createExtensionContext>;
 
 /** Reset all mutable mock state between tests. */
 export function _resetMockState(): void {
+	informationResponder = undefined;
+	inputBoxRejections.length = 0;
 	configStore.clear();
 	configListeners.length = 0;
 	shownMessages.length = 0;
@@ -350,3 +389,18 @@ export function _resetMockState(): void {
 	clipboard.value = '';
 	workspace.workspaceFolders = undefined;
 }
+
+export const l10n = {
+	t(message: string, ...args: unknown[]): string {
+		if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+			const named = args[0] as Record<string, unknown>;
+			return message.replace(/\{(\w+)\}/g, (whole, key) =>
+				key in named ? String(named[key]) : whole,
+			);
+		}
+		return message.replace(/\{(\d+)\}/g, (whole, index) => {
+			const value = args[Number(index)];
+			return value === undefined ? whole : String(value);
+		});
+	},
+};

@@ -3,7 +3,11 @@
  */
 
 import type { Page, Response } from 'playwright-core';
-import type { CheckOptions, DetectionResults } from '../types';
+import type {
+	CheckOptions,
+	DetectionFailure,
+	DetectionResults,
+} from '../types';
 import { AntiBotDetector } from './antibot';
 import { AuthenticationDetector } from './authentication';
 import { RateLimitDetector } from './ratelimit';
@@ -28,7 +32,21 @@ export async function runDetections(
 		rateLimit?: DetectionResults['rateLimit'];
 		robotsTxt?: DetectionResults['robotsTxt'];
 		authentication?: DetectionResults['authentication'];
+		failures?: DetectionFailure[];
 	} = {};
+
+	// Collected rather than logged: a detector that threw must show up in the
+	// report, not only in a console the user never opens.
+	const failures: DetectionFailure[] = [];
+	const recordFailure = (
+		detection: DetectionFailure['detection'],
+		error: unknown,
+	): void => {
+		failures.push({
+			detection,
+			message: error instanceof Error ? error.message : String(error),
+		});
+	};
 
 	// Run detections in parallel for efficiency
 	const promises: Promise<void>[] = [];
@@ -41,7 +59,7 @@ export async function runDetections(
 					detections.rateLimit = result;
 				})
 				.catch((error) => {
-					console.error('Rate limit detection failed:', error);
+					recordFailure('rateLimit', error);
 				}),
 		);
 	}
@@ -54,7 +72,7 @@ export async function runDetections(
 					detections.antiBot = result;
 				})
 				.catch((error) => {
-					console.error('Anti-bot detection failed:', error);
+					recordFailure('antiBot', error);
 				}),
 		);
 	}
@@ -68,7 +86,7 @@ export async function runDetections(
 					detections.authentication = result;
 				})
 				.catch((error) => {
-					console.error('Authentication detection failed:', error);
+					recordFailure('authentication', error);
 				}),
 		);
 	}
@@ -81,13 +99,15 @@ export async function runDetections(
 					detections.robotsTxt = result;
 				})
 				.catch((error) => {
-					console.error('robots.txt detection failed:', error);
+					recordFailure('robotsTxt', error);
 				}),
 		);
 	}
 
 	// Wait for all detections to complete
 	await Promise.all(promises);
+
+	if (failures.length > 0) detections.failures = failures;
 
 	return Object.freeze(detections);
 }

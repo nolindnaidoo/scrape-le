@@ -24,27 +24,39 @@ describe('browser', () => {
 	});
 
 	describe('createBrowser', () => {
-		it('should launch browser successfully', async () => {
-			const mockBrowser = {
-				close: vi.fn(),
-			} as unknown as Browser;
-
+		it('launches with the sandbox enabled', async () => {
+			// The sandbox is the boundary between a hostile page and the user's
+			// machine, and this extension loads whatever URL it is given. It used
+			// to pass --no-sandbox on every launch.
+			const mockBrowser = { close: vi.fn() } as unknown as Browser;
 			chromiumMock.launch.mockResolvedValue(mockBrowser);
 
-			const { createBrowser } = await import('./browser');
+			const { createBrowser, isRunningUnsandboxed } = await import('./browser');
 			const browser = await createBrowser();
 
 			expect(browser).toBe(mockBrowser);
-			expect(chromiumMock.launch).toHaveBeenCalledWith({
-				headless: true,
-				args: [
-					'--no-sandbox',
-					'--disable-setuid-sandbox',
-					'--disable-dev-shm-usage',
-					'--disable-accelerated-2d-canvas',
-					'--disable-gpu',
-				],
-			});
+			const args = chromiumMock.launch.mock.calls[0]?.[0]?.args ?? [];
+			expect(args).not.toContain('--no-sandbox');
+			expect(args).not.toContain('--disable-setuid-sandbox');
+			expect(isRunningUnsandboxed()).toBe(false);
+		});
+
+		it('falls back to no-sandbox only when the sandboxed launch fails', async () => {
+			// Containers and hardened kernels genuinely cannot start the sandbox;
+			// they should keep working without every other user paying for it.
+			const mockBrowser = { close: vi.fn() } as unknown as Browser;
+			chromiumMock.launch
+				.mockRejectedValueOnce(new Error('no usable sandbox'))
+				.mockResolvedValueOnce(mockBrowser);
+
+			const { createBrowser, isRunningUnsandboxed } = await import('./browser');
+			const browser = await createBrowser();
+
+			expect(browser).toBe(mockBrowser);
+			expect(chromiumMock.launch).toHaveBeenCalledTimes(2);
+			const args = chromiumMock.launch.mock.calls[1]?.[0]?.args ?? [];
+			expect(args).toContain('--no-sandbox');
+			expect(isRunningUnsandboxed()).toBe(true);
 		});
 
 		it('should throw enhanced error on launch failure', async () => {

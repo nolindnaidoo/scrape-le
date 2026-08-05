@@ -48,9 +48,13 @@ export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
 		const content = await response.text();
 		return parseRobotsTxt(content, urlObj.pathname);
 	} catch (error) {
-		// Fetch failed (network error, timeout, etc.)
-		console.error('Error fetching robots.txt:', error);
-		return createDefaultRobotsTxtInfo(false);
+		// Rethrown rather than swallowed into a default result. Returning the
+		// all-clear on error made a crashed check indistinguishable from a clean
+		// one — the report stated "Not detected" for a detection that never ran.
+		// runDetections records the failure and the report shows it.
+		// A failed fetch previously rendered as "no robots.txt", which a reader
+		// could take as "scraping is unrestricted".
+		throw error;
 	}
 }
 

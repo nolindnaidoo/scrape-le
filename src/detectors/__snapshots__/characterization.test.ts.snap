@@ -247,15 +247,6 @@ exports[`robots.txt characterization > missing robots.txt (404) 1`] = `
 }
 `;
 
-exports[`robots.txt characterization > network failure 1`] = `
-{
-  "allowsCrawling": true,
-  "disallowedPaths": [],
-  "exists": false,
-  "sitemaps": [],
-}
-`;
-
 exports[`robots.txt characterization > robots-disallow-all.txt for path / 1`] = `
 {
   "allowsCrawling": false,
