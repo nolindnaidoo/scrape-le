@@ -27,5 +27,6 @@
 	"manifest.settings.detections.robotstxt.desc": "Mengunduh dan mengurai berkas robots.txt untuk memeriksa izin dan kebijakan perayapan",
 	"manifest.settings.detections.authentication.desc": "Mendeteksi hambatan otentikasi dan persyaratan login (status 401/403, formulir login, kata kunci otentikasi)",
 	"manifest.capability.untrusted-workspaces.desc": "Fungsionalitas terbatas di ruang kerja yang tidak tepercaya demi alasan keamanan",
-	"manifest.settings.retry.user-agents.desc": "Jika pemeriksaan gagal atau ditandai sebagai bot, coba kembali URL tersebut menggunakan beberapa User-Agent yang umum dan laporkan mana yang berhasil"
+	"manifest.settings.retry.user-agents.desc": "Jika pemeriksaan gagal atau ditandai sebagai bot, coba kembali URL tersebut menggunakan beberapa User-Agent yang umum dan laporkan mana yang berhasil",
+	"manifest.mcp.label": "Alat analisis robots.txt Scrape-LE untuk mode agen"
 }

@@ -27,5 +27,6 @@
 	"manifest.settings.detections.robotstxt.desc": "robots.txt 파일을 가져와 분석하여 크롤링 권한 및 정책을 확인합니다.",
 	"manifest.settings.detections.authentication.desc": "인증 장벽 및 로그인 요구 사항 감지 (401/403 상태 코드, 로그인 양식, 인증 관련 키워드)",
 	"manifest.capability.untrusted-workspaces.desc": "보안을 위해 신뢰할 수 없는 작업 공간에서는 기능이 제한됩니다",
-	"manifest.settings.retry.user-agents.desc": "검사가 실패하거나 봇으로 표시된 경우, 몇 가지 일반적인 User-Agent를 사용하여 해당 URL을 다시 시도한 후, 어떤 User-Agent에서 작동했는지 보고해 주세요."
+	"manifest.settings.retry.user-agents.desc": "검사가 실패하거나 봇으로 표시된 경우, 몇 가지 일반적인 User-Agent를 사용하여 해당 URL을 다시 시도한 후, 어떤 User-Agent에서 작동했는지 보고해 주세요.",
+	"manifest.mcp.label": "Scrape-LE의 에이전트 모드용 robots.txt 분석 도구"
 }

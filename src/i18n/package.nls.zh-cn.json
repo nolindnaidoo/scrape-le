@@ -27,5 +27,6 @@
 	"manifest.settings.detections.robotstxt.desc": "获取并解析 robots.txt 文件，以检查抓取权限和策略",
 	"manifest.settings.detections.authentication.desc": "检测身份验证屏障和登录要求（401/403状态码、登录表单、身份验证关键词）",
 	"manifest.capability.untrusted-workspaces.desc": "出于安全考虑，在不受信任的工作区中功能受限",
-	"manifest.settings.retry.user-agents.desc": "如果验证失败或被标记为机器人，请使用几种常见的 User-Agent 重新尝试访问该 URL，并报告其中哪个成功了"
+	"manifest.settings.retry.user-agents.desc": "如果验证失败或被标记为机器人，请使用几种常见的 User-Agent 重新尝试访问该 URL，并报告其中哪个成功了",
+	"manifest.mcp.label": "Scrape-LE robots.txt 分析工具（适用于用户代理模式）"
 }

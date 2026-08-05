@@ -27,5 +27,6 @@
 	"manifest.settings.detections.robotstxt.desc": "Recupera e analizza il file robots.txt per verificare le autorizzazioni e le politiche di scansione",
 	"manifest.settings.detections.authentication.desc": "Rileva i blocchi di autenticazione e i requisiti di accesso (codici di stato 401/403, moduli di accesso, parole chiave di autenticazione)",
 	"manifest.capability.untrusted-workspaces.desc": "Funzionalità limitate negli spazi di lavoro non attendibili per motivi di sicurezza",
-	"manifest.settings.retry.user-agents.desc": "In caso di verifica fallita o segnalata come bot, riprova l'URL utilizzando alcuni User-Agent comuni e segnala quale ha funzionato"
+	"manifest.settings.retry.user-agents.desc": "In caso di verifica fallita o segnalata come bot, riprova l'URL utilizzando alcuni User-Agent comuni e segnala quale ha funzionato",
+	"manifest.mcp.label": "Strumenti di analisi del file robots.txt di Scrape-LE per la modalità agente"
 }

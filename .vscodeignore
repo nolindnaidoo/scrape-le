@@ -5,6 +5,9 @@
 **
 
 !dist/extension.js
+# The MCP server, launched over stdio by the provider registered in
+# activate(). Not the .map — that is for local debugging only.
+!dist/mcp-server.js
 # playwright-core ships its whole distribution. Only what the runtime loads is
 # included: it launches chromium and reads pages, and never runs the test
 # runner, the HTML reporter, or the trace viewer. .d.ts files are never read

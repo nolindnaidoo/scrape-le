@@ -1,0 +1,14 @@
+id = "scrape-le"
+name = "Scrape-LE"
+description = "Analyse robots.txt content and report whether a path may be crawled."
+version = "2.2.1"
+schema_version = 1
+authors = ["nolindnaidoo"]
+repository = "https://github.com/nolindnaidoo/scrape-le"
+
+# Zed's extension API offers languages, debuggers, themes, snippets, slash
+# commands and context servers — it has no way to read the active buffer or
+# register a command, which is what the VS Code extension is built on. A
+# context server is the surface that fits: the same engine, reached from the
+# agent panel instead of the command palette.
+[context_servers.scrape-le]

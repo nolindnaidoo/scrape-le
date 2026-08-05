@@ -1,0 +1,38 @@
+{
+	"name": "scrape-le-mcp",
+	"version": "2.2.1",
+	"mcpName": "io.github.nolindnaidoo/scrape-le",
+	"description": "Analyse robots.txt content and report whether a path may be crawled.",
+	"keywords": [
+		"mcp",
+		"modelcontextprotocol",
+		"model-context-protocol",
+		"scrape-le"
+	],
+	"license": "MIT",
+	"author": {
+		"name": "nolindnaidoo",
+		"url": "https://github.com/nolindnaidoo"
+	},
+	"homepage": "https://letools.dev",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nolindnaidoo/scrape-le.git",
+		"directory": "mcp"
+	},
+	"bugs": {
+		"url": "https://github.com/nolindnaidoo/scrape-le/issues"
+	},
+	"type": "commonjs",
+	"bin": {
+		"scrape-le-mcp": "server.js"
+	},
+	"files": [
+		"server.js",
+		"README.md",
+		"LICENSE"
+	],
+	"engines": {
+		"node": ">=20"
+	}
+}

@@ -208,6 +208,10 @@ most valuable line in the file, and it is what keeps the next person from
 - **No test touches the network.** robots.txt tests stub `fetch`; command tests mock the scraper modules; browser install is never executed by tests.
 - **Errors shown to users pass through `sanitizeErrorMessage`** (home directories, credential-shaped fragments).
 
+- **The MCP server must never reference `vscode`.** It runs in Zed, in Claude Code and from `npx`, where the import would fail in a user's session rather than in CI. `scripts/check-mcp-bundle.js` fails the build on any non-builtin require, holds the bundle under a 600 KB ceiling, and completes a real stdio handshake asserting extracted values — the SDK was rejected at 5.9 MB and without a ceiling that decision quietly rots.
+- **Launching the server needs `ELECTRON_RUN_AS_NODE=1`.** In the extension host `process.execPath` is the editor binary, so without it the definition starts a second editor and fails silently. `scripts/e2e-vsix.js` spawns the installed server exactly as `provider.ts` does and asserts it answers.
+- **Manifest placeholders are checked across every contribution point**, not just command titles. A `%key%` with no catalogue entry reaches the user as literal text; the gate in `test/integration/l10n.test.ts` walks the whole `contributes` tree.
+
 ## Toolchain
 
 - **Runtime targets:** `engines.vscode` is the supported floor and `@types/vscode` is pinned to it **exactly**. A caret there lets the type surface drift ahead of the version users actually run, so code compiles against APIs that are not there at runtime. Dependabot is configured to never bump it.
@@ -217,6 +221,9 @@ most valuable line in the file, and it is what keeps the next person from
 - **Installed-VSIX tests:** `bun run test:e2e-vsix` installs the built `.vsix` into a clean VS Code profile and drives it. This is the only test that exercises the artifact users receive, and it runs in CI.
 - **Lint/format:** Biome (tabs, single quotes). `__fixtures__`/`__snapshots__` are exempt — formatting fixtures would corrupt goldens. `biome.json` is byte-identical across all ten repos; change it in one and copy it to the rest.
 - **Packaging:** `bun run package` → `release/*.vsix`. `.vscodeignore` is an allow-list; the VSIX is 78 files, most of them `playwright-core` — this is the one extension that ships a runtime dependency, so it packages **with** the npm tree while the other nine use `--no-dependencies`.
+- **Localization:** two separate mechanisms. The 12 `package.nls.*.json` catalogues in `src/i18n/` localize **manifest** strings (VS Code `%key%` substitution) and are copied to the package root at prepublish, then removed by `clean:i18n`. The 12 `l10n/bundle.l10n.*.json` catalogues localize **runtime** strings via `vscode.l10n.t()`, enabled by `"l10n": "./l10n"` in package.json. They fail independently: a working manifest says nothing about the runtime bundles. The rules that keep both correct are under **Code style** above.
+
+- **npm package:** `bun run build:npm` assembles `mcp/` and writes its version from the root manifest, so the two can never claim the same version while carrying different code. `bun run check:npm-package` packs it, installs the tarball into a throwaway project and drives the *installed* binary through a handshake — which is what `npx` does, minus the registry. Run it before publishing: a version cannot be reused, and the unpublish window is 72 hours.
 - **Localization:** two separate mechanisms. The 12 `package.nls.*.json` catalogues in `src/i18n/` localize **manifest** strings (VS Code `%key%` substitution) and are copied to the package root at prepublish, then removed by `clean:i18n`. The 12 `l10n/bundle.l10n.*.json` catalogues localize **runtime** strings via `vscode.l10n.t()`, enabled by `"l10n": "./l10n"` in package.json. They fail independently: a working manifest says nothing about the runtime bundles. The rules that keep both correct are under **Code style** above.
 
 ## Generated documentation
@@ -290,6 +297,10 @@ push are checked, so history predating the gate is left alone.
 5. Dispatch the `Release` workflow. It takes two independent opt-ins — `marketplace` (default **on**) and `openvsx` (default **off**) — because a version cannot be republished, so a run that publishes one registry and fails on the other is only recoverable by re-running with the failed target alone. It validates credentials before doing anything irreversible.
 
 **Open VSX defaults off deliberately.** `ovsx publish` takes no namespace argument; it derives the namespace from `publisher` in the VSIX. Enabling it publishes to whatever `package.json` currently names, with no confirmation.
+
+**The npm package ships from the same tag**, as a third opt-in on the `Release` workflow. It publishes by **trusted publishing** — GitHub mints a short-lived OIDC identity token and npm verifies it against the publisher configured on the package — so there is no npm credential in this repo, in Doppler, or in CI. That is why `id-token: write` is scoped to that job alone, and why it cannot run from a laptop. `bun run publish:npm` exists for a bootstrap publish only (a package must exist before a trusted publisher can be attached to it) and needs a token.
+
+Order matters beyond this repo: npm must be published *before* any Zed registry PR merges, because Zed's shim resolves the package at runtime — a merged extension pointing at an unpublished version is broken for everyone who installs it.
 
 ## Known limitations (documented, not bugs)
 

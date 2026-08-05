@@ -27,5 +27,6 @@
 	"manifest.settings.detections.robotstxt.desc": "Tải về và phân tích tệp robots.txt để kiểm tra quyền truy cập và chính sách thu thập dữ liệu",
 	"manifest.settings.detections.authentication.desc": "Phát hiện các rào cản xác thực và yêu cầu đăng nhập (trạng thái 401/403, biểu mẫu đăng nhập, từ khóa xác thực)",
 	"manifest.capability.untrusted-workspaces.desc": "Chức năng bị hạn chế trong các không gian làm việc không đáng tin cậy vì lý do bảo mật",
-	"manifest.settings.retry.user-agents.desc": "Khi kiểm tra không thành công hoặc bị hệ thống đánh dấu là bot, hãy thử lại URL đó với một số User-Agent phổ biến và báo cáo xem User-Agent nào hoạt động được"
+	"manifest.settings.retry.user-agents.desc": "Khi kiểm tra không thành công hoặc bị hệ thống đánh dấu là bot, hãy thử lại URL đó với một số User-Agent phổ biến và báo cáo xem User-Agent nào hoạt động được",
+	"manifest.mcp.label": "Các công cụ phân tích tệp robots.txt của Scrape-LE dành cho chế độ tác nhân"
 }

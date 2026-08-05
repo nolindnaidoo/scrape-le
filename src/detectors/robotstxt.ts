@@ -61,9 +61,18 @@ export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
 type RobotsRule = Readonly<{ allow: boolean; pattern: string }>;
 
 /**
- * Parses robots.txt content against the generic (User-agent: *) rules
+ * Parses robots.txt content against the generic (User-agent: *) rules.
+ *
+ * Exported for the MCP server, which analyses robots.txt content the caller
+ * already has rather than fetching it. Reaching the network from inside an
+ * agent loop would make this an SSRF primitive — `fetchRobotsTxt` builds its
+ * URL from an arbitrary origin, so `http://169.254.169.254/robots.txt`
+ * resolves — and the analysis is the useful half anyway.
  */
-function parseRobotsTxt(content: string, pathname: string): RobotsTxtInfo {
+export function parseRobotsTxt(
+	content: string,
+	pathname: string,
+): RobotsTxtInfo {
 	try {
 		const rules: RobotsRule[] = [];
 		const sitemaps: string[] = [];

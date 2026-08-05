@@ -5,6 +5,75 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-08-05
+
+### Changed
+
+- **VS Code 1.101 is now the minimum.** `engines.vscode` moves from `^1.90.0`
+  to `^1.101.0` and `@types/vscode` is pinned exactly to the new floor, per the
+  rule that the declared floor and the type surface must match. 1.101 is the
+  first stable release carrying `registerMcpServerDefinitionProvider`, which
+  the MCP integration needs — declaring the contribution point against an older
+  floor would be a claim the code could not honour. Cursor and VSCodium track
+  well past this; Cursor 3.6.21 reports 1.105.1.
+
+### Added
+
+- An MCP server, shipped inside the VSIX as `dist/mcp-server.js`. It exposes
+  `analyze_robots_txt` over stdio, so an agent can pull every rule out of a document
+  with its 1-based position.
+
+  It imports the extraction engine and nothing from `vscode` —
+  `check:mcp-bundle` fails the build if that stops being true, because the
+  server has to run in Zed, in Claude Code, and from `npx`.
+
+- The extension now offers that server to VS Code's agent mode, so installing
+  it adds `analyze_robots_txt` to the agent's tools alongside the existing commands.
+  Nothing is downloaded at runtime: the server is the copy inside the VSIX.
+  The registration is skipped on editors that do not implement the API, which
+  is not an error — an editor without agent mode is not a broken install.
+
+- The server is on npm as [`scrape-le-mcp`](https://www.npmjs.com/package/scrape-le-mcp),
+  so `npx scrape-le-mcp` gives the same tool to Claude Code, Cursor, Windsurf or
+  anything else that speaks MCP. It is the same build the VSIX carries, and its
+  version is written from this manifest rather than maintained separately.
+
+- A **Zed extension**, under `zed/`. Zed's extension API has no way to read the
+  active buffer or register a command, so this extension could never be ported
+  there in any language; a context server is the surface that fits. The crate
+  is a launcher — it installs `scrape-le-mcp` and starts it with Zed's Node — so
+  there is no second implementation to keep in agreement with the goldens.
+
+  **This server makes no network request.** The extension's own
+  `fetchRobotsTxt` builds its URL from an arbitrary origin, so inside an agent
+  loop it would be an SSRF primitive — `http://169.254.169.254/robots.txt`
+  resolves on a cloud host, and the caller supplying the URL is the model
+  rather than the user. The agent already has HTTP tools the user approved; the
+  server takes the content it fetched and does the analysis, which is the half
+  that needs this extension's rules engine. A test asserts no tool accepts a
+  `url` argument.
+
+  `parseRobotsTxt` is newly exported for this. Its behaviour is unchanged —
+  only its visibility.
+
+  A path with no leading slash and no scheme is read as a path, not a host.
+  Normalising `admin` into `https://admin` yields the pathname `/`, which
+  matches no Disallow rule and reports the path as crawlable — and guessing
+  wrong toward "you may crawl this" is the one direction that causes harm.
+
+### Fixed
+
+- The coverage gate could pass against a stale summary. `coverage-readme.js`
+  reads `coverage/coverage-summary.json` rather than running coverage, so when
+  that file was older than the code both modes lied — the rewrite reproduced
+  stale numbers and `--check` then compared the README against the same stale
+  file and reported it current. Both modes now refuse a summary older than
+  `src/`.
+
+- The manifest placeholder gate only inspected `contributes.commands`, so a
+  `%key%` on any other contribution point could ship as literal text. It now
+  walks the whole `contributes` tree.
+
 ## [2.1.0] - 2026-08-05
 
 ### Added

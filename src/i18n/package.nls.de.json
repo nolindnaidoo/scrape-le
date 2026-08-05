@@ -27,5 +27,6 @@
 	"manifest.settings.detections.robotstxt.desc": "Die Datei „robots.txt“ abrufen und analysieren, um die Crawling-Berechtigungen und -Richtlinien zu überprüfen",
 	"manifest.settings.detections.authentication.desc": "Authentifizierungsbarrieren und Anmeldeanforderungen erkennen (401/403-Statuscodes, Anmeldeformulare, Authentifizierungs-Schlüsselwörter)",
 	"manifest.capability.untrusted-workspaces.desc": "Aus Sicherheitsgründen eingeschränkte Funktionalität in nicht vertrauenswürdigen Arbeitsbereichen",
-	"manifest.settings.retry.user-agents.desc": "Wenn eine Überprüfung fehlgeschlagen ist oder als Bot markiert wurde, versuche es erneut mit der URL unter Verwendung einiger gängiger User-Agents und gib an, welcher davon funktioniert hat."
+	"manifest.settings.retry.user-agents.desc": "Wenn eine Überprüfung fehlgeschlagen ist oder als Bot markiert wurde, versuche es erneut mit der URL unter Verwendung einiger gängiger User-Agents und gib an, welcher davon funktioniert hat.",
+	"manifest.mcp.label": "Scrape-LE-Tools zur Analyse der „robots.txt“-Datei im Agent-Modus"
 }
