@@ -29,12 +29,15 @@ export async function checkPageScrapeability(
 	let page = null;
 
 	try {
-		// Create a new page with configured viewport
+		// Create a new page with the configured viewport and, when the user set
+		// one, their User-Agent. Playwright treats an undefined userAgent as
+		// "use the browser default", so the option is passed through as-is.
 		page = await browser.newPage({
 			viewport: {
 				width: options.viewport.width,
 				height: options.viewport.height,
 			},
+			...(options.userAgent ? { userAgent: options.userAgent } : {}),
 		});
 
 		// Set up console error listener if enabled

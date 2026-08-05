@@ -63,6 +63,57 @@ describe('checker', () => {
 			expect(mockPage.close).toHaveBeenCalled();
 		});
 
+		it('applies the configured User-Agent to the page', async () => {
+			// browser.userAgent was declared, read from config and threaded into
+			// CheckOptions, then dropped: newPage received only the viewport, so
+			// the setting did nothing at all.
+			const mockPage = {
+				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+				title: vi.fn().mockResolvedValue('Test Page'),
+				screenshot: vi.fn().mockResolvedValue(Buffer.from('test')),
+				close: vi.fn().mockResolvedValue(undefined),
+				on: vi.fn(),
+			};
+			const mockBrowser = {
+				newPage: vi.fn().mockResolvedValue(mockPage),
+			} as unknown as Browser;
+
+			await checkPageScrapeability(mockBrowser, 'https://example.com', {
+				...mockOptions,
+				userAgent: 'Mozilla/5.0 (custom agent)',
+			});
+
+			expect(mockBrowser.newPage).toHaveBeenCalledWith(
+				expect.objectContaining({ userAgent: 'Mozilla/5.0 (custom agent)' }),
+			);
+		});
+
+		it('leaves the browser default when no User-Agent is configured', async () => {
+			// Playwright reads an absent userAgent as "use the default"; passing
+			// undefined explicitly would be equivalent, but omitting it keeps the
+			// intent obvious in a call log.
+			const mockPage = {
+				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+				title: vi.fn().mockResolvedValue('Test Page'),
+				screenshot: vi.fn().mockResolvedValue(Buffer.from('test')),
+				close: vi.fn().mockResolvedValue(undefined),
+				on: vi.fn(),
+			};
+			const mockBrowser = {
+				newPage: vi.fn().mockResolvedValue(mockPage),
+			} as unknown as Browser;
+
+			await checkPageScrapeability(mockBrowser, 'https://example.com', {
+				...mockOptions,
+				userAgent: undefined,
+			});
+
+			const passed = (
+				mockBrowser.newPage as unknown as { mock: { calls: unknown[][] } }
+			).mock.calls[0]?.[0] as Record<string, unknown>;
+			expect(passed).not.toHaveProperty('userAgent');
+		});
+
 		it('should capture console errors when enabled', async () => {
 			let consoleHandler:
 				| ((msg: { type: () => string; text: () => string }) => void)

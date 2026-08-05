@@ -26,6 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `browser.userAgent` did nothing. The setting was declared in the manifest,
+  read by `config.ts` and threaded all the way into `CheckOptions`, but the
+  page was created with only the viewport — so anyone who set a User-Agent got
+  Chromium's headless default and no sign that their setting was ignored. It is
+  applied at page creation now, with a test that drives both a configured agent
+  and the default.
+
 - Every detector turned an error into a confident negative. `detectAntiBot`,
   `detectAuthentication`, `detectRateLimit` and `fetchRobotsTxt` each caught
   any failure, wrote a `console.error` the user never sees, and returned a
