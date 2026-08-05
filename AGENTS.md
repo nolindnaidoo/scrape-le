@@ -38,7 +38,7 @@ utils/                   url (validate/normalize/extract/filename), errorHandlin
 types.ts                 shared types only — no logic
 ```
 
-Conventions: factory functions + `Object.freeze` (no classes), early returns, dependency bags typed inline at the consumer. Runtime strings are plain English; the `package.nls*.json` catalogues localize **manifest** strings only (VS Code `%key%` substitution — do not add a runtime i18n layer without wiring real bundles).
+Conventions: factory functions + `Object.freeze` (no classes), guard clauses, dependency bags typed inline at the consumer — see **Code style** below. Both the manifest and the runtime strings are localized into 12 locales; see **Toolchain**.
 
 ## Code style
 
@@ -90,8 +90,8 @@ change in this repo. In short:
 - **Integration tests:** `bun run test:integration` — `@vscode/test-cli` launches a real VS Code (config in `.vscode-test.mjs`, tests compiled via `tsconfig.it.json` to `out-test/`). That project targets `node16` module resolution; TypeScript 7 removed `node10`, which `"Node"` resolved to.
 - **Installed-VSIX tests:** `bun run test:e2e-vsix` installs the built `.vsix` into a clean VS Code profile and drives it. This is the only test that exercises the artifact users receive, and it runs in CI.
 - **Lint/format:** Biome (tabs, single quotes). `__fixtures__`/`__snapshots__` are exempt — formatting fixtures would corrupt goldens. `biome.json` is byte-identical across all ten repos; change it in one and copy it to the rest.
-- **Packaging:** `bun run package` → `release/*.vsix`. `.vscodeignore` is an allow-list; the VSIX is ~132 files, most of them `playwright-core` — this is the one extension that ships a runtime dependency, so it packages **with** the npm tree while the other nine use `--no-dependencies`.
-- **Localization:** The 12 `package.nls.*.json` catalogues in `src/i18n/` localize **manifest** strings only (VS Code `%key%` substitution) and are copied to the package root at prepublish.
+- **Packaging:** `bun run package` → `release/*.vsix`. `.vscodeignore` is an allow-list; the VSIX is 78 files, most of them `playwright-core` — this is the one extension that ships a runtime dependency, so it packages **with** the npm tree while the other nine use `--no-dependencies`.
+- **Localization:** two separate mechanisms. The 12 `package.nls.*.json` catalogues in `src/i18n/` localize **manifest** strings (VS Code `%key%` substitution) and are copied to the package root at prepublish, then removed by `clean:i18n`. The 12 `l10n/bundle.l10n.*.json` catalogues localize **runtime** strings via `vscode.l10n.t()`, enabled by `"l10n": "./l10n"` in package.json. They fail independently: a working manifest says nothing about the runtime bundles. See [../AGENTS.md](../AGENTS.md) for the rules that keep both correct.
 
 ## Generated documentation
 
