@@ -129,10 +129,10 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 96.73% |
-| Branches | 85.86% |
-| Functions | 98.09% |
-| Lines | 96.86% |
+| Statements | 96.17% |
+| Branches | 86.26% |
+| Functions | 98.27% |
+| Lines | 97.63% |
 
 265 test cases across 26 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
