@@ -11,6 +11,12 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le">
     <img src="https://img.shields.io/badge/Install%20from-VS%20Code-blue?style=for-the-badge&logo=visualstudiocode" alt="Install from VS Code Marketplace" />
   </a>
+  <a href="https://open-vsx.org/extension/OffensiveEdge/scrape-le">
+    <img src="https://img.shields.io/open-vsx/dt/OffensiveEdge/scrape-le?style=for-the-badge&label=Open%20VSX&color=blue" alt="Open VSX downloads" />
+  </a>
+  <a href="https://www.npmjs.com/package/scrape-le-mcp">
+    <img src="https://img.shields.io/npm/v/scrape-le-mcp?style=for-the-badge&label=MCP%20server&color=blue&logo=npm" alt="scrape-le-mcp on npm" />
+  </a>
   <a href="https://letools.dev">
     <img src="https://img.shields.io/badge/LE%20Tools-letools.dev-blue?style=for-the-badge" alt="LE Tools" />
   </a>
@@ -32,6 +38,67 @@
 Run `Scrape-LE: Check URL Scrapeability` (`Ctrl+Alt+S` / `Cmd+Alt+S`), enter a URL, and the page loads in a real headless Chromium. The report lands in the output channel: HTTP status, page title, load time, console errors, a full-page screenshot, and four detections. Works in VS Code and VS Code–based editors like Cursor and VSCodium (installable from Open VSX).
 
 One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into Playwright's browser cache).
+
+## Use it from an AI agent
+
+The same engine runs as an [MCP](https://modelcontextprotocol.io) server, so an agent can call it directly instead of you running a command.
+
+| Editor | How |
+|---|---|
+| **VS Code** 1.101+ | Nothing to install — the extension registers `analyze_robots_txt` with agent mode |
+| **Zed** | [Scrape-LE](https://github.com/zed-industries/extensions/pull/7086) — *pending review* |
+| **Claude Code** | `claude mcp add scrape-le -- npx -y scrape-le-mcp` |
+| **Cursor, Windsurf, anything else** | point it at `npx scrape-le-mcp` |
+
+```
+analyze_robots_txt(content, path, maxResults?)
+```
+
+Given robots.txt contents and a path, reports whether the generic (`User-agent: *`) rules permit crawling it, plus the crawl delay, disallowed patterns and any sitemaps.
+
+The server takes content and returns data — it reads no files and makes no network requests of its own. Published as [`scrape-le-mcp`](https://www.npmjs.com/package/scrape-le-mcp) on npm and as `io.github.nolindnaidoo/scrape-le` in the [MCP registry](https://registry.modelcontextprotocol.io).
+
+<details>
+<summary><b>Configuring it by hand</b> — any host with an MCP config file</summary>
+
+Most hosts read a JSON config. Add one entry:
+
+```json
+{
+  "mcpServers": {
+    "scrape-le": {
+      "command": "npx",
+      "args": ["-y", "scrape-le-mcp"]
+    }
+  }
+}
+```
+
+`-y` skips the install prompt on first run. Pin a version if you would rather not track releases — `scrape-le-mcp@2.2.1`.
+
+Prefer not to go through `npx` on every launch? Install it once and point at the binary instead:
+
+```bash
+npm install -g scrape-le-mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "scrape-le": { "command": "scrape-le-mcp" }
+  }
+}
+```
+
+It speaks MCP over stdio and needs no environment variables, no API key and no configuration of its own. To check it before wiring it into anything:
+
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | npx -y scrape-le-mcp
+```
+
+That prints the tool list and exits — if you see `analyze_robots_txt`, the server works.
+
+</details>
 
 ## Detections
 
@@ -92,6 +159,7 @@ setting of its own.
 
 - **Network access is the feature, and it is scoped.** A check talks to exactly two things: the URL you enter (loaded in headless Chromium, which fetches that page's own resources like any browser) and that origin's `/robots.txt`. Nothing is sent anywhere else — no telemetry, no analytics.
 - **Screenshots stay local**, written to the configured path inside your workspace.
+- **The MCP server makes no network request at all** — unlike the extension, deliberately. `fetchRobotsTxt` builds a URL from an arbitrary origin, which inside an agent loop is an SSRF primitive: the caller supplying the URL is the model, not you. The server analyses robots.txt content you already fetched, and a test asserts no tool accepts a `url` argument.
 - Error notifications redact home directories and credential-shaped fragments.
 - Respect the sites you check: a scrapeability report is information, not permission.
 
@@ -148,6 +216,8 @@ run. Reproduce with `bun run test:coverage`.
 
 Every tool in the family, one page: **[letools.dev](https://letools.dev)**
 
+All ten also ship as MCP servers — `npx <name>-mcp` gives any agent the same engine.
+
 - **[Paths-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.paths-le)** - Extract file paths from JS/TS imports, JSON, HTML, CSS, TOML, CSV, and .env
 - **[String-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.string-le)** - Extract string values for i18n from JSON, YAML, CSV, TOML, INI, and .env
 - **[Numbers-LE](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.numbers-le)** - Extract numeric values from JSON, YAML, CSV, TOML, INI, and .env
@@ -162,8 +232,10 @@ Every tool in the family, one page: **[letools.dev](https://letools.dev)**
 
 **Rust**
 
-- **[pixelcoords](https://github.com/nolindnaidoo/pixelcoords)** - Mark pixel-exact coordinates machines can use · [pixelcoords.dev](https://pixelcoords.dev)
-- **[pixelactions](https://github.com/nolindnaidoo/pixelactions)** - Perform the interaction and confirm it landed · [pixelactions.dev](https://pixelactions.dev)
+- **[pixelcoords](https://github.com/nolindnaidoo/pixelcoords)** — Freeze your screen, mark regions, get pixel-exact coordinates and crops
+  [pixelcoords.dev](https://pixelcoords.dev) · [crates.io](https://crates.io/crates/pixelcoords) · [docs.rs](https://docs.rs/pixelcoords)
+- **[pixelactions](https://github.com/nolindnaidoo/pixelactions)** — Consume human-verified coordinates, perform the interaction, confirm it landed
+  [pixelactions.dev](https://pixelactions.dev) · [crates.io](https://crates.io/crates/pixelactions) · [docs.rs](https://docs.rs/pixelactions)
 
 **Contact Developer** — [GitHub](https://github.com/nolindnaidoo) · [LinkedIn](https://www.linkedin.com/in/nolindnaidoo/)
 
