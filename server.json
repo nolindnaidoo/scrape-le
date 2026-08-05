@@ -1,17 +1,28 @@
 {
 	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
 	"name": "io.github.nolindnaidoo/scrape-le",
+	"title": "Scrape-LE",
 	"description": "Analyse robots.txt content and report whether a path may be crawled.",
+	"websiteUrl": "https://letools.dev",
+	"icons": [
+		{
+			"src": "https://raw.githubusercontent.com/nolindnaidoo/scrape-le/main/src/assets/images/icon.png",
+			"mimeType": "image/png",
+			"sizes": [
+				"128x128"
+			]
+		}
+	],
 	"repository": {
 		"url": "https://github.com/nolindnaidoo/scrape-le",
 		"source": "github"
 	},
-	"version": "2.2.1",
+	"version": "2.2.2",
 	"packages": [
 		{
 			"registryType": "npm",
 			"identifier": "scrape-le-mcp",
-			"version": "2.2.1",
+			"version": "2.2.2",
 			"transport": {
 				"type": "stdio"
 			}
