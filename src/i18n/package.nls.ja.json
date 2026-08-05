@@ -26,5 +26,6 @@
 	"manifest.settings.detections.ratelimit.desc": "HTTPのレート制限ヘッダー（X-RateLimit-*、RateLimit-*、Retry-After）を検出し、解析する",
 	"manifest.settings.detections.robotstxt.desc": "robots.txt ファイルを取得して解析し、クロールに関する権限やポリシーを確認する",
 	"manifest.settings.detections.authentication.desc": "認証の障壁やログイン要件を検出する（401/403ステータス、ログインフォーム、認証関連キーワード）",
-	"manifest.capability.untrusted-workspaces.desc": "セキュリティ上の理由から、信頼できないワークスペースでは機能が制限されます"
+	"manifest.capability.untrusted-workspaces.desc": "セキュリティ上の理由から、信頼できないワークスペースでは機能が制限されます",
+	"manifest.settings.retry.user-agents.desc": "チェックに失敗した場合、またはボットとしてフラグが立てられた場合は、いくつかの一般的なUser-AgentでそのURLを再試行し、どのUser-Agentで動作したかを報告してください"
 }

@@ -236,6 +236,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "%manifest.settings.detections.authentication.desc%"
+				},
+				"scrape-le.retry.userAgents": {
+					"type": "boolean",
+					"default": false,
+					"description": "%manifest.settings.retry.user-agents.desc%"
 				}
 			}
 		}

@@ -21,6 +21,9 @@ export const DEFAULT_CONFIG: Config = Object.freeze({
 		}),
 		userAgent: undefined,
 	}),
+	retry: Object.freeze({
+		userAgents: false,
+	}),
 	screenshot: Object.freeze({
 		enabled: true,
 		path: '.vscode/scrape-le',
@@ -60,6 +63,11 @@ export function getConfiguration(): Config {
 				height: viewportHeight ?? DEFAULT_CONFIG.browser.viewport.height,
 			}),
 			userAgent: userAgent && userAgent.trim() !== '' ? userAgent : undefined,
+		}),
+		retry: Object.freeze({
+			userAgents:
+				config.get<boolean>('retry.userAgents') ??
+				DEFAULT_CONFIG.retry.userAgents,
 		}),
 		screenshot: Object.freeze({
 			enabled:

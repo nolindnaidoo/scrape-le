@@ -25,6 +25,7 @@ describe('config defaults parity with package.json', () => {
 		'scrape-le.browser.viewport.height': DEFAULT_CONFIG.browser.viewport.height,
 		// manifest declares '' — the runtime maps empty to undefined
 		'scrape-le.browser.userAgent': '',
+		'scrape-le.retry.userAgents': DEFAULT_CONFIG.retry.userAgents,
 		'scrape-le.screenshot.enabled': DEFAULT_CONFIG.screenshot.enabled,
 		'scrape-le.screenshot.path': DEFAULT_CONFIG.screenshot.path,
 		'scrape-le.screenshot.format': DEFAULT_CONFIG.screenshot.format,

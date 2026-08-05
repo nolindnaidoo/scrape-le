@@ -15,6 +15,21 @@ export type CheckResult = Readonly<{
 	consoleErrors: readonly string[];
 	error?: string | undefined;
 	detections?: DetectionResults | undefined;
+	userAgentAttempts?: readonly UserAgentAttempt[] | undefined;
+}>;
+
+/**
+ * One re-check of the same URL under a different User-Agent.
+ *
+ * `outcome` is what that agent produced: a clean load, a load that still
+ * tripped bot detection, or an outright failure.
+ */
+export type UserAgentAttempt = Readonly<{
+	label: string;
+	userAgent: string;
+	outcome: 'ok' | 'bot-detected' | 'failed';
+	statusCode: number | null;
+	error?: string | undefined;
 }>;
 
 /**
@@ -51,6 +66,9 @@ export type Config = Readonly<{
 			height: number;
 		}>;
 		userAgent?: string | undefined;
+	}>;
+	retry: Readonly<{
+		userAgents: boolean;
 	}>;
 	screenshot: Readonly<{
 		enabled: boolean;

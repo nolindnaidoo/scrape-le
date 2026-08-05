@@ -26,5 +26,6 @@
 	"manifest.settings.detections.ratelimit.desc": "Detect and parse HTTP rate limiting headers (X-RateLimit-*, RateLimit-*, Retry-After)",
 	"manifest.settings.detections.robotstxt.desc": "Fetch and parse robots.txt file to check crawling permissions and policies",
 	"manifest.settings.detections.authentication.desc": "Detect authentication walls and login requirements (401/403 status, login forms, auth keywords)",
-	"manifest.capability.untrusted-workspaces.desc": "Limited functionality in untrusted workspaces for security"
+	"manifest.capability.untrusted-workspaces.desc": "Limited functionality in untrusted workspaces for security",
+	"manifest.settings.retry.user-agents.desc": "On a failed or bot-flagged check, retry the URL under a few common User-Agents and report which one worked"
 }

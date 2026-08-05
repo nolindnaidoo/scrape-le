@@ -7,7 +7,7 @@
  * detector's predicate.
  */
 import * as vscode from 'vscode';
-import type { CheckResult } from '../types';
+import type { CheckResult, UserAgentAttempt } from '../types';
 
 let outputChannel: vscode.OutputChannel | null = null;
 
@@ -147,6 +147,50 @@ function appendAuthentication(
 	}
 }
 
+const ATTEMPT_MARK: Readonly<Record<UserAgentAttempt['outcome'], string>> =
+	Object.freeze({
+		ok: '✅',
+		'bot-detected': '🤖',
+		failed: '❌',
+	});
+
+/**
+ * What each User-Agent produced, and the one to configure.
+ *
+ * The first attempt already reported why the page resisted; this says what
+ * would have worked, which is the part a user can act on.
+ */
+function appendUserAgentAttempts(
+	channel: Channel,
+	attempts: readonly UserAgentAttempt[],
+): void {
+	if (attempts.length === 0) return;
+
+	channel.appendLine('');
+	channel.appendLine('🔁 USER-AGENT RETRIES:');
+	for (const a of attempts) {
+		const detail = a.error ? ` — ${a.error}` : ` — HTTP ${a.statusCode ?? '?'}`;
+		channel.appendLine(`   ${ATTEMPT_MARK[a.outcome]} ${a.label}${detail}`);
+	}
+
+	const worked = attempts.find((a) => a.outcome === 'ok');
+	channel.appendLine('');
+	if (!worked) {
+		channel.appendLine(
+			'   None of the tried agents loaded the page cleanly. The block is not',
+		);
+		channel.appendLine(
+			'   User-Agent based — check the detections above for the mechanism.',
+		);
+		return;
+	}
+	channel.appendLine(
+		`   ${worked.label} loaded the page cleanly. To use it, set`,
+	);
+	channel.appendLine('   scrape-le.browser.userAgent to:');
+	channel.appendLine(`      ${worked.userAgent}`);
+}
+
 /**
  * A detector that threw leaves its field absent, and every block above skips
  * absent fields — so without this the check silently reports nothing at all
@@ -180,6 +224,9 @@ function appendFailure(channel: Channel, result: CheckResult): void {
 		channel.appendLine(`   Error: ${result.error}`);
 	}
 	channel.appendLine(`   Load Time: ${result.loadTimeMs}ms`);
+	if (result.userAgentAttempts) {
+		appendUserAgentAttempts(channel, result.userAgentAttempts);
+	}
 }
 
 function appendSuccess(channel: Channel, result: CheckResult): void {
@@ -193,6 +240,9 @@ function appendSuccess(channel: Channel, result: CheckResult): void {
 	appendConsoleErrors(channel, result.consoleErrors);
 	if (result.detections) {
 		appendDetections(channel, result.detections);
+	}
+	if (result.userAgentAttempts) {
+		appendUserAgentAttempts(channel, result.userAgentAttempts);
 	}
 }
 

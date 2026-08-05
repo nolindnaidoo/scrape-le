@@ -62,6 +62,7 @@ Honest limitations: signatures are best-effort fingerprints of public integratio
 | `scrape-le.browser.viewport.width` | `1280` | Viewport width |
 | `scrape-le.browser.viewport.height` | `720` | Viewport height |
 | `scrape-le.browser.userAgent` | `""` | Custom User-Agent (empty = Chromium default) |
+| `scrape-le.retry.userAgents` | `false` | On a blocked or failed check, retry under common User-Agents and report which worked |
 | `scrape-le.screenshot.enabled` | `true` | Save a full-page screenshot per check |
 | `scrape-le.screenshot.path` | `.vscode/scrape-le` | Screenshot directory (workspace-relative or absolute) |
 | `scrape-le.screenshot.format` | `png` | `png` or `jpeg` |
@@ -129,12 +130,12 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 96.17% |
-| Branches | 86.33% |
-| Functions | 98.27% |
-| Lines | 97.63% |
+| Statements | 93.45% |
+| Branches | 84.18% |
+| Functions | 95.90% |
+| Lines | 94.96% |
 
-267 test cases across 26 files, plus an integration suite that runs
+277 test cases across 27 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
 built `.vsix` into a clean profile.
 

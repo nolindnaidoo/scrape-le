@@ -26,5 +26,6 @@
 	"manifest.settings.detections.ratelimit.desc": "Обнаружение и анализ заголовков, определяющих ограничения скорости HTTP (X-RateLimit-*, RateLimit-*, Retry-After)",
 	"manifest.settings.detections.robotstxt.desc": "Загрузить и проанализировать файл robots.txt для проверки прав доступа и правил сканирования",
 	"manifest.settings.detections.authentication.desc": "Обнаружение барьеров аутентификации и требований входа в систему (статусы 401/403, формы входа, ключевые слова, связанные с аутентификацией)",
-	"manifest.capability.untrusted-workspaces.desc": "Ограниченная функциональность в недоверенных рабочих средах в целях обеспечения безопасности"
+	"manifest.capability.untrusted-workspaces.desc": "Ограниченная функциональность в недоверенных рабочих средах в целях обеспечения безопасности",
+	"manifest.settings.retry.user-agents.desc": "Если проверка завершилась неудачно или URL был помечен как бот, повторите проверку с несколькими распространёнными значениями User-Agent и сообщите, какое из них сработало"
 }

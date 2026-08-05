@@ -8,7 +8,8 @@ import { getConfiguration } from '../config/config';
 import { closeBrowser, createBrowser } from '../scraper/browser';
 import { checkPageScrapeability } from '../scraper/checker';
 import { ensureBrowserInstalled } from '../scraper/install';
-import type { CheckOptions, Notifier, StatusBar } from '../types';
+import { retryWithUserAgents, shouldRetry } from '../scraper/retry';
+import type { CheckOptions, CheckResult, Notifier, StatusBar } from '../types';
 import { logCheckResult, showOutput } from '../ui/output';
 import { formatErrorForUser } from '../utils/errorHandling';
 import { normalizeUrl, validateUrl } from '../utils/url';
@@ -126,7 +127,29 @@ export async function executeCheck(
 
 				// Perform the check
 				progress.report({ message: vscode.l10n.t('Loading page...') });
-				const result = await checkPageScrapeability(browser, url, checkOptions);
+				const firstAttempt = await checkPageScrapeability(
+					browser,
+					url,
+					checkOptions,
+				);
+
+				// A blocked or failed check says the page resisted, not what would
+				// have worked. Re-running under a few common agents answers that,
+				// and only runs when the user asked for it — each retry is a full
+				// page load.
+				const attempts =
+					config.retry.userAgents && shouldRetry(firstAttempt)
+						? await retryWithUserAgents(browser, url, checkOptions, (label) =>
+								progress.report({
+									message: vscode.l10n.t('Retrying as {0}...', label),
+								}),
+							)
+						: undefined;
+
+				const result: CheckResult =
+					attempts && attempts.length > 0
+						? { ...firstAttempt, userAgentAttempts: attempts }
+						: firstAttempt;
 
 				// Log result to output channel
 				logCheckResult(result);

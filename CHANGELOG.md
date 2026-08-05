@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `retry.userAgents` (off by default). When a check fails or trips bot
+  detection, the URL is re-checked under a desktop Chrome, desktop Firefox and
+  mobile Safari agent, and the report says which one loaded cleanly and what to
+  set `browser.userAgent` to. A blocked check used to report only what
+  resisted; this reports what would work.
+
+  It stops at the first clean agent rather than surveying all three, skips an
+  agent the user already configured, takes no screenshot on a retry, and treats
+  a 4xx as a failure rather than a working configuration. Off by default
+  because each retry is a full page load.
+
+  This varies one header that every HTTP client exposes and reports what it
+  observed. It does not patch the automation fingerprint or attempt to defeat a
+  challenge — the extension exists to tell you the truth about a site's
+  posture, including when the answer is that you cannot scrape it.
+
 - Runtime strings are localized, and this time they render. All 11 of them —
   notifications, status bar, quick-picks and prompts — go through
   `vscode.l10n` and ship as twelve translated bundles in `l10n/`. The v1.x
