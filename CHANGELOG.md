@@ -54,6 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every `else` block is gone (16 of them), replaced by guard clauses and value
+  expressions. The anti-bot detector's three-arm chain now derives how the
+  signature was found as a value, so the label and the flag can no longer
+  disagree.
+
 - Test coverage raised from 79.51% to 84.90% of branches (88.95% to 96.70% of
   statements, 85.71% to 98.09% of functions). Four files sat below one of the
   repo's own floors; none do now. `scraper/install.ts` was the least-covered

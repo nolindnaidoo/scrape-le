@@ -123,6 +123,13 @@ The pre-2.0 README carried hand-written test counts and throughput figures that 
 
 ## Known limitations (documented, not bugs)
 
+- `scraper/install.ts` prompts the user directly (`vscode.window.show*`), which
+  the fleet standard otherwise reserves for `ui/` and `commands/`. The browser
+  install is an interactive flow — offer, consent, progress, manual fallback —
+  so the module is effectively the adapter for it. Recorded as an exception
+  rather than split, because routing six prompts through a port would add
+  indirection without changing what the user sees.
+
 - Anti-bot signatures are best-effort fingerprints of public
   integration patterns; vendors change them, and first-party proxied
   setups can evade them. Detection means "can challenge you", not

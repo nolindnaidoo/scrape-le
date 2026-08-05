@@ -40,15 +40,17 @@ export async function detectAntiBot(
 			if (!probe || detected[signature.key]) {
 				continue;
 			}
-			if (probe.script) {
+			// First matching evidence wins, so the label names how it was found.
+			const evidence = probe.script
+				? 'script src'
+				: probe.selector
+					? 'DOM element'
+					: probe.global
+						? 'window global'
+						: null;
+			if (evidence) {
 				detected[signature.key] = true;
-				details.push(`${signature.label} (script src)`);
-			} else if (probe.selector) {
-				detected[signature.key] = true;
-				details.push(`${signature.label} (DOM element)`);
-			} else if (probe.global) {
-				detected[signature.key] = true;
-				details.push(`${signature.label} (window global)`);
+				details.push(`${signature.label} (${evidence})`);
 			}
 		}
 

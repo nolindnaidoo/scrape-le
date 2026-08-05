@@ -53,9 +53,11 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 						'✅ Chromium is ready! You can now use Scrape-LE to check URLs.',
 					);
 				}
-			} else if (choice.action === 'manual') {
+			}
+			if (choice.action === 'manual') {
 				showManualInstallInstructions();
-			} else if (choice.action === 'test') {
+			}
+			if (choice.action === 'test') {
 				// Test by trying to import and check
 				const { isBrowserAvailable } = await import('../scraper/browser');
 				const available = await isBrowserAvailable();
@@ -64,11 +66,11 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 					vscode.window.showInformationMessage(
 						'✅ Chromium is installed and ready to use!',
 					);
-				} else {
-					vscode.window.showWarningMessage(
-						'⚠️ Chromium is not installed. Please run the setup to install it.',
-					);
+					return;
 				}
+				vscode.window.showWarningMessage(
+					'⚠️ Chromium is not installed. Please run the setup to install it.',
+				);
 			}
 		},
 	);

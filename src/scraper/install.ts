@@ -148,13 +148,13 @@ function runPlaywrightInstall(): Promise<void> {
 		child.on('close', (code) => {
 			if (code === 0) {
 				resolve();
-			} else {
-				reject(
-					new Error(
-						`playwright-core install exited with code ${code}${stderrTail ? `: ${stderrTail.trim()}` : ''}`,
-					),
-				);
+				return;
 			}
+			reject(
+				new Error(
+					`playwright-core install exited with code ${code}${stderrTail ? `: ${stderrTail.trim()}` : ''}`,
+				),
+			);
 		});
 	});
 }
@@ -183,7 +183,8 @@ This is a one-time setup (~130MB download).`;
 					vscode.window.showInformationMessage(
 						vscode.l10n.t('Command copied to clipboard!'),
 					);
-				} else if (choice === learnMoreLabel) {
+				}
+				if (choice === learnMoreLabel) {
 					await vscode.env.openExternal(
 						vscode.Uri.parse(
 							'https://playwright.dev/docs/browsers#install-browsers',

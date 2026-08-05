@@ -143,12 +143,14 @@ export async function executeCheck(
 						deps.notifier.warn(
 							`✓ Page reachable but found ${errorCount} console error(s). Check output for details.`,
 						);
-					} else {
+					}
+					if (errorCount === 0) {
 						deps.notifier.info(
 							vscode.l10n.t('✓ Page is reachable and scrapeable'),
 						);
 					}
-				} else {
+				}
+				if (!result.success) {
 					deps.statusBar.show('$(x) Failed', result.error || 'Check failed');
 					// result.error is optional; the template literal this replaced
 					// rendered the string "undefined" when it was absent. The status

@@ -39,7 +39,8 @@ export function logCheckResult(result: CheckResult): void {
 			for (const error of result.consoleErrors) {
 				channel.appendLine(`      - ${error}`);
 			}
-		} else {
+		}
+		if (result.consoleErrors.length === 0) {
 			channel.appendLine('   Console Errors: None');
 		}
 
@@ -65,7 +66,8 @@ export function logCheckResult(result: CheckResult): void {
 					if (rl.retryAfter) {
 						channel.appendLine(`      - Retry After: ${rl.retryAfter}`);
 					}
-				} else {
+				}
+				if (!rl.detected) {
 					channel.appendLine('   📊 Rate Limiting: Not detected');
 				}
 			}
@@ -103,7 +105,8 @@ export function logCheckResult(result: CheckResult): void {
 							channel.appendLine(`        • ${detail}`);
 						}
 					}
-				} else {
+				}
+				if (!detected) {
 					channel.appendLine('   🤖 Anti-Bot Measures: None detected');
 				}
 			}
@@ -133,7 +136,8 @@ export function logCheckResult(result: CheckResult): void {
 					for (const sitemap of rt.sitemaps) {
 						channel.appendLine(`      - Sitemap: ${sitemap}`);
 					}
-				} else {
+				}
+				if (!rt.exists) {
 					channel.appendLine('   🤖 robots.txt: Not found');
 				}
 			}
@@ -155,7 +159,8 @@ export function logCheckResult(result: CheckResult): void {
 							channel.appendLine(`        • ${indicator}`);
 						}
 					}
-				} else {
+				}
+				if (!auth.required) {
 					channel.appendLine('   🔐 Authentication: Not required');
 				}
 			}
@@ -177,7 +182,9 @@ export function logCheckResult(result: CheckResult): void {
 				}
 			}
 		}
-	} else {
+	}
+
+	if (!result.success) {
 		channel.appendLine(`❌ FAILED: ${result.url}`);
 		if (result.error) {
 			channel.appendLine(`   Error: ${result.error}`);
