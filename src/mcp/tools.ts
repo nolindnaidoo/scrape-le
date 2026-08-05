@@ -31,6 +31,10 @@ import type { ToolDefinition } from './transport';
  * in, structured data out, no network and no filesystem.
  */
 
+// Advertised in the schema with its default visible, rather than silently
+// enforced. A model that can see the cap can raise it when it genuinely needs
+// more, and can read `meta.truncated` to know it should. A hidden cap just
+// produces quietly incomplete answers.
 const MAX_RESULTS_SCHEMA = {
 	type: 'integer',
 	minimum: 1,
