@@ -175,11 +175,7 @@ export function pageProbeScan(
 					return false;
 				}
 			}),
-			global: probe.globals.some(
-				(name) =>
-					typeof (window as unknown as Record<string, unknown>)[name] !==
-					'undefined',
-			),
+			global: probe.globals.some((name) => name in window),
 		};
 	}
 	return result;
