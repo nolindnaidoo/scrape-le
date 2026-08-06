@@ -17,31 +17,38 @@ one repository: the detection corpus (`../signatures/`, `../fixtures/`)
 is shared with the VS Code extension, and CI fails when either side
 drifts from it.
 
-**Status: scaffolding.** The binary builds under the full lint policy
-and refuses honestly (exit 2) until the detection port lands. Do not
-make the README or the manifest claim otherwise.
+**Status: complete and unpublished.** Every detection, both surfaces,
+batching and the test layers below are built and green; nothing is
+released to crates.io yet. Do not let the README or the manifest claim
+a publication that has not happened.
 
 ## Layout
 
 ```
 crate/src/
-├── detect/     pure: signature matching, robots.txt, verdict logic.
-│               No I/O, no browser, pub(crate).
-├── fetch.rs    HTTP (ureq)
-├── render.rs   Chromium (headless_chrome)
-├── cli.rs      the terminal surface
-└── mcp.rs      the agent surface
+├── detect/       pure: signatures, detectors, verdict, report shape.
+│                 No I/O, no browser, pub(crate).
+├── fetch.rs      HTTP (ureq) — the --no-render path and robots.txt
+├── render.rs     Chromium (headless_chrome), sync CDP
+├── check_url.rs  one URL end to end — the only path either surface calls
+├── batch.rs      host grouping, bounded concurrency, streaming
+├── cli.rs        the terminal surface
+└── mcp.rs        the agent surface
 ```
 
 - **`detect/` touches no network and drives no browser.** It takes
   evidence and returns findings, so the entire decision layer tests
   from a fixture file — no display, no network, no flake. It carries
-  the **90% line coverage floor per module** (CI enforces once the port
-  lands). If a `ureq` or `headless_chrome` type appears in `detect/`,
-  that is a bug.
-- **Both surfaces are one implementation.** `cli.rs` and `mcp.rs` call
-  the same `check()` in `detect/`. A surface that grows its own copy of
-  a rule is a bug.
+  the **90% line coverage floor per module**, enforced by the
+  `coverage` job. If a `ureq` or `headless_chrome` type appears in
+  `detect/`, that is a bug.
+- **Both surfaces are one implementation.** `cli.rs` and `mcp.rs` both
+  call `check_url.rs`, which calls `check()` in `detect/`. A surface
+  that grows its own copy of a rule is a bug, and a contract test
+  asserts the two return identical findings for the same URL.
+- **`batch.rs` schedules, it does not decide.** Its one rule — never
+  two concurrent requests to the same host — is why concurrency is a
+  property of the host set and never of the URL count.
 - Keep modules flat. No layers, registries, managers, or services. No
   trait with a single implementation.
 
@@ -69,9 +76,13 @@ crate/src/
   contradicts the spec's non-goals and the generic-User-Agent rule. A
   written-down parity gap, not an oversight.
 - **robots.txt agent-specific groups are fixed here, not ported
-  broken.** `--agent` does RFC 9309 group selection; the extension
-  evaluates only `User-agent: *`. Corpus cases that diverge carry a
-  `divergence` annotation in `../fixtures/`.
+  broken.** `--agent` does RFC 9309 group selection; flagless runs stay
+  byte-identical to the extension. Corpus cases that diverge carry a
+  `divergence` annotation in `../fixtures/`, and a test asserts the CLI
+  actually answers what the annotation claims.
+- **stdout is protocol, stderr is human. There is no `--json` flag.**
+  One mode, nothing to misremember, and the human summary is a
+  projection of the same report so the two cannot drift.
 - **Parity scope is detection results only** — the extension's
   `src/detectors/` and `src/utils/url.ts`. Commands, UI, i18n, the
   config reader, and the browser installer are extension concerns with
@@ -145,12 +156,22 @@ The bar, enforced by review:
 - **The parity corpus is embedded.** Every `../fixtures/` case runs as
   a unit test; the expected values are the extension's answers except
   where a `divergence` annotation says otherwise.
-- **Exit codes belong in contract tests.** They are the API — callers
-  branch on them — so they are pinned by tests that need no network
-  and no browser, and run everywhere on every push.
-- **Anything needing a real browser is a scenario test**, gated behind
-  an env var and run by CI on all three OSes — the spec's render row.
-  Unit tests never launch Chromium.
+- **Exit codes belong in `tests/contracts.rs`.** They are the API —
+  callers branch on them — so they are pinned by tests that drive the
+  built binary against a local fixture server: no browser, no
+  internet, so they run everywhere on every push. A new refusal adds
+  its case there.
+- **Anything needing a real browser is `tests/scenarios.rs`**, gated
+  behind `SCRAPE_LE_SCENARIOS` and run by CI on all three OSes. Unit
+  tests never launch Chromium, and a skipped scenario is never
+  reported as a pass.
+- **Every signature carries its negative case.** A signal that
+  fingerprints two vendors is a false-positive generator; the corpus
+  tests fail the build on an overlapping selector, global or script
+  substring, and assert each header rule names exactly one vendor.
+- **The verdict rules are held over every combination**, not the cases
+  someone thought of: no finding set ever produces `blocked`, and
+  `clear` requires zero findings and zero incomplete checks.
 - **Every bug fix ships with a regression test** that fails before the
   fix.
 - Tests are deterministic: no clocks, no randomness, and **no network

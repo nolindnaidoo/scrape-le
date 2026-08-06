@@ -84,9 +84,12 @@ DataDome, PerimeterX.
 
 Signatures live in TOML rather than Rust: a vendor changing a script URL
 should be a data edit, reviewable by someone who does not write Rust.
-Each carries its source and confidence — a `window.turnstile` global is
-near-certain; a `cf-ray` header means Cloudflare fronts the site, which
-is not the same as bot protection being armed.
+Each finding carries its source: which signal fired, and whether it came
+from a response header, a script src, a DOM element or a window global.
+**Confidence is not yet a corpus field** — a `window.turnstile` global is
+near-certain while a `cf-ray` header only means Cloudflare fronts the
+site, and the report conveys that through the evidence rather than a
+weight. Per-signal claims are listed under enhancements.
 
 ### 2. Rate limiting
 
@@ -98,9 +101,17 @@ Fetches `<origin>/robots.txt` and evaluates the **`User-agent: *`** rules
 against the URL with RFC 9309 semantics: grouped agents, `Allow`/`Disallow`
 longest-match, `*` wildcards, `$` anchors, crawl-delay, sitemaps.
 
-**Agent-specific groups are ignored, exactly as the extension ignores
-them.** That is a stated limitation being ported deliberately. Fixing it
-is an enhancement, listed below.
+**Flagless, agent-specific groups are ignored, exactly as the extension
+ignores them** — so every default invocation stays byte-identical to the
+reference implementation, and the parity corpus tests both sides.
+
+**`--agent MyBot/1.0` opts into RFC 9309 group selection**, evaluating
+that agent's group instead. The divergence is deliberate and recorded:
+the answering group is named in the report (`robots.agent`) and in the
+finding's evidence, and the fixture cases that diverge carry a
+`divergence` annotation that is itself asserted by a test. Reporting
+"robots allows you" while ignoring the group that names the caller is
+the same over-optimism as defaulting to `--no-render`.
 
 Sitemaps are reported, never fetched — they come out of a file already
 retrieved, so listing them is free, while following one has no natural
@@ -123,7 +134,10 @@ screenshot — as the extension reports them.
 ## Output
 
 One JSON report per URL on stdout, a human summary on stderr, and an exit
-code.
+code. **There is no `--json` flag**: stdout is always protocol and stderr
+is always for the human, so piping works bare and there is no mode to
+misremember. The human summary is a projection of the same report, never
+a second prose generator that could drift from it.
 
 ```json
 {
@@ -185,7 +199,6 @@ For a batch, the exit code is the worst across all URLs.
 
 ```bash
 scrape-le https://example.com                  # one URL
-scrape-le --json https://example.com           # the report on stdout
 
 scrape-le --input urls.json                    # ["https://a.com", "https://b.com"]
 scrape-le --input urls.csv                     # one URL per line, or a `url` column
@@ -364,20 +377,22 @@ tool can be trusted at all.
 Listed so they are not smuggled into the port. Each is worth doing; none
 is worth doing first.
 
-1. **Agent-specific robots.txt groups.** `--agent MyBot/1.0` evaluates
-   that group instead of only `*`. Fixes a limitation the extension
-   states.
-2. **Wider vendor coverage.** `spider`'s `AntiBotTech` enum names 30 —
+1. **Wider vendor coverage.** `spider`'s `AntiBotTech` enum names 30 —
    Kasada, Arkose Labs, Imperva, HUMAN, Akamai Bot Manager, FingerprintJS,
    Queue-It, AWS WAF, Sucuri, Wordfence, GeeTest, Alibaba TMD, Vercel and
    more. A maintained list someone else keeps current.
-3. **JavaScript requirement.** Raw HTML versus rendered DOM — text ratio,
+2. **JavaScript requirement.** Raw HTML versus rendered DOM — text ratio,
    link count, empty-shell detection. Nothing in any ecosystem reports
    this, and it is the thing a scraper author most needs before choosing
    `reqwest` over a browser.
-4. **Honeypot links.** `display:none` links a headless browser would
+3. **Honeypot links.** `display:none` links a headless browser would
    follow and a human never would. Informational only; must never move
    the verdict alone.
-5. **Rate-limit budgets.** Report "100/hour, 14 remaining" rather than
+4. **Rate-limit budgets.** Report "100/hour, 14 remaining" rather than
    "rate limiting present".
+5. **Per-signal confidence claims.** A closed vocabulary in the corpus
+   (`vendor-fronts-site` for `cf-ray`, `challenge-present` for
+   `window.turnstile`) that the verdict layer reads, instead of every
+   signal carrying equal weight. Crate-only TOML fields, ignored by the
+   extension and skipped by the parity checker.
 

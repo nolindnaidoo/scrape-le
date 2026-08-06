@@ -144,6 +144,15 @@ pub(crate) fn render(url: &str, browser_path: PathBuf) -> Result<RenderEvidence,
     let console_errors = console.lock().map(|m| m.clone()).unwrap_or_default();
     let document = document.lock().ok().and_then(|slot| slot.clone());
 
+    // The document response's own URL is the endpoint CDP saw; the
+    // tab's URL can differ after a client-side route change, so keep
+    // the tab's as final_url and let the document's inform status.
+    let final_url = document
+        .as_ref()
+        .map(|d| d.url.clone())
+        .filter(|url| !url.is_empty())
+        .or(final_url);
+
     Ok(RenderEvidence {
         final_url,
         title,

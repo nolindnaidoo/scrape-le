@@ -288,6 +288,7 @@ fn check_auth(evidence: &Evidence, findings: &mut Vec<Finding>) {
             "indicators": auth.indicators,
             "type": auth.auth_type,
             "login_url": auth.login_url,
+            "paired_username": auth.paired_username,
         }),
     });
 }
@@ -504,6 +505,65 @@ mod tests {
     fn title_extracted_from_raw_html() {
         let report = check(&evidence(200, &[], None), &CheckOptions::default());
         assert_eq!(report.title.as_deref(), Some("Search — Example"));
+    }
+
+    /// The verdict rules, held over every combination rather than the
+    /// cases someone thought of:
+    ///
+    /// - `clear` requires zero findings **and** zero skipped checks;
+    /// - no set of `warns` findings ever produces `blocked` — that
+    ///   verdict belongs to a page that could not be reached at all;
+    /// - a positive finding does not need completeness, so a partial
+    ///   run can still say `restricted` honestly.
+    #[test]
+    fn the_verdict_rules_hold_over_every_combination() {
+        let statuses = [CheckStatus::Ran, CheckStatus::Partial, CheckStatus::Skipped];
+        for antibot in statuses {
+            for auth in statuses {
+                for robots in statuses {
+                    for finding_count in 0..3 {
+                        for severity in [Severity::Warns, Severity::Blocks] {
+                            let findings: Vec<Finding> = (0..finding_count)
+                                .map(|i| Finding {
+                                    kind: "antibot".to_string(),
+                                    severity,
+                                    detail: format!("probe {i}"),
+                                    evidence: json!({}),
+                                })
+                                .collect();
+                            let checks = Checks {
+                                antibot,
+                                rate_limit: CheckStatus::Ran,
+                                robots,
+                                auth,
+                            };
+                            let skipped = skipped_names(&checks);
+                            let verdict = decide(&findings, &skipped);
+
+                            assert_ne!(
+                                verdict,
+                                Verdict::Blocked,
+                                "findings alone must never produce blocked"
+                            );
+                            if verdict == Verdict::Clear {
+                                assert!(findings.is_empty(), "clear with findings");
+                                assert!(skipped.is_empty(), "clear with skipped checks");
+                            }
+                            if !findings.is_empty() {
+                                assert_eq!(
+                                    verdict,
+                                    Verdict::Restricted,
+                                    "a positive finding stands without completeness"
+                                );
+                            }
+                            if findings.is_empty() && !skipped.is_empty() {
+                                assert_eq!(verdict, Verdict::Inconclusive);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]

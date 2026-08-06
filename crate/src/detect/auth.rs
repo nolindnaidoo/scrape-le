@@ -14,6 +14,10 @@ pub(crate) struct AuthInfo {
     pub(crate) required: bool,
     pub(crate) auth_type: Option<&'static str>,
     pub(crate) login_url: Option<String>,
+    /// whether the form paired the password field with a username or
+    /// email field — reported as evidence, since a lone password field
+    /// is a weaker claim
+    pub(crate) paired_username: bool,
     pub(crate) indicators: Vec<String>,
 }
 
@@ -42,6 +46,7 @@ pub(crate) fn detect_authentication(
         required: true,
         auth_type,
         login_url,
+        paired_username: page.is_some_and(|p| p.has_username_input),
         indicators,
     }
 }

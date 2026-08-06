@@ -50,10 +50,6 @@ overflow-checks = true
 
 [lints.rust]
 unsafe_code = "forbid"
-# The detection layer lands ahead of its surfaces; until cli.rs wires
-# check() into main, some detect/ items are reached only by tests.
-# Remove when the surfaces land.
-dead_code = "allow"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

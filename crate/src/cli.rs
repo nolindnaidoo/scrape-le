@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use crate::batch::{BatchOptions, DEFAULT_CONCURRENCY, Summary, Target};
 use crate::check_url::{CheckOutcome, check_url};
 use crate::detect::report::{CheckStatus, Report, Severity, Verdict};
-use crate::detect::url::{normalize_url, validate_url};
+use crate::detect::url::{extract_url, normalize_url, validate_url};
 
 const USAGE: &str = "usage: scrape-le [options] <url>
        scrape-le [options] --input <file|->
@@ -221,7 +221,10 @@ fn run_batch(source: &str, options: &Options) -> ExitCode {
     let mut targets = Vec::with_capacity(urls.len());
     let mut malformed = 0;
     for (index, raw_url) in urls.iter().enumerate() {
-        let url = normalize_url(raw_url);
+        // A batch line may carry a URL amid other text (a log line, a
+        // note column); extract_url finds it and falls back to plain
+        // normalization for a bare domain.
+        let url = extract_url(raw_url).unwrap_or_else(|| normalize_url(raw_url));
         if !validate_url(&url) {
             eprintln!("scrape-le: entry {index} is not an http(s) URL: {raw_url}");
             malformed += 1;
@@ -245,8 +248,6 @@ fn run_batch(source: &str, options: &Options) -> ExitCode {
 fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
     let batch_options = BatchOptions {
         concurrency: options.concurrency,
-        no_render: options.no_render,
-        agent: options.agent.clone(),
         ignore_crawl_delay: options.ignore_crawl_delay,
     };
     let started = std::time::Instant::now();

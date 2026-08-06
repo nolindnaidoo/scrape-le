@@ -24,8 +24,6 @@ pub(crate) const DEFAULT_CONCURRENCY: usize = 4;
 #[derive(Debug, Clone)]
 pub(crate) struct BatchOptions {
     pub(crate) concurrency: usize,
-    pub(crate) no_render: bool,
-    pub(crate) agent: Option<String>,
     pub(crate) ignore_crawl_delay: bool,
 }
 
@@ -295,8 +293,6 @@ mod tests {
     fn options() -> BatchOptions {
         BatchOptions {
             concurrency: DEFAULT_CONCURRENCY,
-            no_render: true,
-            agent: None,
             ignore_crawl_delay: true,
         }
     }

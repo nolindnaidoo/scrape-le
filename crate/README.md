@@ -39,31 +39,89 @@ and
 [`fixtures/`](https://github.com/nolindnaidoo/scrape-le/tree/main/fixtures),
 and CI fails on drift.
 
-## Status: pre-release scaffolding
+## Sixty seconds
 
-Said plainly, because a README that oversells an empty binary is the
-opposite of what this tool is for:
+```bash
+scrape-le https://example.com/search      # one URL
+scrape-le --input urls.txt                # a batch, streamed as it completes
+scrape-le doctor                          # is a browser here, and which
+```
 
-| Exists today | Specified, not yet built |
+```
+restricted — 1 finding  (https://example.com/search · 1842ms · exit 1)
+  blocks  robots     Disallow: /search for User-agent: *
+  checks  antibot ✓  ·  rate-limit ✓  ·  robots ✓  ·  auth ✓
+```
+
+The report is JSON on stdout, the summary above is stderr, and the exit
+code is the answer: **0 clear · 1 a real no · 2 the question was
+malformed.** Every finding carries its evidence — not "Cloudflare
+detected" but which signal, from which source — so a false positive is
+diagnosable rather than mysterious.
+
+## Status: works, not yet published
+
+| Works today | Not here yet |
 |---|---|
-| The crate builds under the full lint policy (clippy pedantic as errors, `unsafe` forbidden) and refuses honestly with exit 2 | The detection engine — the port of the extension's detectors |
-| The shared signature corpus, fixture parity cases, and the CI gate that fails when either frontend drifts | Single-URL and batch checks, JSON reports, `--no-render`, the MCP surface |
-| [SPEC.md](https://github.com/nolindnaidoo/scrape-le/blob/main/crate/SPEC.md) — the full behavioral spec: verdicts, exit codes, batching, refusal language | `cargo install scrape-le` — nothing is published until the engine lands |
+| Single-URL and batch checks, all four detections, all four verdicts, JSON reports, `--no-render`, `--agent`, `--signatures`, `doctor` | Publication — no crates.io release, no Homebrew or winget, no prebuilt binaries |
+| The MCP surface (`scrape-le mcp`) with `scrape_le_check` and `scrape_le_doctor` | Signature confidence weights, and the wider vendor coverage listed in the spec's enhancements |
+| Contract, scenario, property and parity tests; a 90% per-module coverage floor on the decision layer | |
 
 ## Install
 
-Not yet published to crates.io. Until the first `crate-v*` release:
+Not yet published. Until the first `crate-v*` release:
 
 ```bash
 git clone https://github.com/nolindnaidoo/scrape-le
 cd scrape-le/crate
 cargo build --release        # needs Rust 1.88+
-./target/release/scrape-le   # exits 2: not implemented yet
+./target/release/scrape-le --help
 ```
 
 The eventual routes — crates.io, Homebrew, winget, prebuilt binaries —
 follow the pixelcoords/pixelactions playbook and arrive with the
 releases, not before.
+
+## Verdicts
+
+| Verdict | Means | Exit |
+|---|---|---|
+| `clear` | every check ran, and nothing found would stop a naive scraper | 0 |
+| `restricted` | something would stop or limit you — see the findings | 1 |
+| `blocked` | the page could not be reached or rendered at all | 1 |
+| `inconclusive` | nothing blocking was found, **but not every check ran** | 1 |
+
+**`clear` requires completeness; `restricted` does not.** A `Disallow`
+or a 401 is true whether or not the page rendered, so a partial run can
+say `restricted` honestly — but `clear` is a claim about *absence*, and
+absence cannot be claimed for a check that did not run. That is why a
+`--no-render` run can never come back `clear`, and why the report names
+which checks were partial.
+
+## Commands and flags
+
+| | |
+|---|---|
+| `scrape-le <url>` | check one URL |
+| `--input <file\|->` | batch: a JSON array, a CSV with a `url` column, or one URL per line — detected by content, not extension |
+| `--no-render` | skip the browser; caps the verdict at `inconclusive` |
+| `--agent <token>` | evaluate robots.txt as this crawler (RFC 9309 group selection) instead of `User-agent: *` |
+| `--signatures <file>` | add or replace vendor signatures from a TOML file |
+| `--concurrency <n>` | hosts checked at once (default 4); same-host URLs are always sequential |
+| `--ignore-crawl-delay` | do not honour a declared `Crawl-delay`; recorded in the report when used |
+| `doctor` | is a browser available, which one, what will run |
+| `mcp` | serve the same check over MCP on stdio |
+
+## Batches
+
+One rule generates the rest: **never two concurrent requests to the same
+host.** A tool whose premise is asking whether it is acceptable to hit a
+site cannot hammer that site while asking, and a batch of a hundred URLs
+is very often a hundred paths on one site. So hosts run in parallel,
+URLs within a host run sequentially, `Crawl-delay` is honoured between
+them, `robots.txt` is fetched once per host, exact-duplicate URLs are
+checked once, and reports stream as they complete carrying their input
+`index`. The exit code is the worst verdict in the batch.
 
 ## Design commitments
 
