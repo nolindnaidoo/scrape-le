@@ -288,8 +288,20 @@ and guessing.
 
 | Tool | Does |
 |---|---|
+| `analyze_robots_txt` | **the tool the npm server also offers** — robots.txt content in, analysis out, no network |
 | `scrape_le_check` | one URL, or an array of them; returns the report(s) |
 | `scrape_le_doctor` | is a browser available, which one, what will run |
+
+**Two servers, one tool contract.** The published npm server
+(`scrape-le-mcp`) runs anywhere with no install and no browser, which is
+why it ships inside the extension and works over `npx`; this one needs
+the binary and a Chromium, so it can never be `npx`-ed. Rather than
+publish two products, `analyze_robots_txt` is offered by **both**, with
+the same schema, the same envelope and byte-identical output —
+`fixtures/mcp-analyze-robots.json` runs against both implementations and
+fails either build on drift. This server is then a strict superset.
+
+Every tool returns the same envelope, `{ ok, data, diagnostics, meta }`.
 
 **Read-only by construction.** There is no acting surface here, so unlike
 pixelactions there is no consent gate to design — the worst this can do
@@ -298,9 +310,15 @@ is fetch a page.
 Two rules borrowed from the other tools' MCP surfaces:
 
 - **A negative answer is not an error.** `restricted` and `inconclusive`
-  come back as ordinary results with `ok: false`. Only a malformed
-  question — an unparseable URL — is a protocol error. A model that reads
-  a refusal as a broken tool retries instead of reacting.
+  come back as ordinary results, and **`ok` reports whether the check
+  ran, not whether the answer is yes** — the verdict lives in `data`.
+  Conflating the two would have a model report a broken tool when what
+  it actually learned is that it should not scrape.
+- **A bad argument is a tool failure, not a protocol failure.** An
+  unparseable URL comes back as a result carrying `isError` so the model
+  can read the reason and correct itself; a JSON-RPC error is reserved
+  for protocol-level problems (an unknown method, an unknown tool),
+  because that is what reads as "the server is broken".
 - **Refusals speak the caller's vocabulary.** An MCP caller has no command
   line, so no message mentions `--no-render` or any other flag.
 

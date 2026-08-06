@@ -306,10 +306,15 @@ fn the_two_surfaces_return_identical_findings() {
 
     let response: serde_json::Value =
         serde_json::from_str(raw.lines().next().expect("a response")).expect("JSON");
-    let mcp_report = &response["result"]["structuredContent"]["data"];
+    let envelope = &response["result"]["structuredContent"];
+    let mcp_report = &envelope["data"];
 
     assert_eq!(cli_report["verdict"], mcp_report["verdict"]);
     assert_eq!(cli_report["findings"], mcp_report["findings"]);
     assert_eq!(cli_report["checks"], mcp_report["checks"]);
-    assert_eq!(response["result"]["structuredContent"]["ok"], false);
+    // `ok` says the check ran; the answer is the verdict. A restricted
+    // page must not read as a broken tool.
+    assert_eq!(envelope["ok"], true);
+    assert_eq!(mcp_report["verdict"], "restricted");
+    assert_eq!(response["result"]["isError"], false);
 }

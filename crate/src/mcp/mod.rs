@@ -16,6 +16,8 @@
 //! pixelactions there is no consent gate to design — the worst this can
 //! do is fetch a page.
 
+mod analyze;
+
 use std::io::{BufRead, Write};
 use std::process::ExitCode;
 
@@ -23,7 +25,6 @@ use serde_json::{Value, json};
 
 use crate::check_url::{CheckOutcome, check_url};
 use crate::cli::Options;
-use crate::detect::report::Verdict;
 
 const PROTOCOL_VERSION: &str = "2025-06-18";
 
@@ -89,6 +90,7 @@ fn handle(request: &Value) -> Option<Value> {
 
 fn tool_definitions() -> Value {
     json!([
+        analyze::definition(),
         {
             "name": "scrape_le_check",
             "description": "Check whether a page can be scraped: robots.txt, anti-bot vendors, \
@@ -126,6 +128,10 @@ fn tool_definitions() -> Value {
     ])
 }
 
+/// Protocol failures (no tool named, an unknown tool) are JSON-RPC
+/// errors; a tool that fails on its arguments returns a result carrying
+/// `isError`, so a model reads the reason and reacts rather than
+/// concluding the server is broken. Same rule as the npm server.
 fn call_tool(params: Option<&Value>) -> Result<Value, (i64, String)> {
     let params = params.ok_or((INVALID_PARAMS, "no tool call was supplied".to_string()))?;
     let name = params
@@ -138,7 +144,11 @@ fn call_tool(params: Option<&Value>) -> Result<Value, (i64, String)> {
         .unwrap_or_else(|| json!({}));
 
     match name {
-        "scrape_le_check" => check_tool(&arguments),
+        "analyze_robots_txt" => Ok(match analyze::analyze(&arguments) {
+            Ok(result) => tool_result(&result),
+            Err(message) => tool_failure(&message),
+        }),
+        "scrape_le_check" => Ok(check_tool(&arguments)),
         "scrape_le_doctor" => Ok(doctor_tool()),
         other => Err((
             INVALID_PARAMS,
@@ -147,8 +157,11 @@ fn call_tool(params: Option<&Value>) -> Result<Value, (i64, String)> {
     }
 }
 
-fn check_tool(arguments: &Value) -> Result<Value, (i64, String)> {
-    let urls = requested_urls(arguments)?;
+fn check_tool(arguments: &Value) -> Value {
+    let urls = match requested_urls(arguments) {
+        Ok(urls) => urls,
+        Err(message) => return tool_failure(&message),
+    };
     let options = Options {
         no_render: !arguments
             .get("render")
@@ -163,34 +176,43 @@ fn check_tool(arguments: &Value) -> Result<Value, (i64, String)> {
     };
 
     let mut reports = Vec::with_capacity(urls.len());
-    let mut all_clear = true;
     for (index, raw) in urls.iter().enumerate() {
         let url = crate::detect::url::normalize_url(raw);
         if !crate::detect::url::validate_url(&url) {
-            // A malformed question IS a protocol error — the caller
-            // asked something unanswerable, rather than getting a
-            // negative answer.
-            return Err((INVALID_PARAMS, format!("{raw} is not an http or https URL")));
+            // The caller asked something unanswerable. That is a
+            // tool-level failure it can fix, not the server breaking.
+            return tool_failure(&format!("{raw} is not an http or https URL"));
         }
         let position = (urls.len() > 1).then_some(index);
         match check_url(&url, position, &options) {
             CheckOutcome::Report(report) => {
-                all_clear &= report.verdict == Verdict::Clear;
                 reports.push(serde_json::to_value(&report).expect("report serializes"));
             }
-            CheckOutcome::Malformed(reason) => return Err((INVALID_PARAMS, reason)),
+            CheckOutcome::Malformed(reason) => return tool_failure(&reason),
         }
     }
 
-    let payload = if reports.len() == 1 {
+    let count = reports.len();
+    let payload = if count == 1 {
         reports.remove(0)
     } else {
         json!({ "reports": reports })
     };
-    Ok(result_with(&payload, all_clear))
+    // A partial run is worth saying out loud: the verdict is capped at
+    // `inconclusive` and the caller should know why before acting on it.
+    let diagnostics = if options.no_render {
+        vec![warning(
+            "render",
+            "the page was not loaded in a browser, so the anti-bot and authentication \
+             checks ran partially and the verdict cannot be `clear`",
+        )]
+    } else {
+        Vec::new()
+    };
+    tool_result(&envelope("scrape_le_check", &payload, count, &diagnostics))
 }
 
-fn requested_urls(arguments: &Value) -> Result<Vec<String>, (i64, String)> {
+fn requested_urls(arguments: &Value) -> Result<Vec<String>, String> {
     if let Some(url) = arguments.get("url").and_then(Value::as_str) {
         return Ok(vec![url.to_string()]);
     }
@@ -200,15 +222,15 @@ fn requested_urls(arguments: &Value) -> Result<Vec<String>, (i64, String)> {
             .filter_map(|item| item.as_str().map(str::to_string))
             .collect();
         if urls.is_empty() {
-            return Err((INVALID_PARAMS, "the list of URLs was empty".to_string()));
+            return Err("the list of URLs was empty".to_string());
         }
         return Ok(urls);
     }
-    Err((INVALID_PARAMS, "no URL was supplied to check".to_string()))
+    Err("no URL was supplied to check".to_string())
 }
 
 fn doctor_tool() -> Value {
-    let (payload, ok) = match crate::render::find_browser() {
+    let (payload, diagnostics) = match crate::render::find_browser() {
         Ok(path) => (
             json!({
                 "browser": path.to_string_lossy(),
@@ -216,7 +238,7 @@ fn doctor_tool() -> Value {
                 "checks_complete": true,
                 "detail": "every check can run, so a `clear` verdict is reachable",
             }),
-            true,
+            Vec::new(),
         ),
         Err(reason) => (
             json!({
@@ -228,20 +250,56 @@ fn doctor_tool() -> Value {
                      anti-bot and authentication run partially and the verdict can never be clear"
                 ),
             }),
-            false,
+            // A warning, not an error: doctor answered the question it
+            // was asked. What it found is that rendering is missing.
+            vec![warning("render", &reason)],
         ),
     };
-    result_with(&payload, ok)
+    tool_result(&envelope("scrape_le_doctor", &payload, 1, &diagnostics))
 }
 
-/// An MCP tool result: the report as text (what a model reads) plus
-/// the same data structured, and `ok` carrying the yes/no.
-fn result_with(payload: &Value, ok: bool) -> Value {
-    let text = serde_json::to_string_pretty(payload).expect("payload serializes");
+/// The one result shape every tool returns, matching the npm server's
+/// envelope field for field: `{ ok, data, diagnostics, meta }`.
+///
+/// **`ok` reports whether the check ran, not whether the answer is
+/// yes.** A page that is `restricted` is the answer, not a failure to
+/// produce one — conflating the two would have a model report a broken
+/// tool when what it actually learned is that it should not scrape.
+/// The verdict lives in `data`.
+fn envelope(tool: &str, data: &Value, count: usize, diagnostics: &[Value]) -> Value {
+    let ok = !diagnostics
+        .iter()
+        .any(|d| d["severity"].as_str() == Some("error"));
+    json!({
+        "ok": ok,
+        "data": data,
+        "diagnostics": diagnostics,
+        "meta": { "tool": tool, "count": count, "truncated": false },
+    })
+}
+
+/// An MCP tool result: the envelope as text (what a model reads) and
+/// the same envelope structured. Identical to what the npm server
+/// emits, so a caller diffing the two servers finds nothing.
+fn tool_result(envelope: &Value) -> Value {
+    let text = serde_json::to_string_pretty(envelope).expect("envelope serializes");
     json!({
         "content": [{ "type": "text", "text": text }],
-        "structuredContent": { "ok": ok, "data": payload },
+        "structuredContent": envelope,
         "isError": false,
+    })
+}
+
+fn warning(code: &str, message: &str) -> Value {
+    json!({ "severity": "warning", "code": code, "message": message })
+}
+
+/// The tool could not run on the arguments given. `isError` so a model
+/// reads the message and corrects itself.
+fn tool_failure(message: &str) -> Value {
+    json!({
+        "content": [{ "type": "text", "text": message }],
+        "isError": true,
     })
 }
 
@@ -265,7 +323,10 @@ mod tests {
         let response = handle(&request("tools/list", &json!({}))).expect("a reply");
         let tools = response["result"]["tools"].as_array().expect("tools");
         let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
-        assert_eq!(names, ["scrape_le_check", "scrape_le_doctor"]);
+        assert_eq!(
+            names,
+            ["analyze_robots_txt", "scrape_le_check", "scrape_le_doctor"]
+        );
     }
 
     #[test]
@@ -280,24 +341,73 @@ mod tests {
         assert_eq!(response["error"]["code"], METHOD_NOT_FOUND);
     }
 
+    /// A bad argument is the tool failing on what it was given, not
+    /// the server breaking — so it comes back as a result carrying
+    /// isError, the same rule the npm server follows.
     #[test]
-    fn a_malformed_url_is_a_protocol_error() {
+    fn a_malformed_url_is_a_tool_failure_not_a_protocol_error() {
         let response = handle(&request(
             "tools/call",
             &json!({ "name": "scrape_le_check", "arguments": { "url": "not a url" } }),
         ))
         .expect("a reply");
-        assert_eq!(response["error"]["code"], INVALID_PARAMS);
+        assert!(response.get("error").is_none(), "{response}");
+        assert_eq!(response["result"]["isError"], true);
+        assert!(
+            response["result"]["content"][0]["text"]
+                .as_str()
+                .expect("a message")
+                .contains("not an http or https URL")
+        );
     }
 
     #[test]
-    fn a_missing_url_is_a_protocol_error() {
+    fn a_missing_url_is_a_tool_failure() {
         let response = handle(&request(
             "tools/call",
             &json!({ "name": "scrape_le_check", "arguments": {} }),
         ))
         .expect("a reply");
-        assert_eq!(response["error"]["code"], INVALID_PARAMS);
+        assert_eq!(response["result"]["isError"], true);
+    }
+
+    #[test]
+    fn the_shared_tool_is_offered_and_answers() {
+        let response = handle(&request(
+            "tools/call",
+            &json!({
+                "name": "analyze_robots_txt",
+                "arguments": {
+                    "content": "User-agent: *\nDisallow: /admin\n",
+                    "path": "/admin/x",
+                },
+            }),
+        ))
+        .expect("a reply");
+        let envelope = &response["result"]["structuredContent"];
+        assert_eq!(envelope["meta"]["tool"], "analyze_robots_txt");
+        assert_eq!(envelope["data"]["allowsCrawling"], false);
+        assert_eq!(envelope["ok"], true, "the analysis ran");
+        assert_eq!(response["result"]["isError"], false);
+    }
+
+    /// This tool reaches no network — that is the property that lets an
+    /// agent call it anywhere, and it must not regress.
+    #[test]
+    fn the_shared_tool_needs_no_network() {
+        let before = std::time::Instant::now();
+        let response = handle(&request(
+            "tools/call",
+            &json!({
+                "name": "analyze_robots_txt",
+                "arguments": { "content": "User-agent: *\nAllow: /\n", "path": "/" },
+            }),
+        ))
+        .expect("a reply");
+        assert_eq!(response["result"]["isError"], false);
+        // A network round trip could not complete this fast; the tool
+        // works purely from the content it was handed.
+        assert!(before.elapsed() < std::time::Duration::from_millis(200));
     }
 
     #[test]
@@ -326,7 +436,35 @@ mod tests {
     fn doctor_reports_a_structured_answer() {
         let doctor = doctor_tool();
         assert!(doctor["structuredContent"]["data"]["render"].is_string());
-        assert!(doctor["structuredContent"]["ok"].is_boolean());
+        assert_eq!(
+            doctor["structuredContent"]["meta"]["tool"],
+            "scrape_le_doctor"
+        );
+        // `ok` means doctor answered, not that a browser was found —
+        // a missing browser is reported as a warning diagnostic.
+        assert_eq!(doctor["structuredContent"]["ok"], true);
         assert_eq!(doctor["isError"], false);
+    }
+
+    /// Every tool returns the same envelope, so a caller writes one
+    /// reader for all of them and for both servers.
+    #[test]
+    fn every_tool_returns_the_same_envelope_shape() {
+        let results = [
+            doctor_tool(),
+            match analyze::analyze(&json!({ "content": "User-agent: *\n", "path": "/" })) {
+                Ok(result) => tool_result(&result),
+                Err(message) => panic!("{message}"),
+            },
+        ];
+        for result in results {
+            let envelope = &result["structuredContent"];
+            assert!(envelope["ok"].is_boolean(), "{envelope}");
+            assert!(!envelope["data"].is_null(), "{envelope}");
+            assert!(envelope["diagnostics"].is_array(), "{envelope}");
+            assert!(envelope["meta"]["tool"].is_string(), "{envelope}");
+            assert!(envelope["meta"]["count"].is_number(), "{envelope}");
+            assert!(envelope["meta"]["truncated"].is_boolean(), "{envelope}");
+        }
     }
 }

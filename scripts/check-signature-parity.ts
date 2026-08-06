@@ -18,6 +18,7 @@ import {
 	matchHeaders,
 } from '../src/detectors/heuristics';
 import { parseRobotsTxt } from '../src/detectors/robotstxt';
+import { TOOLS } from '../src/mcp/tools';
 import { extractUrl, normalizeUrl, validateUrl } from '../src/utils/url';
 
 const ROOT = join(import.meta.dir, '..');
@@ -139,10 +140,65 @@ function checkUrlFixtures(): void {
 	}
 }
 
+/**
+ * `analyze_robots_txt` is offered by BOTH MCP servers — this one, which
+ * ships on npm and inside the extension, and the Rust CLI's. They are
+ * meant to be the same tool, not two similar ones, so the same corpus
+ * runs against both: this function here, and
+ * `crate/src/mcp/analyze.rs`'s own test there. A drift in either
+ * direction fails a build.
+ */
+async function checkMcpAnalyzeFixtures(): Promise<void> {
+	const cases = JSON.parse(
+		readFileSync(join(ROOT, 'fixtures', 'mcp-analyze-robots.json'), 'utf8'),
+	);
+	const tool = TOOLS.find((t) => t.name === 'analyze_robots_txt');
+	if (!tool) {
+		fail('the extension no longer offers analyze_robots_txt');
+		return;
+	}
+
+	for (const testCase of cases) {
+		const args = { ...testCase.arguments };
+		if (testCase.file) {
+			args.content = readFileSync(
+				join(ROOT, 'fixtures', 'robots', testCase.file),
+				'utf8',
+			);
+		}
+
+		if (testCase.expectedError) {
+			try {
+				await tool.handler(args);
+				fail(
+					`mcp analyze "${testCase.name}": expected it to fail with ${JSON.stringify(testCase.expectedError)}`,
+				);
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+				if (message !== testCase.expectedError) {
+					fail(
+						`mcp analyze "${testCase.name}": expected error ${JSON.stringify(testCase.expectedError)}, got ${JSON.stringify(message)}`,
+					);
+				}
+			}
+			continue;
+		}
+
+		const actual = asJson(await tool.handler(args));
+		if (!deepEqual(actual, testCase.expected)) {
+			fail(
+				`mcp analyze "${testCase.name}":\n  expected: ${JSON.stringify(testCase.expected)}\n  got:      ${JSON.stringify(actual)}`,
+			);
+		}
+	}
+}
+
 await checkSignatures();
 checkAntibotFixtures();
 checkRobotsFixtures();
 checkUrlFixtures();
+await checkMcpAnalyzeFixtures();
 
 if (failures.length > 0) {
 	console.error(`Signature/fixture parity FAILED (${failures.length}):\n`);

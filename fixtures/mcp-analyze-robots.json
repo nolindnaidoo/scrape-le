@@ -1,0 +1,163 @@
+[
+	{
+		"name": "a disallowed path reports allowsCrawling false with the rules listed",
+		"file": "simple.txt",
+		"arguments": { "path": "/admin/settings" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/admin/settings",
+				"allowsCrawling": false,
+				"crawlDelay": 10,
+				"disallowedPaths": ["/admin/", "/api/internal/"],
+				"sitemaps": ["https://example.com/sitemap.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 2, "truncated": false }
+		}
+	},
+	{
+		"name": "an allowed path is an answer, not a failure",
+		"file": "simple.txt",
+		"arguments": { "path": "/public/page" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/public/page",
+				"allowsCrawling": true,
+				"crawlDelay": 10,
+				"disallowedPaths": ["/admin/", "/api/internal/"],
+				"sitemaps": ["https://example.com/sitemap.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 2, "truncated": false }
+		}
+	},
+	{
+		"name": "a full URL is reduced to its path without a diagnostic",
+		"file": "simple.txt",
+		"arguments": { "path": "https://example.com/admin/settings" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/admin/settings",
+				"allowsCrawling": false,
+				"crawlDelay": 10,
+				"disallowedPaths": ["/admin/", "/api/internal/"],
+				"sitemaps": ["https://example.com/sitemap.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 2, "truncated": false }
+		}
+	},
+	{
+		"name": "a bare word is read as a path and says so, rather than silently allowing",
+		"file": "simple.txt",
+		"arguments": { "path": "admin/settings" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/admin/settings",
+				"allowsCrawling": false,
+				"crawlDelay": 10,
+				"disallowedPaths": ["/admin/", "/api/internal/"],
+				"sitemaps": ["https://example.com/sitemap.xml"]
+			},
+			"diagnostics": [
+				{
+					"severity": "warning",
+					"code": "robots",
+					"message": "`admin/settings` has no leading slash and no scheme; it was read as the path /admin/settings."
+				}
+			],
+			"meta": { "tool": "analyze_robots_txt", "count": 2, "truncated": false }
+		}
+	},
+	{
+		"name": "disallow-all blocks every path and carries no crawl delay",
+		"file": "disallow-all.txt",
+		"arguments": { "path": "/anything" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/anything",
+				"allowsCrawling": false,
+				"disallowedPaths": ["/"],
+				"sitemaps": []
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 1, "truncated": false }
+		}
+	},
+	{
+		"name": "wildcards: an equal-length Allow wins the tie",
+		"file": "wildcards.txt",
+		"arguments": { "path": "/public/data.json" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/public/data.json",
+				"allowsCrawling": true,
+				"disallowedPaths": ["/*.json$", "/private*"],
+				"sitemaps": [
+					"https://example.com/map1.xml",
+					"https://example.com/map2.xml"
+				]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 2, "truncated": false }
+		}
+	},
+	{
+		"name": "agent-specific groups are ignored: this tool evaluates the generic rules",
+		"file": "multi-group.txt",
+		"arguments": { "path": "/google-only/page" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/google-only/page",
+				"allowsCrawling": true,
+				"disallowedPaths": [
+					"/everyone/",
+					"/grouped-star-last/",
+					"/grouped-star-first/"
+				],
+				"sitemaps": []
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 3, "truncated": false }
+		}
+	},
+	{
+		"name": "the cap truncates and says so",
+		"file": "multi-group.txt",
+		"arguments": { "path": "/everyone/x", "maxResults": 2 },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/everyone/x",
+				"allowsCrawling": false,
+				"disallowedPaths": ["/everyone/", "/grouped-star-last/"],
+				"sitemaps": []
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 2, "truncated": true }
+		}
+	},
+	{
+		"name": "missing content names the argument",
+		"arguments": { "path": "/admin" },
+		"expectedError": "content is required and must be a string"
+	},
+	{
+		"name": "missing path names the argument",
+		"arguments": { "content": "User-agent: *\nDisallow: /\n" },
+		"expectedError": "path is required and must be a string"
+	},
+	{
+		"name": "a nonsensical cap is rejected loudly",
+		"file": "simple.txt",
+		"arguments": { "path": "/admin", "maxResults": 0 },
+		"expectedError": "maxResults must be a positive integer"
+	}
+]

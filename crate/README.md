@@ -64,7 +64,7 @@ diagnosable rather than mysterious.
 | Works today | Not here yet |
 |---|---|
 | Single-URL and batch checks, all four detections, all four verdicts, JSON reports, `--no-render`, `--agent`, `--signatures`, `doctor` | Publication — no crates.io release, no Homebrew or winget, no prebuilt binaries |
-| The MCP surface (`scrape-le mcp`) with `scrape_le_check` and `scrape_le_doctor` | Signature confidence weights, and the wider vendor coverage listed in the spec's enhancements |
+| The MCP surface (`scrape-le mcp`) with `analyze_robots_txt`, `scrape_le_check` and `scrape_le_doctor` | Signature confidence weights, and the wider vendor coverage listed in the spec's enhancements |
 | Contract, scenario, property and parity tests; a 90% per-module coverage floor on the decision layer | |
 
 ## Install
@@ -110,7 +110,26 @@ which checks were partial.
 | `--concurrency <n>` | hosts checked at once (default 4); same-host URLs are always sequential |
 | `--ignore-crawl-delay` | do not honour a declared `Crawl-delay`; recorded in the report when used |
 | `doctor` | is a browser available, which one, what will run |
-| `mcp` | serve the same check over MCP on stdio |
+| `mcp` | serve the same checks over MCP on stdio |
+
+## Two MCP servers, one tool contract
+
+`scrape-le mcp` offers three tools; the published npm server
+[`scrape-le-mcp`](https://www.npmjs.com/package/scrape-le-mcp) offers
+one. The overlap is deliberate and enforced:
+
+| Tool | npm server | this binary |
+|---|---|---|
+| `analyze_robots_txt` — content in, analysis out, no network | yes | yes, byte-identical |
+| `scrape_le_check` — fetch, render, full verdict | — | yes |
+| `scrape_le_doctor` — browser availability | — | yes |
+
+The npm one runs anywhere with no install and no browser, which is why
+it ships inside the VS Code extension and works over `npx`. This one
+needs the binary and a Chromium. Writing `analyze_robots_txt` once means
+one tool name works whichever server a host has configured; a shared
+fixture corpus runs against both implementations and fails either build
+if they drift.
 
 ## Batches
 
