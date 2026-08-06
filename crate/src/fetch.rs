@@ -55,6 +55,7 @@ pub(crate) fn fetch_evidence(url: &str) -> Result<Evidence, FetchError> {
         headers,
         body_html,
         robots_body,
+        render: None,
         fetch_ms,
         total_ms: ms(started.elapsed()),
     })

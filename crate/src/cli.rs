@@ -10,34 +10,47 @@ use crate::detect::report::{CheckStatus, Report, Severity, Verdict};
 use crate::detect::url::{normalize_url, validate_url};
 use crate::fetch::{FetchError, fetch_evidence};
 
-const USAGE: &str = "usage: scrape-le <url>
+const USAGE: &str = "usage: scrape-le [--no-render] <url>
        scrape-le --version | --help
 
 Checks whether a page is scrapeable and reports what would block a
 scraper: robots.txt, anti-bot vendors, rate limits, auth walls.
 JSON report on stdout, human summary on stderr.
 
-Exit codes: 0 clear · 1 restricted/blocked/inconclusive · 2 malformed question.
+Rendering is the default and drives a browser you already have (Chrome,
+Chromium, Brave, Edge — or set CHROME). --no-render skips the browser;
+the verdict can then never be `clear`, and the report says so.
 
-Rendering is not wired yet: checks that need the browser run partially
-and the verdict can never be `clear` — it says so in the report.";
+Exit codes: 0 clear · 1 restricted/blocked/inconclusive · 2 malformed question.";
 
 pub(crate) fn run() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    match args.as_slice() {
+    let mut no_render = false;
+    let mut urls: Vec<&str> = Vec::new();
+    for arg in &args {
+        match arg.as_str() {
+            "--no-render" => no_render = true,
+            "--help" | "-h" => {
+                println!("{USAGE}");
+                return ExitCode::SUCCESS;
+            }
+            "--version" | "-V" => {
+                println!("scrape-le {}", env!("CARGO_PKG_VERSION"));
+                return ExitCode::SUCCESS;
+            }
+            flag if flag.starts_with('-') => {
+                eprintln!("scrape-le: unknown flag {flag}\n\n{USAGE}");
+                return ExitCode::from(2);
+            }
+            url => urls.push(url),
+        }
+    }
+    match urls.as_slice() {
         [] => {
             eprintln!("{USAGE}");
             ExitCode::from(2)
         }
-        [flag] if flag == "--help" || flag == "-h" => {
-            println!("{USAGE}");
-            ExitCode::SUCCESS
-        }
-        [flag] if flag == "--version" || flag == "-V" => {
-            println!("scrape-le {}", env!("CARGO_PKG_VERSION"));
-            ExitCode::SUCCESS
-        }
-        [url] => check_one(url),
+        [url] => check_one(url, no_render),
         _ => {
             eprintln!("scrape-le: one URL per run for now — batch --input is not implemented yet");
             ExitCode::from(2)
@@ -45,14 +58,15 @@ pub(crate) fn run() -> ExitCode {
     }
 }
 
-fn check_one(raw: &str) -> ExitCode {
+fn check_one(raw: &str, no_render: bool) -> ExitCode {
+    let started = std::time::Instant::now();
     let url = normalize_url(raw);
     if !validate_url(&url) {
         eprintln!("scrape-le: not an http(s) URL: {raw}");
         return ExitCode::from(2);
     }
 
-    let evidence: Evidence = match fetch_evidence(&url) {
+    let mut evidence: Evidence = match fetch_evidence(&url) {
         Ok(evidence) => evidence,
         Err(FetchError::Malformed(reason)) => {
             eprintln!("scrape-le: {reason}");
@@ -65,11 +79,37 @@ fn check_one(raw: &str) -> ExitCode {
         }
     };
 
+    if !no_render {
+        attach_render(&mut evidence, &url);
+    }
+    // fetch.rs stamped total at fetch time; the whole check owns it,
+    // render and browser discovery included.
+    evidence.total_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+
     let report = check(&evidence);
     emit(&report);
     match report.verdict {
         Verdict::Clear => ExitCode::SUCCESS,
         _ => ExitCode::from(1),
+    }
+}
+
+/// Render evidence is best-effort by design: no browser or a failed
+/// render degrades to the partial-checks report, and the human summary
+/// names the reason instead of silently over-claiming.
+fn attach_render(evidence: &mut Evidence, url: &str) {
+    let browser = match crate::render::find_browser() {
+        Ok(browser) => browser,
+        Err(reason) => {
+            eprintln!("scrape-le: render unavailable — {reason}");
+            return;
+        }
+    };
+    match crate::render::render(url, browser) {
+        Ok(render) => evidence.render = Some(render),
+        Err(reason) => {
+            eprintln!("scrape-le: render failed — {reason}; reporting HTTP evidence only");
+        }
     }
 }
 

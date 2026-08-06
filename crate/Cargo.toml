@@ -27,14 +27,14 @@ serde_json = "1"
 toml = "0.9"
 regex = "1"
 url = "2"
-# The decided HTTP half of the stack (AGENTS.md): sync, no runtime.
+# The decided stack (AGENTS.md): sync, no runtime. ureq is the HTTP
+# half, headless_chrome the sync-CDP render half.
 ureq = "3"
-
-# The decided render stack (AGENTS.md — sync CDP, no runtime), used today
-# only by examples/spike.rs; it graduates to [dependencies] when render.rs
-# lands. anyhow is spike-local error glue.
-[dev-dependencies]
 headless_chrome = "1"
+
+# anyhow is spike-local error glue (examples/spike.rs), not a crate-wide
+# commitment.
+[dev-dependencies]
 anyhow = "1"
 
 [profile.release]

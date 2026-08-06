@@ -6,6 +6,7 @@ use std::process::ExitCode;
 mod cli;
 mod detect;
 mod fetch;
+mod render;
 
 fn main() -> ExitCode {
     cli::run()

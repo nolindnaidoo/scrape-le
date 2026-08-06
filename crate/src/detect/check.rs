@@ -1,6 +1,6 @@
 //! `check()` — evidence in, report out. Both surfaces call this and
 //! nothing else, so neither can grow its own copy of a rule. Pure:
-//! `fetch.rs`/`render.rs` gather the evidence, this decides.
+//! `fetch.rs` and `render.rs` gather the evidence, this decides.
 
 use std::collections::HashMap;
 
@@ -13,9 +13,8 @@ use super::report::{CheckStatus, Checks, Finding, Report, Severity, Timing, Verd
 use super::robots::parse_robots_txt;
 use super::signatures::signatures;
 
-/// What a fetch (and later a render) produced. `robots_body` is `None`
-/// when robots.txt did not exist or was unreachable — distinct from an
-/// empty file.
+/// What a fetch produced. `robots_body` is `None` when robots.txt did
+/// not exist or was unreachable — distinct from an empty file.
 pub(crate) struct Evidence {
     pub(crate) url: String,
     pub(crate) final_url: String,
@@ -24,20 +23,99 @@ pub(crate) struct Evidence {
     pub(crate) headers: HashMap<String, String>,
     pub(crate) body_html: String,
     pub(crate) robots_body: Option<String>,
+    pub(crate) render: Option<RenderEvidence>,
     pub(crate) fetch_ms: u64,
     pub(crate) total_ms: u64,
+}
+
+/// What only a rendered page can show. Present ⇒ the antibot and auth
+/// checks ran completely and `clear` becomes reachable.
+pub(crate) struct RenderEvidence {
+    pub(crate) final_url: Option<String>,
+    pub(crate) title: Option<String>,
+    /// per vendor key, the extension's single-evaluate probe result
+    pub(crate) probes: HashMap<String, ProbeResult>,
+    pub(crate) auth: AuthPageEvidence,
+    pub(crate) console_errors: Vec<String>,
+    pub(crate) screenshot: Option<String>,
+    pub(crate) render_ms: u64,
+}
+
+pub(crate) struct ProbeResult {
+    pub(crate) script: bool,
+    pub(crate) selector: bool,
+    pub(crate) global: bool,
+}
+
+pub(crate) struct AuthPageEvidence {
+    pub(crate) has_password_input: bool,
+    pub(crate) has_form: bool,
+    pub(crate) has_username_input: bool,
+    pub(crate) form_action: Option<String>,
+    pub(crate) keyword: Option<String>,
 }
 
 pub(crate) fn check(evidence: &Evidence) -> Report {
     let mut findings: Vec<Finding> = Vec::new();
 
-    // Anti-bot: the header pass runs on any fetch; script/selector/
-    // window-global probes need the rendered page, so the check is
-    // partial until render evidence exists.
+    check_antibot(evidence, &mut findings);
+    check_rate_limit(evidence, &mut findings);
+    let robots_status = check_robots(evidence, &mut findings);
+    check_auth(evidence, &mut findings);
+
+    let rendered = evidence.render.is_some();
+    let dom_status = if rendered {
+        CheckStatus::Ran
+    } else {
+        CheckStatus::Partial
+    };
+    let checks = Checks {
+        antibot: dom_status,
+        rate_limit: CheckStatus::Ran,
+        robots: robots_status,
+        auth: dom_status,
+    };
+    let checks_skipped = skipped_names(&checks);
+    let verdict = decide(&findings, &checks_skipped);
+
+    let render = evidence.render.as_ref();
+    let final_url = render
+        .and_then(|r| r.final_url.clone())
+        .unwrap_or_else(|| evidence.final_url.clone());
+    let title = render
+        .and_then(|r| r.title.clone())
+        .or_else(|| extract_title(&evidence.body_html));
+
+    Report {
+        schema: 1,
+        url: evidence.url.clone(),
+        final_url,
+        status: evidence.status,
+        title,
+        verdict,
+        findings,
+        checks,
+        checks_skipped,
+        console_errors: render.map(|r| r.console_errors.clone()).unwrap_or_default(),
+        screenshot: render.and_then(|r| r.screenshot.clone()),
+        timing_ms: Timing {
+            fetch: evidence.fetch_ms,
+            render: render.map(|r| r.render_ms),
+            total: evidence.total_ms,
+        },
+    }
+}
+
+/// One header pass, then the page-probe pass for vendors the headers
+/// did not already name — the extension's order, so the reported
+/// evidence label is the same one it would print.
+fn check_antibot(evidence: &Evidence, findings: &mut Vec<Finding>) {
+    let mut detected: Vec<&str> = Vec::new();
     for signature in signatures() {
         let Some(matched) = match_headers(&evidence.headers, signature) else {
             continue;
         };
+        detected.push(&signature.key);
         findings.push(Finding {
             kind: "antibot",
             severity: Severity::Warns,
@@ -45,73 +123,64 @@ pub(crate) fn check(evidence: &Evidence) -> Report {
             evidence: json!({ "signal": matched.header, "source": "response-header" }),
         });
     }
-
-    let rate_limit = detect_rate_limit(&evidence.headers, evidence.status);
-    if rate_limit.detected {
-        let actively_limited = evidence.status == Some(429);
-        let severity = if actively_limited {
-            Severity::Blocks
-        } else {
-            Severity::Warns
-        };
-        let detail = if actively_limited {
-            "HTTP 429: rate limited right now".to_string()
-        } else {
-            "Rate-limit headers advertised".to_string()
-        };
-        findings.push(Finding {
-            kind: "rate_limit",
-            severity,
-            detail,
-            evidence: json!({
-                "limit": rate_limit.limit,
-                "remaining": rate_limit.remaining,
-                "reset": rate_limit.reset,
-                "retry_after": rate_limit.retry_after,
-                "status": evidence.status,
-            }),
-        });
-    }
-
-    let robots_status = check_robots(evidence, &mut findings);
-
-    let auth = detect_authentication(evidence.status, &evidence.final_url);
-    if auth.required {
-        findings.push(Finding {
-            kind: "auth",
-            severity: Severity::Blocks,
-            detail: "Authentication required".to_string(),
-            evidence: json!({ "indicators": auth.indicators }),
-        });
-    }
-
-    let checks = Checks {
-        antibot: CheckStatus::Partial,
-        rate_limit: CheckStatus::Ran,
-        robots: robots_status,
-        auth: CheckStatus::Partial,
+    let Some(render) = &evidence.render else {
+        return;
     };
-    let checks_skipped = skipped_names(&checks);
-    let verdict = decide(&findings, &checks_skipped);
-
-    Report {
-        schema: 1,
-        url: evidence.url.clone(),
-        final_url: evidence.final_url.clone(),
-        status: evidence.status,
-        title: extract_title(&evidence.body_html),
-        verdict,
-        findings,
-        checks,
-        checks_skipped,
-        console_errors: Vec::new(),
-        screenshot: None,
-        timing_ms: Timing {
-            fetch: evidence.fetch_ms,
-            render: None,
-            total: evidence.total_ms,
-        },
+    for signature in signatures() {
+        if detected.contains(&signature.key.as_str()) {
+            continue;
+        }
+        let Some(probe) = render.probes.get(&signature.key) else {
+            continue;
+        };
+        // First matching evidence wins, so the label names how it was
+        // found — same precedence as the extension.
+        let source = if probe.script {
+            "script src"
+        } else if probe.selector {
+            "DOM element"
+        } else if probe.global {
+            "window global"
+        } else {
+            continue;
+        };
+        findings.push(Finding {
+            kind: "antibot",
+            severity: Severity::Warns,
+            detail: format!("{} ({source})", signature.label),
+            evidence: json!({ "source": source }),
+        });
     }
+}
+
+fn check_rate_limit(evidence: &Evidence, findings: &mut Vec<Finding>) {
+    let rate_limit = detect_rate_limit(&evidence.headers, evidence.status);
+    if !rate_limit.detected {
+        return;
+    }
+    let actively_limited = evidence.status == Some(429);
+    let severity = if actively_limited {
+        Severity::Blocks
+    } else {
+        Severity::Warns
+    };
+    let detail = if actively_limited {
+        "HTTP 429: rate limited right now".to_string()
+    } else {
+        "Rate-limit headers advertised".to_string()
+    };
+    findings.push(Finding {
+        kind: "rate_limit",
+        severity,
+        detail,
+        evidence: json!({
+            "limit": rate_limit.limit,
+            "remaining": rate_limit.remaining,
+            "reset": rate_limit.reset,
+            "retry_after": rate_limit.retry_after,
+            "status": evidence.status,
+        }),
+    });
 }
 
 fn check_robots(evidence: &Evidence, findings: &mut Vec<Finding>) -> CheckStatus {
@@ -141,6 +210,29 @@ fn check_robots(evidence: &Evidence, findings: &mut Vec<Finding>) -> CheckStatus
     CheckStatus::Ran
 }
 
+fn check_auth(evidence: &Evidence, findings: &mut Vec<Finding>) {
+    let final_url = evidence
+        .render
+        .as_ref()
+        .and_then(|r| r.final_url.as_deref())
+        .unwrap_or(&evidence.final_url);
+    let page = evidence.render.as_ref().map(|r| &r.auth);
+    let auth = detect_authentication(evidence.status, final_url, page);
+    if !auth.required {
+        return;
+    }
+    findings.push(Finding {
+        kind: "auth",
+        severity: Severity::Blocks,
+        detail: "Authentication required".to_string(),
+        evidence: json!({
+            "indicators": auth.indicators,
+            "type": auth.auth_type,
+            "login_url": auth.login_url,
+        }),
+    });
+}
+
 /// `clear` requires completeness; `restricted` does not. A positive
 /// finding does not need every check to have run — a negative one does.
 fn decide(findings: &[Finding], checks_skipped: &[String]) -> Verdict {
@@ -168,8 +260,7 @@ fn skipped_names(checks: &Checks) -> Vec<String> {
     names
 }
 
-/// Raw-HTML `<title>` extraction — best-effort, honest about its source:
-/// no render means no post-JS title.
+/// Raw-HTML `<title>` extraction — the fallback when no render ran.
 fn extract_title(html: &str) -> Option<String> {
     let lower = html.to_lowercase();
     let open = lower.find("<title")?;
@@ -197,8 +288,27 @@ mod tests {
                 .collect(),
             body_html: "<html><title>Search — Example</title></html>".to_string(),
             robots_body: robots.map(str::to_string),
+            render: None,
             fetch_ms: 10,
             total_ms: 12,
+        }
+    }
+
+    fn clean_render() -> RenderEvidence {
+        RenderEvidence {
+            final_url: Some("https://example.com/search?q=x".to_string()),
+            title: Some("Search — Example".to_string()),
+            probes: HashMap::new(),
+            auth: AuthPageEvidence {
+                has_password_input: false,
+                has_form: false,
+                has_username_input: false,
+                form_action: None,
+                keyword: None,
+            },
+            console_errors: Vec::new(),
+            screenshot: Some("./scrape-le-example-com-2026-08-06.png".to_string()),
+            render_ms: 1500,
         }
     }
 
@@ -208,6 +318,77 @@ mod tests {
         assert_eq!(report.verdict, Verdict::Inconclusive);
         assert!(report.findings.is_empty());
         assert_eq!(report.checks_skipped, ["antibot", "auth"]);
+    }
+
+    #[test]
+    fn clean_rendered_run_is_clear() {
+        let mut e = evidence(200, &[], None);
+        e.render = Some(clean_render());
+        let report = check(&e);
+        assert_eq!(report.verdict, Verdict::Clear);
+        assert!(report.checks_skipped.is_empty());
+        assert_eq!(report.timing_ms.render, Some(1500));
+        assert!(report.screenshot.is_some());
+    }
+
+    #[test]
+    fn page_probe_warns_with_the_extension_precedence() {
+        let mut e = evidence(200, &[], None);
+        let mut render = clean_render();
+        render.probes.insert(
+            "recaptcha".to_string(),
+            ProbeResult {
+                script: true,
+                selector: true,
+                global: true,
+            },
+        );
+        e.render = Some(render);
+        let report = check(&e);
+        assert_eq!(report.verdict, Verdict::Restricted);
+        let finding = &report.findings[0];
+        assert_eq!(finding.detail, "reCAPTCHA (script src)");
+    }
+
+    #[test]
+    fn header_match_wins_over_probe_for_the_same_vendor() {
+        let mut e = evidence(200, &[("cf-ray", "8abc-EWR")], None);
+        let mut render = clean_render();
+        render.probes.insert(
+            "cloudflare".to_string(),
+            ProbeResult {
+                script: false,
+                selector: false,
+                global: true,
+            },
+        );
+        e.render = Some(render);
+        let report = check(&e);
+        let antibot: Vec<&Finding> = report
+            .findings
+            .iter()
+            .filter(|f| f.kind == "antibot")
+            .collect();
+        assert_eq!(antibot.len(), 1);
+        assert_eq!(antibot[0].detail, "Cloudflare (cf-ray header)");
+    }
+
+    #[test]
+    fn login_form_blocks_on_a_rendered_page() {
+        let mut e = evidence(200, &[], None);
+        let mut render = clean_render();
+        render.auth.has_password_input = true;
+        render.auth.has_form = true;
+        render.auth.form_action = Some("https://example.com/session".to_string());
+        e.render = Some(render);
+        let report = check(&e);
+        let finding = report
+            .findings
+            .iter()
+            .find(|f| f.kind == "auth")
+            .expect("auth finding");
+        assert_eq!(finding.severity, Severity::Blocks);
+        assert_eq!(finding.evidence["login_url"], "https://example.com/session");
     }
 
     #[test]
