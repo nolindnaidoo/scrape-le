@@ -8,6 +8,13 @@
 name: CI (crate)
 
 on:
+  # Manually runnable as well as push-triggered. Push events are not
+  # guaranteed: during a GitHub Actions incident they are throttled and
+  # silently dropped, and a dropped event never replays — leaving a
+  # commit with no way to be verified. Dispatch is the escape hatch.
+  # ci.yml cannot have this: it is byte-identical across the ten *-le
+  # repos and the fleet check enforces that.
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
