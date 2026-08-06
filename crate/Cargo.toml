@@ -16,12 +16,25 @@ categories = ["command-line-utilities"]
 name = "scrape-le"
 path = "src/main.rs"
 
+[dependencies]
+# The corpus is TOML by design (reviewable by non-Rust readers); serde +
+# toml parse it at startup from the embedded files. regex ports the
+# extension's URL and robots patterns verbatim — hand-rolling them would
+# be parity drift waiting to happen. url is the native-URL half of
+# validateUrl and is already in the tree via ureq.
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+regex = "1"
+url = "2"
+
 # The decided render stack (AGENTS.md — sync CDP, no runtime), used today
 # only by examples/spike.rs; it graduates to [dependencies] when render.rs
-# lands. anyhow is spike-local error glue, not a crate-wide commitment.
+# lands. anyhow is spike-local error glue; serde_json reads the fixture
+# corpus in tests.
 [dev-dependencies]
 headless_chrome = "1"
 anyhow = "1"
+serde_json = "1"
 
 [profile.release]
 strip = true
@@ -36,6 +49,10 @@ overflow-checks = true
 
 [lints.rust]
 unsafe_code = "forbid"
+# The detection layer lands ahead of its surfaces; until cli.rs wires
+# check() into main, some detect/ items are reached only by tests.
+# Remove when the surfaces land.
+dead_code = "allow"
 
 [lints.clippy]
 all = { level = "warn", priority = -1 }

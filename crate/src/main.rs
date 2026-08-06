@@ -1,14 +1,14 @@
-//! scrape-le CLI — scaffolding.
-//!
-//! The detection engine ports from the extension (`../src/detectors/`,
-//! `../src/utils/url.ts`) against the shared corpus in `../signatures/`
-//! and `../fixtures/`. Until it lands, the binary refuses honestly
-//! rather than answering wrongly.
+//! scrape-le CLI. The detection layer (`detect/`) is landing module by
+//! module against the shared corpus; until the surfaces exist the
+//! binary refuses honestly rather than answering wrongly.
+
+mod detect;
 
 fn main() {
     eprintln!(
-        "scrape-le {}: not implemented yet — the detection engine has not been ported",
-        env!("CARGO_PKG_VERSION")
+        "scrape-le {}: not implemented yet — {} vendor signatures embedded, surfaces not wired",
+        env!("CARGO_PKG_VERSION"),
+        detect::signatures::signatures().len()
     );
     std::process::exit(2);
 }
