@@ -248,8 +248,10 @@ All ten also ship as MCP servers — `npx <name>-mcp` gives any agent the same e
   [pixelcoords.dev](https://pixelcoords.dev) · [crates.io](https://crates.io/crates/pixelcoords) · [docs.rs](https://docs.rs/pixelcoords)
 - **[pixelactions](https://github.com/nolindnaidoo/pixelactions)** — Consume human-verified coordinates, perform the interaction, confirm it landed
   [pixelactions.dev](https://pixelactions.dev) · [crates.io](https://crates.io/crates/pixelactions) · [docs.rs](https://docs.rs/pixelactions)
+- **[scrape-le](https://github.com/nolindnaidoo/scrape-le/tree/main/crate)** — This extension's command-line half: the same checks, the same signature corpus
+  [crates.io](https://crates.io/crates/scrape-le) · [docs.rs](https://docs.rs/scrape-le)
 
-**Contact Developer** — [GitHub](https://github.com/nolindnaidoo) · [LinkedIn](https://www.linkedin.com/in/nolindnaidoo/)
+**Contact Developer** — [nolindnaidoo.com](https://nolindnaidoo.com) · [GitHub](https://github.com/nolindnaidoo) · [LinkedIn](https://www.linkedin.com/in/nolindnaidoo/)
 
 ## License
 
