@@ -1,8 +1,11 @@
 //! robots.txt parsing and matching — the port of the extension's
-//! `src/detectors/robotstxt.ts`, flagless semantics: the generic
-//! (`User-agent: *`) rules only, RFC 9309 grouping and longest-match.
-//! `fixtures/robots/cases.json` pins the results; `--agent` group
-//! selection is the CLI's documented divergence and does not live here.
+//! `src/detectors/robotstxt.ts`.
+//!
+//! Flagless behaviour is the extension's, exactly: only the generic
+//! (`User-agent: *`) groups are evaluated, and `fixtures/robots/cases.json`
+//! pins the results. Passing an agent selects that agent's groups per
+//! RFC 9309 instead — the documented divergence, opt-in, recorded in
+//! the report so a reader knows which rules answered.
 
 use regex::Regex;
 
@@ -13,6 +16,10 @@ pub(crate) struct RobotsTxtInfo {
     pub(crate) crawl_delay: Option<f64>,
     pub(crate) disallowed_paths: Vec<String>,
     pub(crate) sitemaps: Vec<String>,
+    /// which group answered: `*`, or the agent token that matched
+    pub(crate) agent: String,
+    /// the rule that decided a refusal, when one did
+    pub(crate) matched_rule: Option<String>,
 }
 
 struct RobotsRule {
@@ -20,14 +27,74 @@ struct RobotsRule {
     pattern: String,
 }
 
-/// Parses robots.txt content against the generic (`User-agent: *`)
-/// rules and evaluates `pathname` against them.
-pub(crate) fn parse_robots_txt(content: &str, pathname: &str) -> RobotsTxtInfo {
-    let mut rules: Vec<RobotsRule> = Vec::new();
-    let mut sitemaps: Vec<String> = Vec::new();
-    let mut crawl_delay: Option<f64> = None;
+struct Group {
+    agents: Vec<String>,
+    rules: Vec<RobotsRule>,
+    crawl_delay: Option<f64>,
+}
 
-    let mut group_agents: Vec<String> = Vec::new();
+/// Parses robots.txt and evaluates `pathname` against the rules that
+/// apply. `agent` is the caller's product token (`MyBot/1.0` → `mybot`);
+/// `None` evaluates the generic rules only, as the extension does.
+pub(crate) fn parse_robots_txt(
+    content: &str,
+    pathname: &str,
+    agent: Option<&str>,
+) -> RobotsTxtInfo {
+    let (groups, sitemaps) = parse_groups(content);
+    let token = agent.map(product_token);
+
+    // An agent-specific group wins; with no match — or no agent — the
+    // generic groups answer, which is RFC 9309 and also the extension's
+    // only behaviour.
+    let (selected, answering_agent) = match token.as_deref() {
+        Some(token) if groups.iter().any(|g| g.agents.iter().any(|a| a == token)) => {
+            (select(&groups, token), token.to_string())
+        }
+        _ => (select(&groups, "*"), "*".to_string()),
+    };
+
+    let rules: Vec<&RobotsRule> = selected.iter().flat_map(|g| g.rules.iter()).collect();
+    let crawl_delay = selected.iter().find_map(|g| g.crawl_delay);
+    let decision = decide_path(pathname, &rules);
+
+    RobotsTxtInfo {
+        exists: true,
+        allows_crawling: decision.allowed,
+        crawl_delay,
+        disallowed_paths: rules
+            .iter()
+            .filter(|r| !r.allow)
+            .map(|r| r.pattern.clone())
+            .collect(),
+        sitemaps,
+        agent: answering_agent,
+        matched_rule: decision.matched,
+    }
+}
+
+fn select<'a>(groups: &'a [Group], token: &str) -> Vec<&'a Group> {
+    groups
+        .iter()
+        .filter(|g| g.agents.iter().any(|a| a == token))
+        .collect()
+}
+
+/// `MyBot/1.0` → `mybot`. RFC 9309 matches the product token,
+/// case-insensitively, ignoring any version suffix.
+fn product_token(agent: &str) -> String {
+    agent
+        .split('/')
+        .next()
+        .unwrap_or(agent)
+        .trim()
+        .to_lowercase()
+}
+
+fn parse_groups(content: &str) -> (Vec<Group>, Vec<String>) {
+    let mut groups: Vec<Group> = Vec::new();
+    let mut sitemaps: Vec<String> = Vec::new();
+    let mut agents: Vec<String> = Vec::new();
     let mut in_group_header = false;
 
     for raw_line in content.split('\n') {
@@ -49,16 +116,23 @@ pub(crate) fn parse_robots_txt(content: &str, pathname: &str) -> RobotsTxtInfo {
 
         if directive == "user-agent" {
             if !in_group_header {
-                group_agents.clear();
+                agents = Vec::new();
                 in_group_header = true;
+                groups.push(Group {
+                    agents: Vec::new(),
+                    rules: Vec::new(),
+                    crawl_delay: None,
+                });
             }
-            group_agents.push(value.to_lowercase());
+            agents.push(value.to_lowercase());
+            if let Some(group) = groups.last_mut() {
+                group.agents.clone_from(&agents);
+            }
             continue;
         }
 
         // any non-user-agent directive closes the group header
         in_group_header = false;
-        let group_applies_to_all = group_agents.iter().any(|agent| agent == "*");
 
         if directive == "sitemap" {
             // sitemap is not group-scoped
@@ -68,12 +142,12 @@ pub(crate) fn parse_robots_txt(content: &str, pathname: &str) -> RobotsTxtInfo {
             continue;
         }
 
-        if !group_applies_to_all {
+        let Some(group) = groups.last_mut() else {
             continue;
-        }
+        };
 
         if (directive == "disallow" || directive == "allow") && !value.is_empty() {
-            rules.push(RobotsRule {
+            group.rules.push(RobotsRule {
                 allow: directive == "allow",
                 pattern: value.to_string(),
             });
@@ -85,29 +159,25 @@ pub(crate) fn parse_robots_txt(content: &str, pathname: &str) -> RobotsTxtInfo {
                 continue;
             };
             if delay >= 0.0 {
-                crawl_delay = Some(delay);
+                group.crawl_delay = Some(delay);
             }
         }
     }
 
-    RobotsTxtInfo {
-        exists: true,
-        allows_crawling: is_path_allowed(pathname, &rules),
-        crawl_delay,
-        disallowed_paths: rules
-            .iter()
-            .filter(|r| !r.allow)
-            .map(|r| r.pattern.clone())
-            .collect(),
-        sitemaps,
-    }
+    (groups, sitemaps)
+}
+
+struct Decision {
+    allowed: bool,
+    matched: Option<String>,
 }
 
 /// RFC 9309 matching: longest matching pattern wins, Allow wins ties;
 /// no matching rule means allowed.
-fn is_path_allowed(pathname: &str, rules: &[RobotsRule]) -> bool {
+fn decide_path(pathname: &str, rules: &[&RobotsRule]) -> Decision {
     let mut best_length: i64 = -1;
     let mut best_allow = true;
+    let mut best_pattern: Option<String> = None;
 
     for rule in rules {
         if !matches_robots_pattern(&rule.pattern, pathname) {
@@ -118,10 +188,14 @@ fn is_path_allowed(pathname: &str, rules: &[RobotsRule]) -> bool {
         if length > best_length || wins_tie {
             best_length = length;
             best_allow = rule.allow;
+            best_pattern = Some(rule.pattern.clone());
         }
     }
 
-    best_allow
+    Decision {
+        allowed: best_allow,
+        matched: if best_allow { None } else { best_pattern },
+    }
 }
 
 /// Matches a robots.txt pattern against a path: anchored at the start,
@@ -193,7 +267,7 @@ mod tests {
             let path = case["path"].as_str().expect("path");
             let expected = &case["expected"];
 
-            let actual = parse_robots_txt(body, path);
+            let actual = parse_robots_txt(body, path, None);
 
             assert_eq!(
                 actual.exists,
@@ -226,6 +300,68 @@ mod tests {
                 "case {name:?}: sitemaps"
             );
         }
+    }
+
+    /// The divergence annotations are a contract too: where a fixture
+    /// records what the CLI answers with `--agent`, the CLI must
+    /// actually answer that.
+    #[test]
+    fn every_divergence_annotation_holds() {
+        let cases: serde_json::Value = serde_json::from_str(CASES).expect("fixture JSON");
+        let mut checked = 0;
+        for case in cases.as_array().expect("array of cases") {
+            let Some(divergence) = case.get("divergence") else {
+                continue;
+            };
+            let name = case["name"].as_str().expect("name");
+            let body = fixture_body(case["file"].as_str().expect("file"));
+            let path = case["path"].as_str().expect("path");
+            let agent = divergence["cli"]["agent"].as_str().expect("cli agent");
+            let expected = divergence["cli"]["allowsCrawling"]
+                .as_bool()
+                .expect("cli allowsCrawling");
+
+            let actual = parse_robots_txt(body, path, Some(agent));
+            assert_eq!(
+                actual.allows_crawling, expected,
+                "divergence {name:?} with --agent {agent}"
+            );
+            assert_eq!(actual.agent, agent.to_lowercase());
+            checked += 1;
+        }
+        assert!(checked >= 2, "expected divergence cases to exist");
+    }
+
+    #[test]
+    fn unknown_agent_falls_back_to_the_generic_group() {
+        let body = fixture_body("agent-specific.txt");
+        let info = parse_robots_txt(body, "/members/area", Some("NobodyBot/2.0"));
+        assert!(info.allows_crawling);
+        assert_eq!(info.agent, "*");
+    }
+
+    #[test]
+    fn agent_matching_ignores_case_and_version() {
+        let body = "User-agent: MyBot\nDisallow: /x\n";
+        let info = parse_robots_txt(body, "/x", Some("mybot/9.9"));
+        assert!(!info.allows_crawling);
+        assert_eq!(info.agent, "mybot");
+    }
+
+    #[test]
+    fn refusal_names_the_rule_that_decided_it() {
+        let body = "User-agent: *\nDisallow: /search\n";
+        let info = parse_robots_txt(body, "/search?q=1", None);
+        assert!(!info.allows_crawling);
+        assert_eq!(info.matched_rule.as_deref(), Some("/search"));
+    }
+
+    #[test]
+    fn allowed_paths_name_no_rule() {
+        let body = "User-agent: *\nDisallow: /search\n";
+        let info = parse_robots_txt(body, "/about", None);
+        assert!(info.allows_crawling);
+        assert_eq!(info.matched_rule, None);
     }
 
     #[test]

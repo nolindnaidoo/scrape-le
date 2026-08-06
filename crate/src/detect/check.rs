@@ -9,7 +9,9 @@ use serde_json::json;
 use super::antibot::match_headers;
 use super::auth::detect_authentication;
 use super::ratelimit::detect_rate_limit;
-use super::report::{CheckStatus, Checks, Finding, Report, Severity, Timing, Verdict};
+use super::report::{
+    CheckStatus, Checks, Finding, Report, RobotsReport, Severity, Timing, Verdict,
+};
 use super::robots::parse_robots_txt;
 use super::signatures::signatures;
 
@@ -82,12 +84,23 @@ pub(crate) struct AuthPageEvidence {
     pub(crate) keyword: Option<String>,
 }
 
-pub(crate) fn check(evidence: &Evidence) -> Report {
+/// Caller-supplied knobs the decision layer needs. Defaults are the
+/// extension's behaviour: generic robots groups, no batch index.
+#[derive(Debug, Default, Clone)]
+pub(crate) struct CheckOptions {
+    /// RFC 9309 product token to evaluate robots.txt against; `None`
+    /// evaluates the generic (`User-agent: *`) rules only
+    pub(crate) agent: Option<String>,
+    /// the URL's position in a batch input
+    pub(crate) index: Option<usize>,
+}
+
+pub(crate) fn check(evidence: &Evidence, options: &CheckOptions) -> Report {
     let mut findings: Vec<Finding> = Vec::new();
 
     check_antibot(evidence, &mut findings);
     check_rate_limit(evidence, &mut findings);
-    let robots_status = check_robots(evidence, &mut findings);
+    let (robots_status, robots) = check_robots(evidence, options, &mut findings);
     check_auth(evidence, &mut findings);
 
     let rendered = evidence.render.is_some();
@@ -115,6 +128,7 @@ pub(crate) fn check(evidence: &Evidence) -> Report {
 
     Report {
         schema: 1,
+        index: options.index,
         url: evidence.url.clone(),
         final_url,
         status: evidence.status,
@@ -123,6 +137,7 @@ pub(crate) fn check(evidence: &Evidence) -> Report {
         findings,
         checks,
         checks_skipped,
+        robots,
         console_errors: render.map(|r| r.console_errors.clone()).unwrap_or_default(),
         screenshot: render.and_then(|r| r.screenshot.clone()),
         timing_ms: Timing {
@@ -144,7 +159,7 @@ fn check_antibot(evidence: &Evidence, findings: &mut Vec<Finding>) {
         };
         detected.push(&signature.key);
         findings.push(Finding {
-            kind: "antibot",
+            kind: "antibot".to_string(),
             severity: Severity::Warns,
             detail: matched.detail,
             evidence: json!({ "signal": matched.header, "source": "response-header" }),
@@ -172,7 +187,7 @@ fn check_antibot(evidence: &Evidence, findings: &mut Vec<Finding>) {
             continue;
         };
         findings.push(Finding {
-            kind: "antibot",
+            kind: "antibot".to_string(),
             severity: Severity::Warns,
             detail: format!("{} ({source})", signature.label),
             evidence: json!({ "source": source }),
@@ -197,7 +212,7 @@ fn check_rate_limit(evidence: &Evidence, findings: &mut Vec<Finding>) {
         "Rate-limit headers advertised".to_string()
     };
     findings.push(Finding {
-        kind: "rate_limit",
+        kind: "rate_limit".to_string(),
         severity,
         detail,
         evidence: json!({
@@ -210,31 +225,48 @@ fn check_rate_limit(evidence: &Evidence, findings: &mut Vec<Finding>) {
     });
 }
 
-fn check_robots(evidence: &Evidence, findings: &mut Vec<Finding>) -> CheckStatus {
+fn check_robots(
+    evidence: &Evidence,
+    options: &CheckOptions,
+    findings: &mut Vec<Finding>,
+) -> (CheckStatus, Option<RobotsReport>) {
     let Some(body) = &evidence.robots_body else {
         // no robots.txt is an answer, not a failure: nothing forbids
-        return CheckStatus::Ran;
+        return (
+            CheckStatus::Ran,
+            Some(RobotsReport {
+                exists: false,
+                allows_crawling: true,
+                agent: options.agent.clone().unwrap_or_else(|| "*".to_string()),
+                crawl_delay: None,
+                disallowed_paths: Vec::new(),
+                sitemaps: Vec::new(),
+            }),
+        );
     };
     let Ok(parsed_url) = url::Url::parse(&evidence.url) else {
-        return CheckStatus::Skipped;
+        return (CheckStatus::Skipped, None);
     };
-    let info = parse_robots_txt(body, parsed_url.path());
+    let info = parse_robots_txt(body, parsed_url.path(), options.agent.as_deref());
+    let report = RobotsReport {
+        exists: info.exists,
+        allows_crawling: info.allows_crawling,
+        agent: info.agent.clone(),
+        crawl_delay: info.crawl_delay,
+        disallowed_paths: info.disallowed_paths.clone(),
+        sitemaps: info.sitemaps.clone(),
+    };
     if info.allows_crawling {
-        return CheckStatus::Ran;
+        return (CheckStatus::Ran, Some(report));
     }
-    let rule = info
-        .disallowed_paths
-        .iter()
-        .find(|p| super::robots::matches_robots_pattern(p, parsed_url.path()))
-        .cloned()
-        .unwrap_or_default();
+    let rule = info.matched_rule.clone().unwrap_or_default();
     findings.push(Finding {
-        kind: "robots",
+        kind: "robots".to_string(),
         severity: Severity::Blocks,
-        detail: format!("Disallow: {rule} for User-agent: *"),
-        evidence: json!({ "rule": format!("Disallow: {rule}"), "agent": "*" }),
+        detail: format!("Disallow: {rule} for User-agent: {}", info.agent),
+        evidence: json!({ "rule": format!("Disallow: {rule}"), "agent": info.agent }),
     });
-    CheckStatus::Ran
+    (CheckStatus::Ran, Some(report))
 }
 
 fn check_auth(evidence: &Evidence, findings: &mut Vec<Finding>) {
@@ -249,7 +281,7 @@ fn check_auth(evidence: &Evidence, findings: &mut Vec<Finding>) {
         return;
     }
     findings.push(Finding {
-        kind: "auth",
+        kind: "auth".to_string(),
         severity: Severity::Blocks,
         detail: "Authentication required".to_string(),
         evidence: json!({
@@ -344,7 +376,7 @@ mod tests {
 
     #[test]
     fn clean_fetch_without_render_is_inconclusive_never_clear() {
-        let report = check(&evidence(200, &[], None));
+        let report = check(&evidence(200, &[], None), &CheckOptions::default());
         assert_eq!(report.verdict, Verdict::Inconclusive);
         assert!(report.findings.is_empty());
         assert_eq!(report.checks_skipped, ["antibot", "auth"]);
@@ -354,7 +386,7 @@ mod tests {
     fn clean_rendered_run_is_clear() {
         let mut e = evidence(200, &[], None);
         e.render = Some(clean_render());
-        let report = check(&e);
+        let report = check(&e, &CheckOptions::default());
         assert_eq!(report.verdict, Verdict::Clear);
         assert!(report.checks_skipped.is_empty());
         assert_eq!(report.timing_ms.render, Some(1500));
@@ -374,7 +406,7 @@ mod tests {
             },
         );
         e.render = Some(render);
-        let report = check(&e);
+        let report = check(&e, &CheckOptions::default());
         assert_eq!(report.verdict, Verdict::Restricted);
         let finding = &report.findings[0];
         assert_eq!(finding.detail, "reCAPTCHA (script src)");
@@ -393,7 +425,7 @@ mod tests {
             },
         );
         e.render = Some(render);
-        let report = check(&e);
+        let report = check(&e, &CheckOptions::default());
         let antibot: Vec<&Finding> = report
             .findings
             .iter()
@@ -411,7 +443,7 @@ mod tests {
         render.auth.has_form = true;
         render.auth.form_action = Some("https://example.com/session".to_string());
         e.render = Some(render);
-        let report = check(&e);
+        let report = check(&e, &CheckOptions::default());
         let finding = report
             .findings
             .iter()
@@ -424,7 +456,7 @@ mod tests {
     #[test]
     fn robots_disallow_blocks_and_names_the_rule() {
         let robots = "User-agent: *\nDisallow: /search";
-        let report = check(&evidence(200, &[], Some(robots)));
+        let report = check(&evidence(200, &[], Some(robots)), &CheckOptions::default());
         assert_eq!(report.verdict, Verdict::Restricted);
         let finding = &report.findings[0];
         assert_eq!(finding.kind, "robots");
@@ -434,7 +466,10 @@ mod tests {
 
     #[test]
     fn cloudflare_header_warns_with_evidence() {
-        let report = check(&evidence(200, &[("cf-ray", "8abc-EWR")], None));
+        let report = check(
+            &evidence(200, &[("cf-ray", "8abc-EWR")], None),
+            &CheckOptions::default(),
+        );
         assert_eq!(report.verdict, Verdict::Restricted);
         let finding = &report.findings[0];
         assert_eq!(finding.kind, "antibot");
@@ -444,7 +479,7 @@ mod tests {
 
     #[test]
     fn status_429_blocks() {
-        let report = check(&evidence(429, &[], None));
+        let report = check(&evidence(429, &[], None), &CheckOptions::default());
         let finding = report
             .findings
             .iter()
@@ -455,7 +490,7 @@ mod tests {
 
     #[test]
     fn status_401_blocks_via_auth() {
-        let report = check(&evidence(401, &[], None));
+        let report = check(&evidence(401, &[], None), &CheckOptions::default());
         let finding = report
             .findings
             .iter()
@@ -467,13 +502,16 @@ mod tests {
 
     #[test]
     fn title_extracted_from_raw_html() {
-        let report = check(&evidence(200, &[], None));
+        let report = check(&evidence(200, &[], None), &CheckOptions::default());
         assert_eq!(report.title.as_deref(), Some("Search — Example"));
     }
 
     #[test]
     fn no_single_warns_finding_produces_blocked() {
-        let report = check(&evidence(200, &[("cf-ray", "x")], None));
+        let report = check(
+            &evidence(200, &[("cf-ray", "x")], None),
+            &CheckOptions::default(),
+        );
         assert_ne!(report.verdict, Verdict::Blocked);
     }
 }

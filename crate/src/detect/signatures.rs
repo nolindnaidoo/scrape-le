@@ -20,9 +20,15 @@ pub(crate) struct HeaderSignature {
 pub(crate) struct VendorSignature {
     pub(crate) key: String,
     pub(crate) label: String,
+    /// Defaulted so a caller-supplied signature may omit a field it
+    /// does not use; the embedded corpus always states all four.
+    #[serde(default)]
     pub(crate) headers: Vec<HeaderSignature>,
+    #[serde(default)]
     pub(crate) script_substrings: Vec<String>,
+    #[serde(default)]
     pub(crate) selectors: Vec<String>,
+    #[serde(default)]
     pub(crate) globals: Vec<String>,
 }
 
@@ -37,16 +43,58 @@ const CORPUS: [&str; 5] = [
     include_str!("../../../signatures/perimeterx.toml"),
 ];
 
-/// Parses once, on first use. A malformed corpus file is a programmer
-/// error caught by the first test that runs, not a runtime condition.
+static SIGNATURES: OnceLock<Vec<VendorSignature>> = OnceLock::new();
+
+/// Parses once, on first use. A malformed embedded corpus file is a
+/// programmer error caught by the first test that runs, not a runtime
+/// condition.
 pub(crate) fn signatures() -> &'static [VendorSignature] {
-    static SIGNATURES: OnceLock<Vec<VendorSignature>> = OnceLock::new();
-    SIGNATURES.get_or_init(|| {
-        CORPUS
-            .iter()
-            .map(|raw| toml::from_str(raw).expect("signatures/*.toml must parse"))
-            .collect()
-    })
+    SIGNATURES.get_or_init(built_in)
+}
+
+fn built_in() -> Vec<VendorSignature> {
+    CORPUS
+        .iter()
+        .map(|raw| toml::from_str(raw).expect("signatures/*.toml must parse"))
+        .collect()
+}
+
+/// Adds or replaces signatures from a caller's TOML file — a vendor
+/// changing a script URL should be a data edit, not a release. A file
+/// whose `key` matches a built-in replaces it; a new key extends the
+/// corpus. Must be called before the first `signatures()`.
+///
+/// The file is either one signature table or `[[signature]]` entries.
+pub(crate) fn load_extra(path: &std::path::Path) -> Result<usize, String> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    let extra = parse_extra(&raw).map_err(|e| format!("{}: {e}", path.display()))?;
+    let count = extra.len();
+
+    let mut merged = built_in();
+    for signature in extra {
+        match merged.iter().position(|s| s.key == signature.key) {
+            Some(index) => merged[index] = signature,
+            None => merged.push(signature),
+        }
+    }
+    SIGNATURES
+        .set(merged)
+        .map_err(|_| "signatures were already loaded".to_string())?;
+    Ok(count)
+}
+
+fn parse_extra(raw: &str) -> Result<Vec<VendorSignature>, String> {
+    #[derive(Deserialize)]
+    struct Multi {
+        signature: Vec<VendorSignature>,
+    }
+    if let Ok(multi) = toml::from_str::<Multi>(raw) {
+        return Ok(multi.signature);
+    }
+    toml::from_str::<VendorSignature>(raw)
+        .map(|one| vec![one])
+        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
