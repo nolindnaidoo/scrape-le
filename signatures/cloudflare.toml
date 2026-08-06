@@ -1,0 +1,18 @@
+key = "cloudflare"
+label = "Cloudflare"
+script_substrings = ["challenges.cloudflare.com"]
+selectors = [".cf-turnstile", "#challenge-form"]
+globals = ["turnstile"]
+
+[[headers]]
+name = "cf-ray"
+
+[[headers]]
+name = "cf-cache-status"
+
+[[headers]]
+name = "cf-mitigated"
+
+[[headers]]
+name = "server"
+contains = "cloudflare"

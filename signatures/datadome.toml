@@ -1,0 +1,15 @@
+key = "datadome"
+label = "DataDome"
+script_substrings = ["datadome.co", "datadomecdn.com"]
+selectors = []
+globals = ["ddjskey"]
+
+[[headers]]
+name = "x-datadome-cid"
+
+[[headers]]
+name = "x-dd-b"
+
+[[headers]]
+name = "server"
+contains = "datadome"

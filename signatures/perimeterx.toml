@@ -1,0 +1,6 @@
+key = "perimeterx"
+label = "PerimeterX"
+script_substrings = ["px-cdn.net", "px-cloud.net", "perimeterx.net"]
+selectors = ["#px-captcha"]
+globals = ["_pxAppId"]
+headers = []

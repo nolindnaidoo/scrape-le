@@ -1,0 +1,57 @@
+{
+	"validate": [
+		{ "input": "https://example.com", "expected": true },
+		{ "input": "http://example.com", "expected": true },
+		{ "input": "HTTPS://EXAMPLE.COM", "expected": true },
+		{ "input": "  https://example.com  ", "expected": true },
+		{ "input": "http://localhost:3000", "expected": true },
+		{ "input": "https://192.168.1.1/admin", "expected": true },
+		{
+			"input": "https://sub.example.co.uk/path?q=1#frag",
+			"expected": true
+		},
+		{ "input": "ftp://example.com", "expected": false },
+		{ "input": "example.com", "expected": false },
+		{ "input": "https://", "expected": false },
+		{ "input": "not a url", "expected": false },
+		{ "input": "", "expected": false }
+	],
+	"normalize": [
+		{ "input": "example.com", "expected": "https://example.com" },
+		{ "input": "http://example.com", "expected": "http://example.com" },
+		{
+			"input": "  www.example.com  ",
+			"expected": "https://www.example.com"
+		},
+		{
+			"input": "  https://example.com  ",
+			"expected": "https://example.com"
+		},
+		{
+			"input": "ftp://example.com",
+			"expected": "https://ftp://example.com"
+		}
+	],
+	"extract": [
+		{
+			"input": "Check https://example.com for details",
+			"expected": "https://example.com"
+		},
+		{
+			"input": "https://a.com and https://b.com",
+			"expected": "https://a.com"
+		},
+		{ "input": "example.com", "expected": "https://example.com" },
+		{ "input": "no url here", "expected": null },
+		{ "input": "", "expected": null },
+		{ "input": "Visit www.example.com today", "expected": null },
+		{
+			"input": "(https://en.wikipedia.org/wiki/Rust_(programming_language))",
+			"expected": "https://en.wikipedia.org/wiki/Rust_(programming_language))"
+		},
+		{
+			"input": "trailing dot https://example.com.",
+			"expected": "https://example.com."
+		}
+	]
+}

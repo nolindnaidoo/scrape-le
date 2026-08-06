@@ -111,3 +111,6 @@ benchmark-results.json
 zed/target/
 mcp/server.js
 mcp/LICENSE
+
+# Rust CLI build output (crate/Cargo.lock IS committed — it pins the binary build)
+crate/target/

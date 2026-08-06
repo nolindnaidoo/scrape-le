@@ -1,0 +1,90 @@
+[
+	{
+		"name": "cloudflare via cf-ray",
+		"headers": { "cf-ray": "8abc123-EWR" },
+		"expected": {
+			"cloudflare": "Cloudflare (cf-ray header)",
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": null,
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "cloudflare via server substring, case-insensitive",
+		"headers": { "server": "Cloudflare-nginx" },
+		"expected": {
+			"cloudflare": "Cloudflare (server header)",
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": null,
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "signature order decides the reported header, not input order",
+		"headers": { "cf-cache-status": "HIT", "cf-ray": "8abc123-EWR" },
+		"expected": {
+			"cloudflare": "Cloudflare (cf-ray header)",
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": null,
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "empty header value is skipped, not matched",
+		"headers": { "cf-ray": "" },
+		"expected": {
+			"cloudflare": null,
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": null,
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "datadome via x-datadome-cid",
+		"headers": { "x-datadome-cid": "abc" },
+		"expected": {
+			"cloudflare": null,
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": "DataDome (x-datadome-cid header)",
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "datadome via server substring, case-insensitive",
+		"headers": { "server": "DataDome" },
+		"expected": {
+			"cloudflare": null,
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": "DataDome (server header)",
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "shared server header only matches the vendor it names",
+		"headers": { "server": "cloudflare" },
+		"expected": {
+			"cloudflare": "Cloudflare (server header)",
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": null,
+			"perimeterx": null
+		}
+	},
+	{
+		"name": "clean response matches nothing",
+		"headers": { "server": "nginx", "content-type": "text/html" },
+		"expected": {
+			"cloudflare": null,
+			"recaptcha": null,
+			"hcaptcha": null,
+			"datadome": null,
+			"perimeterx": null
+		}
+	}
+]

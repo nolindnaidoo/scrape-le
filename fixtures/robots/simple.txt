@@ -1,0 +1,6 @@
+# Example robots.txt
+User-agent: *
+Disallow: /admin/
+Disallow: /api/internal/
+Crawl-delay: 10
+Sitemap: https://example.com/sitemap.xml

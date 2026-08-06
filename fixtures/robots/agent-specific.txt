@@ -1,0 +1,7 @@
+Sitemap: https://example.com/global.xml
+
+User-agent: SpecialBot
+Disallow: /
+
+User-agent: *
+Allow: /

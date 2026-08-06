@@ -1,0 +1,6 @@
+key = "recaptcha"
+label = "reCAPTCHA"
+script_substrings = ["recaptcha"]
+selectors = [".g-recaptcha"]
+globals = ["grecaptcha"]
+headers = []

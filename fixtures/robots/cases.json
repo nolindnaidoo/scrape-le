@@ -1,0 +1,186 @@
+[
+	{
+		"name": "simple: disallowed directory blocks a nested path",
+		"file": "simple.txt",
+		"path": "/admin/settings",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"crawlDelay": 10,
+			"disallowedPaths": ["/admin/", "/api/internal/"],
+			"sitemaps": ["https://example.com/sitemap.xml"]
+		}
+	},
+	{
+		"name": "simple: unlisted path is allowed",
+		"file": "simple.txt",
+		"path": "/public/page",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"crawlDelay": 10,
+			"disallowedPaths": ["/admin/", "/api/internal/"],
+			"sitemaps": ["https://example.com/sitemap.xml"]
+		}
+	},
+	{
+		"name": "simple: /admin without trailing slash does not match /admin/",
+		"file": "simple.txt",
+		"path": "/admin",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"crawlDelay": 10,
+			"disallowedPaths": ["/admin/", "/api/internal/"],
+			"sitemaps": ["https://example.com/sitemap.xml"]
+		}
+	},
+	{
+		"name": "disallow-all: root is blocked",
+		"file": "disallow-all.txt",
+		"path": "/",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/"],
+			"sitemaps": []
+		}
+	},
+	{
+		"name": "disallow-all: every path is blocked",
+		"file": "disallow-all.txt",
+		"path": "/anything/at/all",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/"],
+			"sitemaps": []
+		}
+	},
+	{
+		"name": "wildcards: $-anchored pattern blocks a .json path",
+		"file": "wildcards.txt",
+		"path": "/data.json",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/*.json$", "/private*"],
+			"sitemaps": [
+				"https://example.com/map1.xml",
+				"https://example.com/map2.xml"
+			]
+		}
+	},
+	{
+		"name": "wildcards: equal-length Allow wins the tie over /*.json$",
+		"file": "wildcards.txt",
+		"path": "/public/data.json",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"disallowedPaths": ["/*.json$", "/private*"],
+			"sitemaps": [
+				"https://example.com/map1.xml",
+				"https://example.com/map2.xml"
+			]
+		}
+	},
+	{
+		"name": "wildcards: prefix wildcard blocks /private subtree",
+		"file": "wildcards.txt",
+		"path": "/private/file",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/*.json$", "/private*"],
+			"sitemaps": [
+				"https://example.com/map1.xml",
+				"https://example.com/map2.xml"
+			]
+		}
+	},
+	{
+		"name": "wildcards: Allow rule admits /public, invalid crawl-delay dropped, empty Disallow ignored",
+		"file": "wildcards.txt",
+		"path": "/public/index.html",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"disallowedPaths": ["/*.json$", "/private*"],
+			"sitemaps": [
+				"https://example.com/map1.xml",
+				"https://example.com/map2.xml"
+			]
+		}
+	},
+	{
+		"name": "multi-group: generic groups apply, including shared-header groups",
+		"file": "multi-group.txt",
+		"path": "/everyone/x",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": [
+				"/everyone/",
+				"/grouped-star-last/",
+				"/grouped-star-first/"
+			],
+			"sitemaps": []
+		}
+	},
+	{
+		"name": "multi-group: star listed first in a shared header still applies",
+		"file": "multi-group.txt",
+		"path": "/grouped-star-first/x",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": [
+				"/everyone/",
+				"/grouped-star-last/",
+				"/grouped-star-first/"
+			],
+			"sitemaps": []
+		}
+	},
+	{
+		"name": "multi-group: agent-specific group is ignored by the generic evaluation",
+		"file": "multi-group.txt",
+		"path": "/google-only/page",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"disallowedPaths": [
+				"/everyone/",
+				"/grouped-star-last/",
+				"/grouped-star-first/"
+			],
+			"sitemaps": []
+		},
+		"divergence": {
+			"reason": "The extension evaluates only User-agent: * groups; the CLI honours agent-specific groups via --agent (RFC 9309 group selection).",
+			"cli": {
+				"agent": "Googlebot",
+				"allowsCrawling": false
+			}
+		}
+	},
+	{
+		"name": "agent-specific: generic rules allow what a named group forbids",
+		"file": "agent-specific.txt",
+		"path": "/members/area",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"disallowedPaths": [],
+			"sitemaps": ["https://example.com/global.xml"]
+		},
+		"divergence": {
+			"reason": "The extension evaluates only User-agent: * groups; the CLI honours agent-specific groups via --agent (RFC 9309 group selection).",
+			"cli": {
+				"agent": "SpecialBot",
+				"allowsCrawling": false
+			}
+		}
+	}
+]

@@ -1,0 +1,6 @@
+key = "hcaptcha"
+label = "hCaptcha"
+script_substrings = ["hcaptcha.com"]
+selectors = [".h-captcha", "[data-hcaptcha-response]"]
+globals = ["hcaptcha"]
+headers = []

@@ -1,0 +1,32 @@
+[package]
+name = "scrape-le"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+readme = "README.md"
+description = "Check whether a page is scrapeable before the scraper is written"
+repository = "https://github.com/nolindnaidoo/scrape-le"
+keywords = ["scraping", "robots-txt", "anti-bot", "headless", "cli"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "scrape-le"
+path = "src/main.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Deliberate relaxations, copied from the pixelcoords/pixelactions policy.
+# Policy: no inline #[allow] anywhere (CI enforces); anything relaxed must
+# be listed here, visibly.
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
