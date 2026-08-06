@@ -59,28 +59,17 @@ malformed.** Every finding carries its evidence — not "Cloudflare
 detected" but which signal, from which source — so a false positive is
 diagnosable rather than mysterious.
 
-## Status: works, not yet published
-
-| Works today | Not here yet |
-|---|---|
-| Single-URL and batch checks, all four detections, all four verdicts, JSON reports, `--no-render`, `--agent`, `--signatures`, `doctor` | Publication — no crates.io release, no Homebrew or winget, no prebuilt binaries |
-| The MCP surface (`scrape-le mcp`) with `analyze_robots_txt`, `scrape_le_check` and `scrape_le_doctor` | Signature confidence weights, and the wider vendor coverage listed in the spec's enhancements |
-| Contract, scenario, property and parity tests; a 90% per-module coverage floor on the decision layer | |
-
 ## Install
 
-Not yet published. Until the first `crate-v*` release:
+| Route | Command | Worth knowing |
+|---|---|---|
+| **cargo** | `cargo install scrape-le` | Any platform, needs **Rust 1.88+**. |
+| **From source** | `git clone https://github.com/nolindnaidoo/scrape-le`<br>`cd scrape-le/crate && cargo build --release` | The same build CI runs. |
 
-```bash
-git clone https://github.com/nolindnaidoo/scrape-le
-cd scrape-le/crate
-cargo build --release        # needs Rust 1.88+
-./target/release/scrape-le --help
-```
-
-The eventual routes — crates.io, Homebrew, winget, prebuilt binaries —
-follow the pixelcoords/pixelactions playbook and arrive with the
-releases, not before.
+You also need a Chromium — Chrome, Chromium, Brave or Edge. It is never
+downloaded for you; `scrape-le doctor` says whether one was found and
+what runs without it. Homebrew, winget and prebuilt binaries follow the
+pixelcoords/pixelactions playbook and arrive with later releases.
 
 ## Verdicts
 

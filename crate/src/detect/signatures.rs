@@ -36,11 +36,11 @@ pub(crate) struct VendorSignature {
 /// first matching header signature is the one reported, so order is
 /// part of parity.
 const CORPUS: [&str; 5] = [
-    include_str!("../../../signatures/cloudflare.toml"),
-    include_str!("../../../signatures/recaptcha.toml"),
-    include_str!("../../../signatures/hcaptcha.toml"),
-    include_str!("../../../signatures/datadome.toml"),
-    include_str!("../../../signatures/perimeterx.toml"),
+    include_str!("../../signatures/cloudflare.toml"),
+    include_str!("../../signatures/recaptcha.toml"),
+    include_str!("../../signatures/hcaptcha.toml"),
+    include_str!("../../signatures/datadome.toml"),
+    include_str!("../../signatures/perimeterx.toml"),
 ];
 
 static SIGNATURES: OnceLock<Vec<VendorSignature>> = OnceLock::new();

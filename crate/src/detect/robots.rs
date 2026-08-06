@@ -245,15 +245,15 @@ fn js_parse_float(value: &str) -> Option<f64> {
 mod tests {
     use super::*;
 
-    const CASES: &str = include_str!("../../../fixtures/robots/cases.json");
+    const CASES: &str = include_str!("../../fixtures/robots/cases.json");
 
     fn fixture_body(file: &str) -> &'static str {
         match file {
-            "simple.txt" => include_str!("../../../fixtures/robots/simple.txt"),
-            "disallow-all.txt" => include_str!("../../../fixtures/robots/disallow-all.txt"),
-            "wildcards.txt" => include_str!("../../../fixtures/robots/wildcards.txt"),
-            "multi-group.txt" => include_str!("../../../fixtures/robots/multi-group.txt"),
-            "agent-specific.txt" => include_str!("../../../fixtures/robots/agent-specific.txt"),
+            "simple.txt" => include_str!("../../fixtures/robots/simple.txt"),
+            "disallow-all.txt" => include_str!("../../fixtures/robots/disallow-all.txt"),
+            "wildcards.txt" => include_str!("../../fixtures/robots/wildcards.txt"),
+            "multi-group.txt" => include_str!("../../fixtures/robots/multi-group.txt"),
+            "agent-specific.txt" => include_str!("../../fixtures/robots/agent-specific.txt"),
             other => panic!("fixture body {other} not embedded — add it here"),
         }
     }

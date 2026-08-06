@@ -102,7 +102,7 @@ That prints the tool list and exits — if you see `analyze_robots_txt`, the ser
 
 ## The CLI
 
-The same check runs from a terminal or an agent loop: a Rust CLI in [`crate/`](crate/) of this repository, sharing one signature corpus with the extension — [`signatures/`](signatures/) and [`fixtures/`](fixtures/) — so CI fails if the two ever disagree about a URL.
+The same check runs from a terminal or an agent loop: a Rust CLI in [`crate/`](crate/) of this repository, sharing one signature corpus with the extension — [`crate/signatures/`](crate/signatures/) and [`crate/fixtures/`](crate/fixtures/) — so CI fails if the two ever disagree about a URL.
 
 ```bash
 scrape-le https://example.com/search   # JSON on stdout, summary on stderr
@@ -110,7 +110,7 @@ scrape-le --input urls.txt             # a batch, streamed as it completes
 scrape-le mcp                          # the same check over MCP on stdio
 ```
 
-The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** Not yet published — build it from [`crate/`](crate/README.md), where the spec ([`crate/SPEC.md`](crate/SPEC.md)) and standards live.
+The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** Install it with `cargo install scrape-le`; the spec ([`crate/SPEC.md`](crate/SPEC.md)) and standards live alongside it in [`crate/`](crate/README.md).
 
 ## Detections
 

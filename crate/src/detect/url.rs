@@ -70,7 +70,7 @@ pub(crate) fn extract_url(text: &str) -> Option<String> {
 mod tests {
     use super::*;
 
-    const FIXTURES: &str = include_str!("../../../fixtures/url.json");
+    const FIXTURES: &str = include_str!("../../fixtures/url.json");
 
     fn cases(section: &str) -> Vec<serde_json::Value> {
         let all: serde_json::Value = serde_json::from_str(FIXTURES).expect("fixture JSON");

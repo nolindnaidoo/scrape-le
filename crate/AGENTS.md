@@ -17,10 +17,11 @@ one repository: the detection corpus (`../signatures/`, `../fixtures/`)
 is shared with the VS Code extension, and CI fails when either side
 drifts from it.
 
-**Status: complete and unpublished.** Every detection, both surfaces,
-batching and the test layers below are built and green; nothing is
-released to crates.io yet. Do not let the README or the manifest claim
-a publication that has not happened.
+**Status: released.** Every detection, both surfaces, batching and the
+test layers below are built and green. Releases go out through
+`release-crate.yml`, which is dispatch-only and refuses a version that
+crates.io already carries, has no changelog entry, or would ship a
+tarball missing its own corpus.
 
 ## Layout
 
@@ -144,8 +145,11 @@ and pixelactions:
 
 ## The corpus contract
 
-`../signatures/*.toml` and `../fixtures/` are shared ground — neither
-frontend owns them. The crate embeds them in its build and tests;
+`signatures/*.toml` and `fixtures/` live inside this crate so the
+published package is self-contained — `cargo package` cannot reach above
+its own directory, and a crate whose corpus is missing does not build
+for a consumer. They are still shared ground: the extension reads the
+same files. The crate embeds them in its build and tests;
 `../scripts/check-signature-parity.ts` (the `parity` job in
 `ci-crate.yml`) fails when the extension drifts. Changing a signature
 or a fixture is a behavior change for **both** frontends and needs a
@@ -211,5 +215,6 @@ conventional prefix, imperative subject under 72 characters, body
 carrying the *why* — enforced by the `commit-msg` hook and the
 `Commit messages` CI job. One concern per change; if docs describe the
 thing you changed, update them in the same commit. Release tags are
-`crate-v*`; publishing is deferred deliberately and there is no release
-workflow yet.
+`crate-v*`, and a release goes out by dispatching `release-crate.yml`
+with its publish opt-in — never by pushing a tag, because a crates.io
+version can never be reused.

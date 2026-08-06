@@ -49,7 +49,7 @@ mod tests {
     use super::super::signatures::signatures;
     use super::*;
 
-    const FIXTURES: &str = include_str!("../../../fixtures/antibot-headers.json");
+    const FIXTURES: &str = include_str!("../../fixtures/antibot-headers.json");
 
     #[test]
     fn every_fixture_case_reproduces() {

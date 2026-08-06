@@ -22,6 +22,8 @@ import { TOOLS } from '../src/mcp/tools';
 import { extractUrl, normalizeUrl, validateUrl } from '../src/utils/url';
 
 const ROOT = join(import.meta.dir, '..');
+/** The corpus lives inside the crate so the published package is self-contained. */
+const CORPUS = join(ROOT, 'crate');
 const failures: string[] = [];
 
 function fail(message: string): void {
@@ -53,7 +55,7 @@ function asJson(value: unknown): unknown {
 }
 
 async function checkSignatures(): Promise<void> {
-	const dir = join(ROOT, 'signatures');
+	const dir = join(CORPUS, 'signatures');
 	const files = readdirSync(dir).filter((f) => f.endsWith('.toml'));
 	const corpusKeys = files.map((f) => f.replace(/\.toml$/, '')).sort();
 	const codeKeys = ANTI_BOT_SIGNATURES.map((s) => s.key).sort();
@@ -90,7 +92,7 @@ async function checkSignatures(): Promise<void> {
 
 function checkAntibotFixtures(): void {
 	const cases = JSON.parse(
-		readFileSync(join(ROOT, 'fixtures', 'antibot-headers.json'), 'utf8'),
+		readFileSync(join(CORPUS, 'fixtures', 'antibot-headers.json'), 'utf8'),
 	);
 	for (const testCase of cases) {
 		for (const signature of ANTI_BOT_SIGNATURES) {
@@ -106,7 +108,7 @@ function checkAntibotFixtures(): void {
 }
 
 function checkRobotsFixtures(): void {
-	const dir = join(ROOT, 'fixtures', 'robots');
+	const dir = join(CORPUS, 'fixtures', 'robots');
 	const cases = JSON.parse(readFileSync(join(dir, 'cases.json'), 'utf8'));
 	for (const testCase of cases) {
 		const body = readFileSync(join(dir, testCase.file), 'utf8');
@@ -121,7 +123,7 @@ function checkRobotsFixtures(): void {
 
 function checkUrlFixtures(): void {
 	const cases = JSON.parse(
-		readFileSync(join(ROOT, 'fixtures', 'url.json'), 'utf8'),
+		readFileSync(join(CORPUS, 'fixtures', 'url.json'), 'utf8'),
 	);
 	const runners: Readonly<Record<string, (input: string) => unknown>> = {
 		validate: validateUrl,
@@ -150,7 +152,7 @@ function checkUrlFixtures(): void {
  */
 async function checkMcpAnalyzeFixtures(): Promise<void> {
 	const cases = JSON.parse(
-		readFileSync(join(ROOT, 'fixtures', 'mcp-analyze-robots.json'), 'utf8'),
+		readFileSync(join(CORPUS, 'fixtures', 'mcp-analyze-robots.json'), 'utf8'),
 	);
 	const tool = TOOLS.find((t) => t.name === 'analyze_robots_txt');
 	if (!tool) {
@@ -162,7 +164,7 @@ async function checkMcpAnalyzeFixtures(): Promise<void> {
 		const args = { ...testCase.arguments };
 		if (testCase.file) {
 			args.content = readFileSync(
-				join(ROOT, 'fixtures', 'robots', testCase.file),
+				join(CORPUS, 'fixtures', 'robots', testCase.file),
 				'utf8',
 			);
 		}

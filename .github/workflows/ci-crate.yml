@@ -12,8 +12,6 @@ on:
     branches: [main]
     paths:
       - 'crate/**'
-      - 'signatures/**'
-      - 'fixtures/**'
       - 'src/detectors/**'
       - 'src/utils/url.ts'
       - 'scripts/check-signature-parity.ts'
@@ -21,8 +19,6 @@ on:
   pull_request:
     paths:
       - 'crate/**'
-      - 'signatures/**'
-      - 'fixtures/**'
       - 'src/detectors/**'
       - 'src/utils/url.ts'
       - 'scripts/check-signature-parity.ts'
