@@ -1,80 +1,187 @@
-# AGENTS.md — scrape-le (CLI)
+# scrape-le (CLI) — engineering standards
 
-Technical source of truth for the Rust CLI. [SPEC.md](SPEC.md) defines
-the product behavior — verdicts, exit codes, batching, the MCP surface;
-this file is for anyone changing the code. The extension at the repo
-root has its own `AGENTS.md`; the root docs stay TypeScript-scoped.
+This is the source of truth for how code in `crate/` is written, tested,
+and reviewed. It applies to every contributor, human or AI-assisted. CI
+(`.github/workflows/ci-crate.yml`) enforces the mechanical parts;
+reviewers enforce the rest. [SPEC.md](SPEC.md) defines the product
+behavior — verdicts, exit codes, batching, both surfaces; this file is
+how the code gets there. The extension at the repo root is a separate
+TypeScript product with its own `AGENTS.md`.
 
-## What this is
+## What this project is
 
-The command-line frontend of Scrape-LE: the same question the VS Code
-extension answers — can this page be scraped, and what would block a
-scraper — asked from a terminal or an agent loop. One product, two
-frontends, one repository, so the detection corpus cannot drift.
+The command-line and MCP frontend of Scrape-LE: load a URL, gather
+evidence — headers, status code, robots.txt, raw HTML, rendered DOM —
+and return a verdict a script can branch on. One product, two frontends,
+one repository: the detection corpus (`../signatures/`, `../fixtures/`)
+is shared with the VS Code extension, and CI fails when either side
+drifts from it.
 
-## Decisions already made
+**Status: scaffolding.** The binary builds under the full lint policy
+and refuses honestly (exit 2) until the detection port lands. Do not
+make the README or the manifest claim otherwise.
 
-Do not relitigate these; each was settled with reasoning on record.
+## Layout
 
-- **One crate, no published `-core`.** `detect/` is a `pub(crate)`
-  module carrying a 90% per-module line coverage floor (enforced in CI
-  once the port lands).
-- **Sync stack, no async runtime.** `headless_chrome` (sync CDP) +
-  `ureq` + std threads. The batching design — 4 concurrent hosts,
-  sequential within a host — needs no runtime, and the resolved tree
-  must stay tokio-free. Settled by a spike on 2026-08-06: navigate,
-  wait-for-load, evaluate and post-JS DOM snapshot all verified, plus
-  4 tabs driven from 4 std threads over one browser.
-- **Browser discovery is ours.** `default_executable()` knows only
-  Chrome/Chromium; discovery keeps its own candidate list (Chrome,
-  Chromium, Brave, Edge) plus a `CHROME`-style env override. Required,
-  never downloaded — if none is found, say so and name the fix.
-- **Parity scope is detection results only** — `src/detectors/` and
-  `src/utils/url.ts`. Commands, UI, i18n, the config reader and the
-  browser installer are extension concerns with no CLI equivalent.
+```
+crate/src/
+├── detect/     pure: signature matching, robots.txt, verdict logic.
+│               No I/O, no browser, pub(crate).
+├── fetch.rs    HTTP (ureq)
+├── render.rs   Chromium (headless_chrome)
+├── cli.rs      the terminal surface
+└── mcp.rs      the agent surface
+```
+
+- **`detect/` touches no network and drives no browser.** It takes
+  evidence and returns findings, so the entire decision layer tests
+  from a fixture file — no display, no network, no flake. It carries
+  the **90% line coverage floor per module** (CI enforces once the port
+  lands). If a `ureq` or `headless_chrome` type appears in `detect/`,
+  that is a bug.
+- **Both surfaces are one implementation.** `cli.rs` and `mcp.rs` call
+  the same `check()` in `detect/`. A surface that grows its own copy of
+  a rule is a bug.
+- Keep modules flat. No layers, registries, managers, or services. No
+  trait with a single implementation.
+
+## Decisions already made (do not relitigate)
+
+- **One crate, no published `-core`.** pixelcoords/pixelactions split
+  because pixelactions genuinely consumes `pixelcoords-core`; there is
+  no second consumer here, and a published core would hand the
+  detection logic to anyone who wants to rebuild this. `detect/` as a
+  `pub(crate)` module gives the architectural separation without the
+  packaging ceremony.
+- **Sync stack: `headless_chrome` + `ureq` + std threads.** No async
+  runtime — the batching design (4 concurrent hosts, sequential within
+  a host, never two concurrent requests to the same host) needs
+  nothing more. Settled by a spike on 2026-08-06: navigate,
+  wait-for-load, evaluate, and post-JS DOM snapshot verified against
+  real pages, 4 tabs driven from 4 std threads over one browser, and
+  the resolved tree is tokio-free.
+- **Browser required, never downloaded.** Discovery keeps its own
+  candidate list — Chrome, Chromium, Brave, Edge — plus a
+  `CHROME`-style env override, because the crate's
+  `default_executable()` knows only Chrome/Chromium (verified against a
+  Brave-only machine). If none is found, say so and name the fix.
 - **`scrape-le.retry.userAgents` is dropped**, deliberately. It
-  contradicts the spec's non-goals and the generic-User-Agent rule.
-  A written-down parity gap, not an oversight.
+  contradicts the spec's non-goals and the generic-User-Agent rule. A
+  written-down parity gap, not an oversight.
 - **robots.txt agent-specific groups are fixed here, not ported
   broken.** `--agent` does RFC 9309 group selection; the extension
   evaluates only `User-agent: *`. Corpus cases that diverge carry a
   `divergence` annotation in `../fixtures/`.
+- **Parity scope is detection results only** — the extension's
+  `src/detectors/` and `src/utils/url.ts`. Commands, UI, i18n, the
+  config reader, and the browser installer are extension concerns with
+  no CLI equivalent.
+
+## Control-flow style
+
+Flat over nested, guards over branches — the same rules as pixelcoords
+and pixelactions:
+
+- **No statement-position `else`.** Guard clauses and early `return`
+  (`if !ok { return ... }` / `let Some(x) = ... else { return }`), then
+  fall through to the happy path.
+- **Value-position `if/else` is fine** — `let x = if cond { a } else
+  { b }` is Rust's ternary.
+- **`match` is fine and preferred** over any chain of condition tests
+  on the same value; use match guards instead of `if/else` inside arms.
+- Prefer combinators where they read cleanly: `bool::then_some`,
+  `Option::map/filter/is_some_and`, `?`.
+- No nesting deeper than two levels inside a function; extract a named
+  helper instead.
+
+## Hard rules
+
+- **No inline `#[allow(...)]`** — CI greps and fails the build. Either
+  fix the lint or add a visible, commented relaxation to
+  `[lints.clippy]` in `Cargo.toml`.
+- **Clippy pedantic, deny warnings.** `cargo clippy --all-targets --
+  -D warnings` must pass exactly as CI runs it.
+- **No async runtime.** Std threads are the concurrency model. Do not
+  add tokio, async-std, or executors — the spec's batching design is
+  the proof none is needed.
+- **`unsafe` is forbidden crate-wide** (`[lints.rust]`). This tool has
+  no OS-API half; there is no platform-module exemption to inherit.
+- **Dependencies are a cost.** A browser driver and an HTTP client are
+  already more than most tools carry. Justify every addition; prefer
+  the standard library; prefer what is already in the tree.
+- **Network scope is the URL under check plus that origin's
+  `/robots.txt` — nothing else, ever.** Generic User-Agent; no
+  telemetry.
+- **Strict parsing, never silent defaults.** Bad flags, malformed batch
+  input, and unreadable config are errors with actionable messages,
+  not fallbacks.
+- **Refuse rather than guess.** A page that cannot be reached or
+  rendered is a refusal with a reason, never a fabricated verdict.
+  Partial evidence is reported as partial — the report says plainly
+  when the browser was unavailable. Never report success you did not
+  achieve.
+- **Refusals speak the caller's vocabulary.** An MCP caller has no
+  command line; no message aimed at one mentions `--no-render` or any
+  other flag.
 
 ## The corpus contract
 
 `../signatures/*.toml` and `../fixtures/` are shared ground — neither
 frontend owns them. The crate embeds them in its build and tests;
-`../scripts/check-signature-parity.ts` (CI: `ci-crate.yml`) fails when
-the extension drifts. Changing a signature or a fixture is a behavior
-change for **both** frontends and needs a CHANGELOG entry.
+`../scripts/check-signature-parity.ts` (the `parity` job in
+`ci-crate.yml`) fails when the extension drifts. Changing a signature
+or a fixture is a behavior change for **both** frontends and needs a
+CHANGELOG entry. A `divergence` annotation in a fixture case is the
+only sanctioned disagreement.
 
-## Standards
+## Testing
 
-The pixelcoords/pixelactions rules apply verbatim:
+The bar, enforced by review:
 
-- **Refuse rather than guess.** An answer this tool cannot stand behind
-  is a refusal with a reason, never a fabricated verdict. Exit codes
-  are the API; scripts branch on them (see SPEC.md).
-- **Dependencies are a cost.** A browser driver and an HTTP client are
-  already more than most tools carry. No async runtimes, no
-  single-implementation traits, no architectural layers.
-- **No inline `#[allow]`** — CI fails the build on it. Fix the lint or
-  add a commented relaxation to `[lints.clippy]` in `Cargo.toml`.
-- **Unsafe is forbidden** (`[lints.rust] unsafe_code = "forbid"`).
-- Before declaring any change complete, run what CI runs:
-  `cargo fmt --all --check`, `cargo clippy --all-targets -- -D warnings`,
-  `cargo test --locked`. All three must pass.
-- Comments explain **why**, never what.
+- **`detect/`: 90% line coverage floor per module.** Everything in it
+  is pure; if something is hard to test there, the design is wrong.
+  Per module rather than the crate total, because a total lets one
+  module slide while the others carry it.
+- **The parity corpus is embedded.** Every `../fixtures/` case runs as
+  a unit test; the expected values are the extension's answers except
+  where a `divergence` annotation says otherwise.
+- **Exit codes belong in contract tests.** They are the API — callers
+  branch on them — so they are pinned by tests that need no network
+  and no browser, and run everywhere on every push.
+- **Anything needing a real browser is a scenario test**, gated behind
+  an env var and run by CI on all three OSes — the spec's render row.
+  Unit tests never launch Chromium.
+- **Every bug fix ships with a regression test** that fails before the
+  fix.
+- Tests are deterministic: no clocks, no randomness, and **no network
+  in unit tests** — robots.txt and header logic run from fixtures.
 
-## Toolchain
+## Verification — the definition of done
 
-- Edition 2024, `rust-version = "1.88"` (CI checks it), stable for
-  development. `Cargo.lock` is committed — this is a binary.
-- CI: `.github/workflows/ci-crate.yml` — fmt, clippy as errors, test
-  and build on three OSes, MSRV, the no-inline-allow policy check,
-  `cargo audit`, and the parity job. It also triggers on
-  `src/detectors/**` and `src/utils/url.ts`, because parity must fail
-  when either side drifts.
-- Releases tag `crate-v*` (extension tags stay `vscode-v*`-free,
-  hand-applied). Publishing is deferred; no release workflow exists
-  yet, deliberately.
+All of it, exactly as CI runs it, before every push:
+
+```bash
+cargo fmt --all --check
+cargo clippy --all-targets -- -D warnings
+cargo test --locked
+bun ../scripts/check-signature-parity.ts   # when detection data changed
+```
+
+CI additionally builds on macOS, Windows, and Linux, checks the Rust
+1.88 minimum version, runs `cargo audit` and the no-inline-`#[allow]`
+policy job, and runs parity — including on extension-side edits to
+`src/detectors/**` and `src/utils/url.ts`, so neither frontend can
+drift green. A change is not done because it compiles; it is done when
+it is tested, linted, documented where behavior changed (README /
+CHANGELOG / this file), and honest — claims in docs must match the
+code.
+
+## Commits and pull requests
+
+The repo root's convention applies unchanged (root `AGENTS.md`):
+conventional prefix, imperative subject under 72 characters, body
+carrying the *why* — enforced by the `commit-msg` hook and the
+`Commit messages` CI job. One concern per change; if docs describe the
+thing you changed, update them in the same commit. Release tags are
+`crate-v*`; publishing is deferred deliberately and there is no release
+workflow yet.
