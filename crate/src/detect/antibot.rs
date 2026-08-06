@@ -6,14 +6,23 @@ use std::collections::HashMap;
 
 use super::signatures::VendorSignature;
 
-/// Returns a human-readable detail when the response headers match the
-/// signature, or `None` when they don't. Header keys are expected
-/// lowercased, as the browser delivers them; values match
-/// case-insensitively. An empty header value is skipped, not matched.
+/// A header match and the receipt that produced it.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct HeaderMatch {
+    /// the header name that matched, for finding evidence
+    pub(crate) header: String,
+    /// the human-readable detail, pinned by the parity fixtures
+    pub(crate) detail: String,
+}
+
+/// Returns the match when the response headers fit the signature, or
+/// `None` when they don't. Header keys are expected lowercased, as the
+/// browser delivers them; values match case-insensitively. An empty
+/// header value is skipped, not matched.
 pub(crate) fn match_headers(
     headers: &HashMap<String, String>,
     signature: &VendorSignature,
-) -> Option<String> {
+) -> Option<HeaderMatch> {
     for header in &signature.headers {
         let Some(value) = headers.get(&header.name) else {
             continue;
@@ -21,11 +30,15 @@ pub(crate) fn match_headers(
         if value.is_empty() {
             continue;
         }
+        let matched = HeaderMatch {
+            header: header.name.clone(),
+            detail: format!("{} ({} header)", signature.label, header.name),
+        };
         let Some(contains) = &header.contains else {
-            return Some(format!("{} ({} header)", signature.label, header.name));
+            return Some(matched);
         };
         if value.to_lowercase().contains(contains) {
-            return Some(format!("{} ({} header)", signature.label, header.name));
+            return Some(matched);
         }
     }
     None
@@ -49,7 +62,7 @@ mod tests {
                 let expected = case["expected"][&signature.key].as_str();
                 let actual = match_headers(&headers, signature);
                 assert_eq!(
-                    actual.as_deref(),
+                    actual.map(|m| m.detail).as_deref(),
                     expected,
                     "case {name:?}, vendor {}",
                     signature.key
