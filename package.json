@@ -254,7 +254,7 @@
 	"scripts": {
 		"clean": "node -e \"const fs=require('fs');['dist','coverage','release'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
 		"clean:i18n": "node -e \"const fs=require('fs');fs.readdirSync('.').filter(f=>f.startsWith('package.nls.')&&f.endsWith('.json')&&f!=='package.nls.json').forEach(f=>fs.unlinkSync(f))\"",
-		"copy:i18n": "node -e \"const fs=require('fs');fs.readdirSync('src/i18n').forEach(f=>fs.copyFileSync('src/i18n/'+f,f))\"",
+		"copy:i18n": "node -e \"const fs=require('fs');fs.readdirSync('src/i18n').filter(f=>f.startsWith('package.nls.')&&f.endsWith('.json')).forEach(f=>fs.copyFileSync('src/i18n/'+f,f))\"",
 		"build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:playwright-core --format=cjs --platform=node --target=node20 --main-fields=module,main --sourcemap",
 		"build:prod": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:playwright-core --format=cjs --platform=node --target=node20 --main-fields=module,main --minify --sourcemap=external",
 		"watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:playwright-core --format=cjs --platform=node --target=node20 --main-fields=module,main --sourcemap --watch",
