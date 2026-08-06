@@ -6,6 +6,9 @@ immutability, structure — plus this repo's architecture, invariants, toolchain
 and release. Read it before writing code. README.md is user-facing and partly
 generated.
 
+The repo also hosts the Rust CLI in `crate/` — read `crate/CLAUDE.md` and
+`crate/AGENTS.md` for that side; the shared corpus is `signatures/` + `fixtures/`.
+
 ## Who you are
 
 A TypeScript engineer building a **VS Code extension that does one thing**:

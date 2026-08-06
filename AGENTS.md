@@ -2,6 +2,8 @@
 
 Technical source of truth for this repo. README.md is the user-facing doc; this file is for anyone (human or agent) changing the code.
 
+This repo hosts **two products**: the extension at the root (this document's scope) and the Rust CLI in `crate/` (its own `AGENTS.md` + `SPEC.md`). The shared detection corpus lives at `signatures/` and `fixtures/`; `scripts/check-signature-parity.ts` fails CI when this extension drifts from it.
+
 ## What this is
 
 A VS Code extension that loads a URL in headless Chromium (playwright-core) and reports what would block a scraper: HTTP status/title/load time, console errors, a full-page screenshot, anti-bot vendor detection, rate-limit headers, robots.txt evaluation, and authentication walls. Network access is scoped to the URL under check plus that origin's `/robots.txt` — nothing else, ever.

@@ -100,6 +100,10 @@ That prints the tool list and exits — if you see `analyze_robots_txt`, the ser
 
 </details>
 
+## The CLI (in progress)
+
+The same check is becoming a standalone Rust CLI, developed in [`crate/`](crate/) of this repository so that both frontends share one signature corpus — [`signatures/`](signatures/) and [`fixtures/`](fixtures/) — and CI fails if they ever disagree about a URL. Not yet published: the binary builds and honestly refuses until the detection port lands. The spec is [`crate/SPEC.md`](crate/SPEC.md).
+
 ## Detections
 
 | Detection | How it works |
