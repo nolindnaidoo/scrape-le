@@ -16,6 +16,13 @@ categories = ["command-line-utilities"]
 name = "scrape-le"
 path = "src/main.rs"
 
+# The decided render stack (AGENTS.md — sync CDP, no runtime), used today
+# only by examples/spike.rs; it graduates to [dependencies] when render.rs
+# lands. anyhow is spike-local error glue, not a crate-wide commitment.
+[dev-dependencies]
+headless_chrome = "1"
+anyhow = "1"
+
 [profile.release]
 strip = true
 lto = "thin"
