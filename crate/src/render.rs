@@ -1,26 +1,36 @@
 //! Browser evidence gathering — the spike graduated. Drives a Chromium
 //! the user already has over sync CDP and returns what only a rendered
-//! page can show: script sources, DOM selectors, window globals, login
-//! forms, page text, console errors, the post-JS title and URL, and a
+//! page can show: the document's own status and response headers,
+//! script sources, DOM selectors, window globals, login forms, page
+//! text, console errors, the post-JS title and URL, and a full-page
 //! screenshot.
 //!
-//! Two honest gaps against the extension, both deliberate for now:
-//! the page is fetched twice (ureq for headers, the browser for the
-//! DOM — response-header capture over CDP is the fix), and the
-//! screenshot covers the viewport, not the full page
-//! (`headless_chrome` does not expose capture-beyond-viewport).
+//! **One page load.** The document response is captured over CDP, so a
+//! rendered check hits the site exactly once — asking whether it is
+//! acceptable to scrape a site should not cost that site two requests.
+//! `robots.txt` is the one additional fetch, as the extension does it.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use headless_chrome::browser::default_executable;
+use headless_chrome::protocol::cdp::Emulation::{
+    ClearDeviceMetricsOverride, SetDeviceMetricsOverride,
+};
+use headless_chrome::protocol::cdp::Network::ResourceType;
 use headless_chrome::protocol::cdp::Page::CaptureScreenshotFormatOption;
 use headless_chrome::protocol::cdp::types::Event;
 use headless_chrome::{Browser, LaunchOptions};
 
 use crate::detect::check::{AuthPageEvidence, ProbeResult, RenderEvidence};
 use crate::detect::signatures::signatures;
+
+/// Chrome refuses a capture larger than its maximum texture dimension.
+/// A taller page is captured to this height rather than failing; the
+/// screenshot is documentation, never evidence a finding rests on.
+const MAX_CAPTURE_PX: f64 = 16_384.0;
 
 /// The family `default_executable()` does not know: Brave and Edge.
 /// The macOS paths are verified on real hardware; the Linux and Windows
@@ -79,6 +89,30 @@ pub(crate) fn render(url: &str, browser_path: PathBuf) -> Result<RenderEvidence,
 
     let tab = browser.new_tab().map_err(|e| e.to_string())?;
 
+    // The document's own response, captured before navigating so the
+    // page is loaded once rather than once per evidence source. A
+    // redirect chain emits one Document response per hop; the last one
+    // is the page that actually answered.
+    let document: Arc<Mutex<Option<DocumentResponse>>> = Arc::new(Mutex::new(None));
+    let sink = Arc::clone(&document);
+    tab.register_response_handling(
+        "document",
+        Box::new(move |params, _fetch_body| {
+            if params.Type != ResourceType::Document {
+                return;
+            }
+            let Ok(mut slot) = sink.lock() else {
+                return;
+            };
+            *slot = Some(DocumentResponse {
+                url: params.response.url.clone(),
+                status: u16::try_from(params.response.status).unwrap_or(0),
+                headers: header_map(&params.response.headers),
+            });
+        }),
+    )
+    .map_err(|e| e.to_string())?;
+
     // Console errors and warnings plus uncaught exceptions, as the
     // extension collects them.
     let console: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
@@ -104,19 +138,46 @@ pub(crate) fn render(url: &str, browser_path: PathBuf) -> Result<RenderEvidence,
     let auth = run_auth_probe(&tab)?;
     let title = tab.get_title().ok().filter(|t| !t.is_empty());
     let final_url = Some(tab.get_url());
+    let body_html = tab.get_content().unwrap_or_default();
     let screenshot = capture_screenshot(&tab, url);
 
     let console_errors = console.lock().map(|m| m.clone()).unwrap_or_default();
+    let document = document.lock().ok().and_then(|slot| slot.clone());
 
     Ok(RenderEvidence {
         final_url,
         title,
+        body_html,
+        status: document.as_ref().map(|d| d.status),
+        headers: document.map(|d| d.headers),
         probes,
         auth,
         console_errors,
         screenshot,
         render_ms: ms(started.elapsed()),
     })
+}
+
+/// The document response as CDP delivered it.
+#[derive(Clone)]
+struct DocumentResponse {
+    url: String,
+    status: u16,
+    headers: HashMap<String, String>,
+}
+
+/// CDP delivers headers as a JSON object with the server's own casing;
+/// the detectors expect lowercase keys, as a browser delivers them.
+fn header_map(
+    headers: &headless_chrome::protocol::cdp::Network::Headers,
+) -> HashMap<String, String> {
+    let Some(object) = headers.0.as_ref().and_then(serde_json::Value::as_object) else {
+        return HashMap::new();
+    };
+    object
+        .iter()
+        .filter_map(|(name, value)| Some((name.to_lowercase(), value.as_str()?.to_string())))
+        .collect()
 }
 
 /// The extension waits for `load` then gives SPAs a best-effort settle
@@ -240,19 +301,73 @@ fn evaluate_string(tab: &headless_chrome::Tab, script: &str) -> Result<String, S
         .ok_or_else(|| "evaluate returned no string".to_string())
 }
 
-/// Viewport screenshot into the working directory, named like the
+/// Full-page screenshot into the working directory, named like the
 /// extension's `convertUrlToFilename`: hostname with dots dashed plus
 /// the date — which means a same-day re-check overwrites, exactly as
 /// the extension documents.
+///
+/// Full-page is done by emulating a viewport the size of the document
+/// and capturing that, then clearing the override. `capture_screenshot`
+/// hard-codes `capture_beyond_viewport` off, and the alternative —
+/// calling the CDP method directly — would mean decoding base64 here
+/// and carrying a dependency for one image.
 fn capture_screenshot(tab: &headless_chrome::Tab, url: &str) -> Option<String> {
     let hostname = url::Url::parse(url).ok()?.host_str()?.replace('.', "-");
     let (year, month, day) = civil_date_today();
     let filename = format!("scrape-le-{hostname}-{year:04}-{month:02}-{day:02}.png");
+
+    let resized = resize_to_document(tab);
     let png = tab
         .capture_screenshot(CaptureScreenshotFormatOption::Png, None, None, true)
-        .ok()?;
-    std::fs::write(&filename, png).ok()?;
+        .ok();
+    if resized {
+        let _ = tab.call_method(ClearDeviceMetricsOverride(None));
+    }
+
+    std::fs::write(&filename, png?).ok()?;
     Some(format!("./{filename}"))
+}
+
+/// Emulates a viewport as tall as the document, so the capture covers
+/// the whole page. Chrome refuses dimensions past its maximum texture
+/// size, so a very long page is captured to `MAX_CAPTURE_PX` — the
+/// screenshot is documentation, never evidence a finding rests on.
+fn resize_to_document(tab: &headless_chrome::Tab) -> bool {
+    let Ok(raw) = evaluate_string(
+        tab,
+        "JSON.stringify({w:Math.max(document.documentElement.scrollWidth,document.body?document.body.scrollWidth:0),\
+         h:Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0)})",
+    ) else {
+        return false;
+    };
+    let Ok(size) = serde_json::from_str::<serde_json::Value>(&raw) else {
+        return false;
+    };
+    let (Some(width), Some(height)) = (size["w"].as_f64(), size["h"].as_f64()) else {
+        return false;
+    };
+    if width <= 0.0 || height <= 0.0 {
+        return false;
+    }
+    let width = width.min(MAX_CAPTURE_PX) as u32;
+    let height = height.min(MAX_CAPTURE_PX) as u32;
+    tab.call_method(SetDeviceMetricsOverride {
+        width,
+        height,
+        device_scale_factor: 1.0,
+        mobile: false,
+        scale: None,
+        screen_width: None,
+        screen_height: None,
+        position_x: None,
+        position_y: None,
+        dont_set_visible_size: None,
+        screen_orientation: None,
+        viewport: None,
+        display_feature: None,
+        device_posture: None,
+    })
+    .is_ok()
 }
 
 /// Civil date from the system clock, Howard Hinnant's days-from-epoch

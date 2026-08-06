@@ -29,16 +29,43 @@ pub(crate) struct Evidence {
 }
 
 /// What only a rendered page can show. Present ⇒ the antibot and auth
-/// checks ran completely and `clear` becomes reachable.
+/// checks ran completely and `clear` becomes reachable. `status` and
+/// `headers` come from the document's own CDP response, so a rendered
+/// check needs no second request to the site.
 pub(crate) struct RenderEvidence {
     pub(crate) final_url: Option<String>,
     pub(crate) title: Option<String>,
+    pub(crate) body_html: String,
+    pub(crate) status: Option<u16>,
+    pub(crate) headers: Option<HashMap<String, String>>,
     /// per vendor key, the extension's single-evaluate probe result
     pub(crate) probes: HashMap<String, ProbeResult>,
     pub(crate) auth: AuthPageEvidence,
     pub(crate) console_errors: Vec<String>,
     pub(crate) screenshot: Option<String>,
     pub(crate) render_ms: u64,
+}
+
+impl Evidence {
+    /// Evidence from a render alone: no HTTP fetch of the page ever
+    /// happened, so everything but robots.txt comes from the browser.
+    pub(crate) fn from_render(
+        url: &str,
+        render: RenderEvidence,
+        robots_body: Option<String>,
+    ) -> Self {
+        Self {
+            url: url.to_string(),
+            final_url: render.final_url.clone().unwrap_or_else(|| url.to_string()),
+            status: render.status,
+            headers: render.headers.clone().unwrap_or_default(),
+            body_html: render.body_html.clone(),
+            robots_body,
+            render: Some(render),
+            fetch_ms: 0,
+            total_ms: 0,
+        }
+    }
 }
 
 pub(crate) struct ProbeResult {
@@ -298,6 +325,9 @@ mod tests {
         RenderEvidence {
             final_url: Some("https://example.com/search?q=x".to_string()),
             title: Some("Search — Example".to_string()),
+            body_html: "<html><title>Search — Example</title></html>".to_string(),
+            status: Some(200),
+            headers: Some(HashMap::new()),
             probes: HashMap::new(),
             auth: AuthPageEvidence {
                 has_password_input: false,

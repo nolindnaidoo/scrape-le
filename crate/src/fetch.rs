@@ -61,7 +61,13 @@ pub(crate) fn fetch_evidence(url: &str) -> Result<Evidence, FetchError> {
     })
 }
 
-/// `<origin>/robots.txt`, 5s cap, exactly one request. A non-2xx or
+/// `<origin>/robots.txt` on its own, for the render path — where the
+/// page itself is loaded by the browser and never fetched over HTTP.
+pub(crate) fn fetch_robots_only(url: &str) -> Option<String> {
+    fetch_robots(&agent(), url)
+}
+
+/// `<origin>/robots.txt`, exactly one request. A non-2xx or
 /// unreachable robots.txt is `None` — "no robots.txt" — matching the
 /// extension's `response.ok` check.
 fn fetch_robots(agent: &ureq::Agent, url: &str) -> Option<String> {

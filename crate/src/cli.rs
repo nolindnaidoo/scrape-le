@@ -66,24 +66,26 @@ fn check_one(raw: &str, no_render: bool) -> ExitCode {
         return ExitCode::from(2);
     }
 
-    let mut evidence: Evidence = match fetch_evidence(&url) {
-        Ok(evidence) => evidence,
-        Err(FetchError::Malformed(reason)) => {
-            eprintln!("scrape-le: {reason}");
-            return ExitCode::from(2);
-        }
-        Err(FetchError::Blocked(reason)) => {
-            let report = blocked_report(&url, &reason);
-            emit(&report);
-            return ExitCode::from(1);
-        }
+    // The rendered path loads the page once, in the browser, and takes
+    // its status and headers from the document's CDP response — asking
+    // whether a site may be scraped must not cost that site two hits.
+    // Only robots.txt is fetched alongside it.
+    let mut evidence: Evidence = match render_evidence(&url, no_render) {
+        Some(evidence) => evidence,
+        None => match fetch_evidence(&url) {
+            Ok(evidence) => evidence,
+            Err(FetchError::Malformed(reason)) => {
+                eprintln!("scrape-le: {reason}");
+                return ExitCode::from(2);
+            }
+            Err(FetchError::Blocked(reason)) => {
+                let report = blocked_report(&url, &reason);
+                emit(&report);
+                return ExitCode::from(1);
+            }
+        },
     };
-
-    if !no_render {
-        attach_render(&mut evidence, &url);
-    }
-    // fetch.rs stamped total at fetch time; the whole check owns it,
-    // render and browser discovery included.
+    // The whole check owns the total, render and discovery included.
     evidence.total_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
 
     let report = check(&evidence);
@@ -94,21 +96,29 @@ fn check_one(raw: &str, no_render: bool) -> ExitCode {
     }
 }
 
-/// Render evidence is best-effort by design: no browser or a failed
-/// render degrades to the partial-checks report, and the human summary
-/// names the reason instead of silently over-claiming.
-fn attach_render(evidence: &mut Evidence, url: &str) {
+/// Render is best-effort by design: no browser or a failed render
+/// returns `None` so the caller falls back to the HTTP-only path, with
+/// the reason on stderr instead of a silent over-claim.
+fn render_evidence(url: &str, no_render: bool) -> Option<Evidence> {
+    if no_render {
+        return None;
+    }
     let browser = match crate::render::find_browser() {
         Ok(browser) => browser,
         Err(reason) => {
             eprintln!("scrape-le: render unavailable — {reason}");
-            return;
+            return None;
         }
     };
     match crate::render::render(url, browser) {
-        Ok(render) => evidence.render = Some(render),
+        Ok(render) => Some(Evidence::from_render(
+            url,
+            render,
+            crate::fetch::fetch_robots_only(url),
+        )),
         Err(reason) => {
-            eprintln!("scrape-le: render failed — {reason}; reporting HTTP evidence only");
+            eprintln!("scrape-le: render failed — {reason}; falling back to HTTP evidence");
+            None
         }
     }
 }
