@@ -10,7 +10,14 @@ authors = ["Nolin D Naidoo"]
 homepage = "https://letools.dev"
 repository = "https://github.com/nolindnaidoo/scrape-le"
 keywords = ["scraping", "robots-txt", "anti-bot", "headless", "cli"]
-categories = ["command-line-utilities"]
+categories = ["command-line-utilities", "web-programming", "development-tools"]
+# What a consumer gets. SPEC.md ships because it is the behavioural
+# contract — verdicts, exit codes, batching — and someone scripting
+# against the exit codes needs it. AGENTS.md and CLAUDE.md are how this
+# repo is worked on, not how the tool is used, and examples/spike.rs is
+# a network-touching development spike. signatures/ and fixtures/ are
+# not optional: the build embeds the first and the tests read both.
+exclude = ["AGENTS.md", "CLAUDE.md", "examples/"]
 
 [[bin]]
 name = "scrape-le"
@@ -32,8 +39,9 @@ url = "2"
 ureq = "3"
 headless_chrome = "1"
 
-# anyhow is spike-local error glue (examples/spike.rs), not a crate-wide
-# commitment.
+# anyhow is error glue for examples/spike.rs alone, which `exclude`
+# keeps out of the published package — so this is a dependency of the
+# repository, never of the crate a consumer builds.
 [dev-dependencies]
 anyhow = "1"
 
