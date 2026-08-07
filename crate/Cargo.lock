@@ -743,7 +743,7 @@ dependencies = [
 
 [[package]]
 name = "scrape-le"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "headless_chrome",

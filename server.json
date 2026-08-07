@@ -3,7 +3,7 @@
 	"name": "io.github.nolindnaidoo/scrape-le",
 	"title": "Scrape-LE",
 	"description": "Analyse robots.txt content and report whether a path may be crawled.",
-	"websiteUrl": "https://letools.dev",
+	"websiteUrl": "https://letools.dev/tools/scrape-le",
 	"icons": [
 		{
 			"src": "https://raw.githubusercontent.com/nolindnaidoo/scrape-le/main/src/assets/images/icon.png",
@@ -17,13 +17,13 @@
 		"url": "https://github.com/nolindnaidoo/scrape-le",
 		"source": "github"
 	},
-	"version": "2.2.3",
+	"version": "2.2.4",
 	"packages": [
 		{
 			"registryType": "npm",
 			"registryBaseUrl": "https://registry.npmjs.org",
 			"identifier": "scrape-le-mcp",
-			"version": "2.2.3",
+			"version": "2.2.4",
 			"runtimeHint": "npx",
 			"transport": {
 				"type": "stdio"

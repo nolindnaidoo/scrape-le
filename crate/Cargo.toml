@@ -1,13 +1,13 @@
 [package]
 name = "scrape-le"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 readme = "README.md"
 description = "Check whether a page is scrapeable before the scraper is written"
 authors = ["Nolin D Naidoo"]
-homepage = "https://letools.dev"
+homepage = "https://letools.dev/tools/scrape-le"
 repository = "https://github.com/nolindnaidoo/scrape-le"
 keywords = ["scraping", "robots-txt", "anti-bot", "headless", "cli"]
 categories = ["command-line-utilities", "web-programming", "development-tools"]
