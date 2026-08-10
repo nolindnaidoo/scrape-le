@@ -77,7 +77,7 @@ All settings live under "scrape-le." in VS Code settings:
 
 Enjoying it? A rating helps more than you'd think:
 - Rate on VS Code Marketplace: https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le&ssr=false#review-details
-- Rate on Open VSX: https://open-vsx.org/extension/nolindnaidoo/scrape-le/reviews
+- Rate on Open VSX: https://open-vsx.org/extension/OffensiveEdge/scrape-le/reviews
 
 Built by nolindnaidoo (https://github.com/nolindnaidoo) — MIT licensed.
 		`.trim();
