@@ -201,6 +201,8 @@ All ten LE tools are on **[letools.dev](https://letools.dev)**.
   [crates.io](https://crates.io/crates/numbers-le)
 - **[envsync-le](https://github.com/nolindnaidoo/envsync-le/tree/main/crate)** — Compare the dotenv files in a tree and say which keys are missing from which
   [crates.io](https://crates.io/crates/envsync-le)
+- **[colors-le](https://github.com/nolindnaidoo/colors-le/tree/main/crate)** — Find every colour in a codebase, and say which are not in your palette
+  [crates.io](https://crates.io/crates/colors-le)
 
 **Contact Developer** — [nolindnaidoo.com](https://nolindnaidoo.com) · [GitHub](https://github.com/nolindnaidoo) · [LinkedIn](https://www.linkedin.com/in/nolindnaidoo/)
 
