@@ -228,7 +228,7 @@ run. Reproduce with `bun run test:coverage`.
 
 Every tool in the family, one page: **[letools.dev](https://letools.dev)**
 
-All ten also ship as MCP servers — `npx <name>-mcp` gives any agent the same engine. Nine go further and ship a Rust CLI: **Paths-LE**, **Secrets-LE**, **URLs-LE**, **Regex-LE**, **String-LE**, **Numbers-LE**, **EnvSync-LE**, **Colors-LE** and **Scrape-LE**, each installed with `cargo install <that-name>`.
+All ten also ship as MCP servers — `npx <name>-mcp` gives any agent the same engine. All ten now go further and ship a Rust CLI too, each installed with `cargo install <that-name>`.
 
 - **[Paths-LE](https://letools.dev/tools/paths-le)** - Extract file paths from JS/TS imports, JSON, HTML, CSS, TOML, CSV, and .env
 - **[String-LE](https://letools.dev/tools/string-le)** - Extract string values for i18n from JSON, YAML, CSV, TOML, INI, and .env
