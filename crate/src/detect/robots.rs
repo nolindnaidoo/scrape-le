@@ -25,6 +25,24 @@ pub(crate) struct RobotsTxtInfo {
 struct RobotsRule {
     allow: bool,
     pattern: String,
+    /// Compiled once, when the group is parsed.
+    ///
+    /// Every pattern becomes a regex, and building one is orders of
+    /// magnitude dearer than running it: a robots.txt with ten thousand
+    /// `Disallow` lines compiled ten thousand regexes **per path
+    /// checked**, and a batch is many paths against one host's rules.
+    /// `None` is a pattern the engine refused, which matches nothing —
+    /// the same answer the per-call version gave.
+    matcher: Option<Regex>,
+    /// The pattern's length **in UTF-16 code units**, which is what the
+    /// extension's `pattern.length` counts.
+    ///
+    /// Longest-match-wins compares these, so the unit is part of the
+    /// answer rather than an implementation detail: `/café` is six bytes
+    /// and five units, so a rule beside it could win the tie here and
+    /// lose it there — one server saying a path is disallowed and the
+    /// other saying it is fine, for the same file.
+    length: i64,
 }
 
 struct Group {
@@ -55,7 +73,12 @@ pub(crate) fn parse_robots_txt(
     };
 
     let rules: Vec<&RobotsRule> = selected.iter().flat_map(|g| g.rules.iter()).collect();
-    let crawl_delay = selected.iter().find_map(|g| g.crawl_delay);
+    // **The last one wins**, across groups as well as within one. The
+    // extension keeps assigning to a single `crawlDelay` as it walks the
+    // file, so a document with two applicable groups reports the second;
+    // taking the first here had the two servers answer the same file
+    // differently.
+    let crawl_delay = selected.iter().rev().find_map(|group| group.crawl_delay);
     let decision = decide_path(pathname, &rules);
 
     RobotsTxtInfo {
@@ -149,6 +172,8 @@ fn parse_groups(content: &str) -> (Vec<Group>, Vec<String>) {
         if (directive == "disallow" || directive == "allow") && !value.is_empty() {
             group.rules.push(RobotsRule {
                 allow: directive == "allow",
+                matcher: compile_robots_pattern(value),
+                length: i64::try_from(value.encode_utf16().count()).unwrap_or(i64::MAX),
                 pattern: value.to_string(),
             });
             continue;
@@ -180,10 +205,14 @@ fn decide_path(pathname: &str, rules: &[&RobotsRule]) -> Decision {
     let mut best_pattern: Option<String> = None;
 
     for rule in rules {
-        if !matches_robots_pattern(&rule.pattern, pathname) {
+        if !rule
+            .matcher
+            .as_ref()
+            .is_some_and(|re| re.is_match(pathname))
+        {
             continue;
         }
-        let length = rule.pattern.len() as i64;
+        let length = rule.length;
         let wins_tie = length == best_length && rule.allow && !best_allow;
         if length > best_length || wins_tie {
             best_length = length;
@@ -198,11 +227,14 @@ fn decide_path(pathname: &str, rules: &[&RobotsRule]) -> Decision {
     }
 }
 
-/// Matches a robots.txt pattern against a path: anchored at the start,
+/// Builds the matcher for one robots.txt pattern: anchored at the start,
 /// `*` matches any character sequence, a trailing `$` anchors the end.
 /// Built the same way the extension builds it, so the two cannot
 /// disagree about an edge.
-pub(crate) fn matches_robots_pattern(pattern: &str, pathname: &str) -> bool {
+///
+/// A pattern the engine refuses — one past its size limit, say —
+/// becomes `None` and matches nothing.
+fn compile_robots_pattern(pattern: &str) -> Option<Regex> {
     let anchored = pattern.ends_with('$');
     let body = if anchored {
         &pattern[..pattern.len() - 1]
@@ -217,14 +249,18 @@ pub(crate) fn matches_robots_pattern(pattern: &str, pathname: &str) -> bool {
         .join("[\\s\\S]*");
 
     let end = if anchored { "$" } else { "" };
-    let Ok(re) = Regex::new(&format!("^{escaped}{end}")) else {
-        return false;
-    };
-    re.is_match(pathname)
+    Regex::new(&format!("^{escaped}{end}")).ok()
 }
 
 /// JS `Number.parseFloat` semantics: the longest numeric prefix parses,
 /// so `10` and `10s` are both 10 and `not-a-number` is `None`.
+///
+/// Rust's float parser is the more generous of the two, and the
+/// difference is a real answer: it reads `inf`, `infinity` and `nan` in
+/// any casing, while `Number.parseFloat` accepts only `Infinity` spelled
+/// exactly that way and never a NaN literal. `Crawl-delay: infinity` had
+/// this server reporting a delay and the npm server reporting none — the
+/// same tool, the same file, two answers.
 fn js_parse_float(value: &str) -> Option<f64> {
     for end in (1..=value.len()).rev() {
         let Some(prefix) = value.get(..end) else {
@@ -235,6 +271,10 @@ fn js_parse_float(value: &str) -> Option<f64> {
         };
         if parsed.is_nan() {
             return None;
+        }
+        if !parsed.is_finite() && prefix.strip_prefix(['+', '-']).unwrap_or(prefix) != "Infinity" {
+            // A shorter prefix may still be a number JavaScript reads.
+            continue;
         }
         return Some(parsed);
     }
@@ -362,6 +402,59 @@ mod tests {
         let info = parse_robots_txt(body, "/about", None);
         assert!(info.allows_crawling);
         assert_eq!(info.matched_rule, None);
+    }
+
+    /// The pattern matcher, reached the way `decide_path` reaches it.
+    fn matches_robots_pattern(pattern: &str, pathname: &str) -> bool {
+        compile_robots_pattern(pattern).is_some_and(|re| re.is_match(pathname))
+    }
+
+    /// **Regression.** Longest-match-wins compares pattern lengths, and
+    /// the extension counts UTF-16 code units while `str::len` counts
+    /// bytes. `/café` is five units and six, so the rule beside it won
+    /// the tie on one server and lost it on the other — one saying the
+    /// path is disallowed and the other saying it is fine.
+    #[test]
+    fn a_pattern_is_measured_in_the_units_the_extension_measures() {
+        let body = "User-agent: *\nDisallow: /caf\u{e9}\nAllow: /ca*e\n";
+        let info = parse_robots_txt(body, "/caf\u{e9}/page", None);
+        assert!(
+            info.allows_crawling,
+            "the two patterns are the same length in UTF-16, and Allow wins a tie"
+        );
+    }
+
+    /// **Regression.** The extension assigns to one `crawlDelay` as it
+    /// walks the file, so the last applicable group wins. Keeping the
+    /// first had the two servers report different delays for the same
+    /// document.
+    #[test]
+    fn the_last_crawl_delay_wins_across_groups() {
+        let body = "User-agent: *\nCrawl-delay: 5\nUser-agent: *\nCrawl-delay: 10\n";
+        assert_eq!(parse_robots_txt(body, "/", None).crawl_delay, Some(10.0));
+    }
+
+    /// **Regression.** Rust's float parser reads `inf`, `infinity` and
+    /// `nan` in any casing; `Number.parseFloat` reads only `Infinity`,
+    /// spelled exactly that way.
+    #[test]
+    fn a_crawl_delay_parses_the_way_javascript_parses_it() {
+        let delay = |value: &str| {
+            parse_robots_txt(&format!("User-agent: *\nCrawl-delay: {value}\n"), "/", None)
+                .crawl_delay
+        };
+        assert_eq!(delay("10"), Some(10.0));
+        assert_eq!(delay("10s"), Some(10.0));
+        assert_eq!(delay("1e3"), Some(1000.0));
+        assert_eq!(delay("0x10"), Some(0.0));
+        assert_eq!(delay("+5"), Some(5.0));
+        assert_eq!(delay(".5"), Some(0.5));
+        assert_eq!(delay("infinity"), None, "JavaScript reads no such number");
+        assert_eq!(delay("inf"), None);
+        assert_eq!(delay("nan"), None);
+        assert_eq!(delay("abc"), None);
+        assert_eq!(delay("-1"), None, "a negative delay is not a delay");
+        assert!(delay("Infinity").is_some_and(f64::is_infinite));
     }
 
     #[test]

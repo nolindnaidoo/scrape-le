@@ -66,6 +66,18 @@ fn built_in() -> Vec<VendorSignature> {
 ///
 /// The file is either one signature table or `[[signature]]` entries.
 pub(crate) fn load_extra(path: &std::path::Path) -> Result<usize, String> {
+    // A named pipe is not a signature file, and `read_to_string` on one
+    // with no writer never returns. The same guard sits in `cli.rs`'s
+    // `read_input`, which reads the other file this tool is handed by
+    // name.
+    let metadata =
+        std::fs::metadata(path).map_err(|e| format!("could not read {}: {e}", path.display()))?;
+    if !metadata.is_file() {
+        return Err(format!(
+            "could not read {}: not a regular file",
+            path.display()
+        ));
+    }
     let raw = std::fs::read_to_string(path)
         .map_err(|e| format!("could not read {}: {e}", path.display()))?;
     let extra = parse_extra(&raw).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -209,6 +221,27 @@ globals = ["KPSDK"]
         assert_eq!(cloudflare.label, "Cloudflare (patched)");
         assert_eq!(cloudflare.script_substrings, ["challenges.example.com"]);
         assert!(merged.iter().any(|s| s.key == "kasada"));
+    }
+
+    /// **Regression.** `--signatures` naming a named pipe blocked
+    /// forever: `read_to_string` on a pipe with no writer never returns,
+    /// and a tool that hangs is indistinguishable from a slow one.
+    #[cfg(unix)]
+    #[test]
+    fn a_named_pipe_is_refused_rather_than_read() {
+        let fifo = std::env::temp_dir().join(format!("scrape-le-sig-fifo-{}", std::process::id()));
+        let _ = std::fs::remove_file(&fifo);
+        let made = std::process::Command::new("mkfifo")
+            .arg(&fifo)
+            .status()
+            .is_ok_and(|status| status.success());
+        if !made {
+            eprintln!("SKIPPED a_named_pipe_is_refused_rather_than_read: no mkfifo here");
+            return;
+        }
+        let error = load_extra(&fifo).expect_err("a refusal");
+        let _ = std::fs::remove_file(&fifo);
+        assert!(error.contains("not a regular file"), "{error}");
     }
 
     #[test]

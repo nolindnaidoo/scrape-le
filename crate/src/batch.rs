@@ -38,6 +38,12 @@ pub(crate) struct Target {
 /// strings, a JSON array of objects carrying a `url` key, a CSV with a
 /// `url` column, or a bare newline-separated list.
 pub(crate) fn parse_input(raw: &str) -> Result<Vec<String>, String> {
+    // A leading byte-order mark is three invisible bytes that Notepad,
+    // Excel and a PowerShell redirect all add, and `str::trim_start`
+    // does not remove it. Left in, a JSON array stops starting with `[`
+    // and the whole file is read as a single line — one malformed entry
+    // where there were fifty URLs, and nothing on screen to explain it.
+    let raw = raw.strip_prefix('\u{feff}').unwrap_or(raw);
     let trimmed = raw.trim_start();
     if trimmed.starts_with('[') {
         return parse_json_array(trimmed);
@@ -301,6 +307,22 @@ mod tests {
     fn json_array_of_strings_parses() {
         let urls = parse_input(r#"["https://a.com", "https://b.com"]"#).expect("parses");
         assert_eq!(urls, ["https://a.com", "https://b.com"]);
+    }
+
+    /// **Regression.** `str::trim_start` does not remove a byte-order
+    /// mark, so a JSON batch saved by Notepad stopped starting with `[`
+    /// and the whole array was read as one line — fifty URLs collapsing
+    /// into one malformed entry, with nothing on screen to say why.
+    #[test]
+    fn a_byte_order_mark_does_not_hide_a_json_array() {
+        let urls = parse_input("\u{feff}[\"https://a.com\", \"https://b.com\"]").expect("parses");
+        assert_eq!(urls, ["https://a.com", "https://b.com"]);
+    }
+
+    #[test]
+    fn a_byte_order_mark_does_not_hide_a_csv_header() {
+        let urls = parse_input("\u{feff}url,note\nhttps://a.com,first").expect("parses");
+        assert_eq!(urls, ["https://a.com"]);
     }
 
     #[test]

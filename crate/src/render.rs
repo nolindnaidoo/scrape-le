@@ -210,22 +210,34 @@ fn settle(tab: &headless_chrome::Tab) {
 }
 
 /// One evaluate round-trip for all vendors, exactly the extension's
+/// What the page is asked about, built from the shared corpus rather
+/// than restated here — so a vendor added to `signatures/` is a vendor
+/// the page is actually probed for.
+///
+/// Split out from the probe so the coverage matrix can assert every
+/// declared signal reaches the page without launching a browser. A
+/// signature in the corpus that the probe never carries is a vendor the
+/// crate claims to detect and never looks for.
+fn probe_payload() -> Vec<serde_json::Value> {
+    signatures()
+        .iter()
+        .map(|signature| {
+            serde_json::json!({
+                "key": signature.key,
+                "scriptSubstrings": signature.script_substrings,
+                "selectors": signature.selectors,
+                "globals": signature.globals,
+            })
+        })
+        .collect()
+}
+
 /// `pageProbeScan`: script src substrings, DOM selectors, window
 /// globals, per signature.
 fn run_page_probe(
     tab: &headless_chrome::Tab,
 ) -> Result<std::collections::HashMap<String, ProbeResult>, String> {
-    let probes: Vec<serde_json::Value> = signatures()
-        .iter()
-        .map(|s| {
-            serde_json::json!({
-                "key": s.key,
-                "scriptSubstrings": s.script_substrings,
-                "selectors": s.selectors,
-                "globals": s.globals,
-            })
-        })
-        .collect();
+    let probes = probe_payload();
     let script = format!(
         r"(() => {{
   const probes = {};
@@ -321,9 +333,7 @@ fn evaluate_string(tab: &headless_chrome::Tab, script: &str) -> Result<String, S
 /// calling the CDP method directly — would mean decoding base64 here
 /// and carrying a dependency for one image.
 fn capture_screenshot(tab: &headless_chrome::Tab, url: &str) -> Option<String> {
-    let hostname = url::Url::parse(url).ok()?.host_str()?.replace('.', "-");
-    let (year, month, day) = civil_date_today();
-    let filename = format!("scrape-le-{hostname}-{year:04}-{month:02}-{day:02}.png");
+    let filename = screenshot_name(url, civil_date_today())?;
 
     let resized = resize_to_document(tab);
     let png = tab
@@ -335,6 +345,22 @@ fn capture_screenshot(tab: &headless_chrome::Tab, url: &str) -> Option<String> {
 
     std::fs::write(&filename, png?).ok()?;
     Some(format!("./{filename}"))
+}
+
+/// The only path the report ever carries, built without `PathBuf` and
+/// with a literal `/` — so it reads the same on Windows as everywhere
+/// else. A sibling crate shipped a release whose report used the
+/// platform separator, and the same repository then described itself two
+/// ways depending on the machine that ran the check.
+///
+/// Split out from the capture so the shape can be asserted without a
+/// browser; the capture itself belongs to `scenarios`.
+fn screenshot_name(url: &str, date: (i64, u8, u8)) -> Option<String> {
+    let hostname = url::Url::parse(url).ok()?.host_str()?.replace('.', "-");
+    let (year, month, day) = date;
+    Some(format!(
+        "scrape-le-{hostname}-{year:04}-{month:02}-{day:02}.png"
+    ))
 }
 
 /// Emulates a viewport as tall as the document, so the capture covers
@@ -421,5 +447,78 @@ mod tests {
         assert_eq!(civil_from_days(0), (1970, 1, 1));
         assert_eq!(civil_from_days(19_723), (2024, 1, 1));
         assert_eq!(civil_from_days(20_671), (2026, 8, 6));
+    }
+
+    /// The one path the report carries, on every platform. envsync-le
+    /// shipped a release whose report used `\` on Windows; this is built
+    /// from a format string rather than a `PathBuf` so it cannot.
+    #[test]
+    fn the_screenshot_name_is_the_same_on_every_platform() {
+        let name = screenshot_name("https://sub.example.com/a/b?c=1", (2026, 8, 6))
+            .expect("a name for a URL with a host");
+        assert_eq!(name, "scrape-le-sub-example-com-2026-08-06.png");
+        assert!(!name.contains('\\'), "{name}");
+        assert!(!name.contains(std::path::MAIN_SEPARATOR), "{name}");
+    }
+
+    #[test]
+    fn a_url_without_a_host_gets_no_screenshot_name() {
+        assert_eq!(screenshot_name("not a url", (2026, 8, 6)), None);
+    }
+
+    /// **Coverage matrix, the browser half.** Every signal the corpus
+    /// declares must reach the page. A vendor whose selectors never
+    /// leave the crate is a vendor it claims to detect and never looks
+    /// for — the "opens 21 of 88" failure, in a place nothing else
+    /// would notice.
+    #[test]
+    fn coverage_matrix_every_declared_signal_reaches_the_page() {
+        let payload = probe_payload();
+        assert_eq!(
+            payload.len(),
+            signatures().len(),
+            "a vendor is missing from the probe"
+        );
+        let rendered = serde_json::to_string(&payload).expect("the payload serializes");
+
+        let mut signals = 0;
+        for signature in signatures() {
+            let probe = payload
+                .iter()
+                .find(|probe| probe["key"] == signature.key.as_str())
+                .unwrap_or_else(|| panic!("{} is not probed for", signature.key));
+            for (field, declared) in [
+                ("scriptSubstrings", &signature.script_substrings),
+                ("selectors", &signature.selectors),
+                ("globals", &signature.globals),
+            ] {
+                for signal in declared {
+                    assert!(
+                        probe[field]
+                            .as_array()
+                            .expect("a list")
+                            .iter()
+                            .any(|carried| carried == signal),
+                        "{}: {signal} is declared and never probed for",
+                        signature.key
+                    );
+                    assert!(
+                        rendered.contains(signal.as_str()),
+                        "{}: {signal} never reaches the page",
+                        signature.key
+                    );
+                    signals += 1;
+                }
+            }
+        }
+        // Not vacuous: an empty corpus would satisfy every loop above.
+        assert!(
+            signals >= 5,
+            "the corpus declares {signals} page signals, which is too few to be a matrix"
+        );
+        eprintln!(
+            "coverage-matrix: {signals} page signals across {} vendors",
+            payload.len()
+        );
     }
 }

@@ -187,6 +187,34 @@ The bar, enforced by review:
   fix.
 - Tests are deterministic: no clocks, no randomness, and **no network
   in unit tests** — robots.txt and header logic run from fixtures.
+- **Six more layers, one per class of bug that reached a release**, and
+  **none of them touches the network**. Each has its own CI job:
+  - `tests/hazards.rs` — inputs a real machine holds and a fixture
+    directory cannot: a byte-order mark, an undecodable file, a FIFO, a
+    symlink loop, a 260-character path, aimed at `--signatures` and at a
+    batch whose every entry is malformed. Built at runtime, because
+    Windows cannot check half of it into git, and every case the
+    platform cannot express is skipped **by name**.
+  - `tests/platform.rs` — the paths the tool prints, `TZ` independence,
+    a case-folding filesystem, reserved Windows names, stdin closed
+    early. The one path the *report* carries is the screenshot name,
+    whose shape is pinned by a unit test on the pure builder because
+    producing one needs a browser.
+  - `../scripts/check-differential.ts` — generated robots.txt documents
+    through **both** MCP servers. Scoped to the shared tool; see
+    SPEC.md, "Deliberate divergences". `matchHeaders` is not reachable
+    there and the script says so rather than skipping it silently.
+  - `tests/fuzz.rs` — time-boxed against the robots parser and the URL
+    validator through `analyze_robots_txt`, with a deadline per case:
+    every pattern becomes a regex, so a hang is a real failure mode.
+  - `tests/budget.rs` — a wall-clock ceiling, and linearity in **both**
+    directions: four times the documents, and four times the rules in
+    one document.
+  - `coverage_matrix` (in `detect/check.rs` and `render.rs`) — every
+    vendor reachable through every signal it declares, every declared
+    signal reaching the page probe, every check and verdict reachable.
+    A vendor in the corpus that nothing can surface inflates what the
+    tool says it covers.
 
 ## Verification — the definition of done
 

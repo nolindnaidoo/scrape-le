@@ -7,6 +7,40 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A robots.txt with a non-ASCII rule could be read two ways.**
+  Longest-match-wins compares how long each rule is, and this counted
+  bytes while the VS Code extension counts characters the way JavaScript
+  does — so a rule beside `/café` won the tie in one and lost it in the
+  other, and the same file said a path was disallowed here and allowed
+  there. It now counts the way the extension counts.
+- **A second `Crawl-delay` is honoured.** A file that declares one for
+  `User-agent: *` twice reported the first; the extension reports the
+  last, and now so does this.
+- **`Crawl-delay: infinity` is not a number.** Rust reads `inf`,
+  `infinity` and `nan` where JavaScript reads none of them, so a file
+  with one had the two servers report different delays.
+- **A batch file saved with a byte-order mark is read as JSON again.**
+  Those three invisible bytes — what Notepad, Excel and a PowerShell
+  redirect all add — stopped the file starting with `[`, and a
+  fifty-URL array was read as one malformed line with nothing on screen
+  to explain it.
+- **A named pipe is refused instead of hanging.** `--signatures` and
+  `--input` read the file they are given, and reading a pipe with no
+  writer never returns.
+- **A page title survives a character that changes length when
+  lowercased.** The `--no-render` path found the `<title>` tag in a
+  lowered copy and sliced the original, and `İ` and `K` are not the same
+  length in both — the title came back wrong or not at all.
+
+### Changed
+
+- Each robots.txt rule is compiled once when the file is parsed rather
+  than once per path checked. No change to any answer.
+
 ## [0.1.1] - 2026-08-07
 
 ### Changed

@@ -20,15 +20,19 @@ on:
     paths:
       - 'crate/**'
       - 'src/detectors/**'
+      - 'src/mcp/**'
       - 'src/utils/url.ts'
       - 'scripts/check-signature-parity.ts'
+      - 'scripts/check-differential.ts'
       - '.github/workflows/ci-crate.yml'
   pull_request:
     paths:
       - 'crate/**'
       - 'src/detectors/**'
+      - 'src/mcp/**'
       - 'src/utils/url.ts'
       - 'scripts/check-signature-parity.ts'
+      - 'scripts/check-differential.ts'
       - '.github/workflows/ci-crate.yml'
 
 permissions:
@@ -180,3 +184,190 @@ jobs:
       - name: Signature and fixture parity
         working-directory: .
         run: bun scripts/check-signature-parity.ts
+
+  # ---------------------------------------------------------------------
+  # The six below exist because something real got through a green suite.
+  # Each one names the bug it would have caught.
+  #
+  # **None of them touches the network.** This crate's product is a page
+  # fetch, so every job here is aimed at what it can answer without
+  # leaving the machine: the five vendor signature files, the robots.txt
+  # corpus, the URL validator, and the two files it is handed by name.
+  # Where a job would need a request to mean anything, it says so instead
+  # of pretending.
+  # ---------------------------------------------------------------------
+
+  # Inputs a real machine holds and a fixture directory cannot: a
+  # byte-order mark, a file that is not UTF-8, a FIFO, a path over 260
+  # characters. Aimed at `--signatures` and at a `--input` batch whose
+  # every entry is malformed, which is refused before a socket opens. The
+  # tree is built at runtime because Windows cannot check half of it into
+  # git, and every case the platform cannot express is skipped by name.
+  #
+  # Found in this release: a byte-order mark hid a JSON batch, and
+  # `--signatures` naming a named pipe blocked forever.
+  hazards:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+      - name: Hazardous inputs against the built binary
+        run: cargo test --test hazards
+
+  # Behaviour that differs by operating system. envsync-le shipped a
+  # release whose report used `\` on Windows and `/` everywhere else, so
+  # the whole family now asserts it.
+  #
+  # **This crate's report carries one path** — `screenshot` — and
+  # producing one needs a browser, which belongs to `scenarios`. Its shape
+  # is pinned instead by a unit test on the pure name builder, which uses
+  # a literal `/` rather than a `PathBuf`. The paths this job can reach
+  # without a browser are the ones the tool *prints*, and those are echoes
+  # of what the caller typed: they are asserted to come back unchanged,
+  # because a message that rewrites the path it was given cannot be
+  # grepped for.
+  platform:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-2025, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+      - name: Paths, case folding, reserved names and early stdin
+        run: cargo test --test platform
+      # Windows ignores TZ entirely, so a suite that quietly depended on
+      # it would be red there and nowhere else. Both runs are compared
+      # line for line rather than merely required to pass.
+      - name: The suite answers the same with TZ set and unset
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Names and outcomes, not the summary lines: those carry a
+          # duration, and two runs of the same suite never agree on one.
+          names() { grep -E '^test ' | grep -v '^test result:' | sort; }
+          TZ=UTC cargo test --locked -- --test-threads=1 2>&1 \
+            | names > "$RUNNER_TEMP/tz-utc.txt"
+          unset TZ
+          cargo test --locked -- --test-threads=1 2>&1 \
+            | names > "$RUNNER_TEMP/tz-unset.txt"
+          test -s "$RUNNER_TEMP/tz-utc.txt"
+          diff -u "$RUNNER_TEMP/tz-utc.txt" "$RUNNER_TEMP/tz-unset.txt"
+
+  # The corpus pins cases somebody thought of; this generates the ones
+  # nobody did and feeds them to BOTH servers.
+  #
+  # Scope is the shared tool — `analyze_robots_txt`, one schema, two
+  # implementations — and not the two surfaces around it. The extension is
+  # IDE-first and the CLI terminal-first, so batching, `--agent`,
+  # `--no-render` and the exit codes exist on one side only; that is
+  # design, not drift, and crate/SPEC.md lists it under "Deliberate
+  # divergences". What may never differ is the answer to the same call.
+  #
+  # `matchHeaders` is **not** covered here, and that is stated rather than
+  # skipped: no shared MCP tool carries it, and the only other way to
+  # reach it is a page fetch these jobs must never make. Its
+  # cross-frontend contract is fixtures/antibot-headers.json, run against
+  # both implementations by `parity` above.
+  #
+  # Found in this release: three answers that differed between the two
+  # servers — a lower-case `infinity` crawl-delay, a second crawl-delay in
+  # a second group, and a non-ASCII pattern measured in bytes on one side
+  # and UTF-16 code units on the other.
+  differential:
+    runs-on: ubuntu-24.04
+    env:
+      # Fixed so a failure reproduces; printed on every run either way.
+      DIFFERENTIAL_SEED: '20260812'
+      DIFFERENTIAL_CASES: '600'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.13
+      - run: cargo build --locked
+      - name: Generated cases through both MCP servers
+        working-directory: .
+        run: bun scripts/check-differential.ts
+
+  # A standing net over the robots.txt parser and the URL validator,
+  # time-boxed rather than run to convergence. It drives
+  # `analyze_robots_txt`, which takes a body the caller already has, so
+  # the target is the pure layer and nothing reaches the network.
+  #
+  # Matching is RFC 9309 — longest match wins, `*` is any run of
+  # characters, `$` anchors the end — and every one of those becomes a
+  # regex built from text somebody else wrote. Pathological input is a
+  # real risk there and a hang is a real bug, so the generator writes
+  # patterns nobody would write by hand and every case has a deadline.
+  fuzz:
+    runs-on: ubuntu-24.04
+    env:
+      SCRAPE_LE_FUZZ_SECONDS: '60'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+      - name: Sixty seconds against the robots parser
+        run: cargo test --test fuzz -- --test-threads=1 --nocapture
+
+  # A wall-clock ceiling on a corpus generated from a fixed seed, plus two
+  # linearity checks: four times the documents, and four times the rules
+  # in one document. The second is the one a sibling missed — every rule
+  # becomes a regex and longest-match-wins reads all of them, so anything
+  # that re-reads per rule shows up there and nowhere else.
+  budget:
+    runs-on: ubuntu-24.04
+    env:
+      SCRAPE_LE_BUDGET: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+      - name: 500 documents inside the budget, and linear in both directions
+        run: cargo test --test budget -- --test-threads=1 --nocapture
+
+  # Does the crate open what it claims?
+  #
+  # The extractor crates in this family answer that with one file per
+  # extension in their alias table. **This crate has no format table**, so
+  # the job is adapted rather than dropped: what it claims is five
+  # anti-bot vendors, four checks and four verdicts. Every vendor must be
+  # reachable through every kind of signal it declares, every declared
+  # signal must reach the page probe, and every check and verdict must be
+  # reachable from evidence. A vendor in the corpus that nothing can
+  # surface inflates what the tool says it covers.
+  #
+  # The marker check is not decoration: `cargo test <filter>` exits 0 when
+  # the filter matches nothing, so a renamed test would pass this job
+  # silently.
+  coverage-matrix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: stable
+      - name: Every vendor, signal, check and verdict
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --bins coverage_matrix -- --nocapture 2>&1 \
+            | tee "$RUNNER_TEMP/coverage-matrix.txt"
+          grep -q 'coverage-matrix: .* page signals' "$RUNNER_TEMP/coverage-matrix.txt"
+          grep -q 'coverage-matrix: .* vendor signals' "$RUNNER_TEMP/coverage-matrix.txt"
+          grep -q 'coverage-matrix: 4 checks and 4 verdicts' "$RUNNER_TEMP/coverage-matrix.txt"

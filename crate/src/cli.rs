@@ -297,6 +297,16 @@ fn read_input(source: &str) -> Result<String, String> {
             .map(|_| raw)
             .map_err(|e| format!("could not read stdin: {e}"));
     }
+    // A named pipe is not a batch file, and `read_to_string` on one with
+    // no writer never returns — a run that hangs is worse than one that
+    // refuses, because nobody can tell it from a slow batch. The same
+    // guard sits in `detect::signatures::load_extra`, which reads the
+    // other file this tool is handed by name.
+    let metadata =
+        std::fs::metadata(source).map_err(|e| format!("could not read {source}: {e}"))?;
+    if !metadata.is_file() {
+        return Err(format!("could not read {source}: not a regular file"));
+    }
     std::fs::read_to_string(source).map_err(|e| format!("could not read {source}: {e}"))
 }
 

@@ -351,6 +351,52 @@ whose value is an honest answer must not default to the mode that
 produces the least honest one. `--no-render` stays first-class for CI,
 and stays honest because of the completeness rule.
 
+## Deliberate divergences
+
+The extension is **IDE-first**: one page, a person reading results in an
+editor. The CLI is **terminal-first**: batches, exit codes, piping,
+automation. Each works the way its own use case expects, so the list
+below is design rather than drift.
+
+- **Batching** — `--input`, host grouping, bounded concurrency,
+  streaming and the crawl-delay wait are terminal-side only.
+- **`--agent`** opts into RFC 9309 per-agent group selection. Flagless
+  runs stay byte-identical to the extension, which evaluates only the
+  generic `User-agent: *` group; the answering group is named in the
+  report, and the fixture cases that diverge carry a `divergence`
+  annotation a test asserts.
+- **`--no-render`, `--signatures`, `doctor`** and the exit codes have no
+  editor equivalent.
+- **Raw-HTML `<title>` extraction** exists here and not there: the
+  extension always renders and reads `document.title`.
+
+What may **never** differ:
+
+- **`analyze_robots_txt` is one tool, not two similar ones.** Same
+  schema, same envelope, same answer, whichever server an agent reaches.
+  `fixtures/mcp-analyze-robots.json` pins hand-written cases and
+  `scripts/check-differential.ts` generates the rest.
+- **The detection results themselves** — `src/detectors/` and
+  `src/utils/url.ts` are the reference implementation, and
+  `signatures/` + `fixtures/` are the contract.
+
+### Numbers and lengths are JavaScript's
+
+Two units are part of the answer rather than implementation details, and
+both were found by the two servers disagreeing about a real file:
+
+- **A pattern's length is counted in UTF-16 code units**, because
+  longest-match-wins compares lengths and the extension compares
+  `pattern.length`. `/café` is five units and six bytes, so counting
+  bytes let a neighbouring rule win a tie here and lose it there.
+- **`Crawl-delay` parses the way `Number.parseFloat` parses**, which
+  reads only `Infinity` spelled exactly that way and never a NaN
+  literal; Rust's own parser reads `inf`, `infinity` and `nan` in any
+  casing.
+- **The last applicable `Crawl-delay` wins**, across groups as well as
+  within one, because the extension keeps assigning to a single value as
+  it walks the file.
+
 ## Non-goals
 
 - **Not a scraper.** No selectors, no extraction, no pagination, no

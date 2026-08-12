@@ -321,8 +321,15 @@ fn skipped_names(checks: &Checks) -> Vec<String> {
 }
 
 /// Raw-HTML `<title>` extraction — the fallback when no render ran.
+///
+/// **`to_ascii_lowercase`, not `to_lowercase`.** The offsets below are
+/// found in the lowered copy and used to slice the original, and
+/// `to_lowercase` is not length-preserving: `\u{130}` grows a byte and
+/// `\u{212a}` shrinks one, so a page carrying either before its title
+/// slid every offset and the slice landed inside a character. Tag names
+/// are ASCII, so the ASCII fold is both correct and the same length.
 fn extract_title(html: &str) -> Option<String> {
-    let lower = html.to_lowercase();
+    let lower = html.to_ascii_lowercase();
     let open = lower.find("<title")?;
     let after_open = open + lower[open..].find('>')? + 1;
     let close = after_open + lower[after_open..].find("</title>")?;
@@ -507,6 +514,35 @@ mod tests {
         assert_eq!(report.title.as_deref(), Some("Search — Example"));
     }
 
+    /// **Regression.** The offsets are found in a lowered copy and used
+    /// against the original, so the fold has to preserve length.
+    /// `to_lowercase` does not: U+0130 grows a byte and U+212A shrinks
+    /// one, and a page carrying either before its title slid every
+    /// offset until the slice landed inside a character.
+    #[test]
+    fn a_title_survives_characters_that_change_length_when_lowered() {
+        for marker in ['\u{130}', '\u{212a}', '\u{1e9e}'] {
+            let mut e = evidence(200, &[], None);
+            e.body_html =
+                format!("<html><body>{marker}</body><title>Search — Example</title></html>");
+            let report = check(&e, &CheckOptions::default());
+            assert_eq!(
+                report.title.as_deref(),
+                Some("Search — Example"),
+                "a {marker:?} before the title moved the slice"
+            );
+        }
+    }
+
+    /// Tag names are ASCII, so the fold only has to reach them.
+    #[test]
+    fn an_upper_case_title_tag_is_still_found() {
+        let mut e = evidence(200, &[], None);
+        e.body_html = "<HTML><TITLE>Search — Example</TITLE></HTML>".to_string();
+        let report = check(&e, &CheckOptions::default());
+        assert_eq!(report.title.as_deref(), Some("Search — Example"));
+    }
+
     /// The verdict rules, held over every combination rather than the
     /// cases someone thought of:
     ///
@@ -564,6 +600,143 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// **The coverage matrix.** The extractor crates in this family
+    /// answer "does it open what it claims?" with one file per extension
+    /// in their alias table. This crate has no format table; what it
+    /// claims is **five anti-bot vendors, four checks and four
+    /// verdicts**, so that is the table.
+    ///
+    /// Every vendor must be reachable through every kind of signal it
+    /// declares. A vendor listed in the corpus that no evidence can
+    /// surface is the same failure as a format in the table with no
+    /// corpus document: it inflates what the tool says it covers.
+    #[test]
+    fn coverage_matrix_every_vendor_is_reachable_through_every_signal_it_declares() {
+        let mut reached = 0;
+        for signature in signatures() {
+            // Headers, where the vendor declares any.
+            for header in &signature.headers {
+                let value = header
+                    .contains
+                    .clone()
+                    .unwrap_or_else(|| "probe-value".to_string());
+                let report = check(
+                    &evidence(200, &[(&header.name, &value)], None),
+                    &CheckOptions::default(),
+                );
+                let finding = report
+                    .findings
+                    .iter()
+                    .find(|f| f.kind == "antibot" && f.detail.starts_with(&signature.label))
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "{}: the {} header names no vendor",
+                            signature.key, header.name
+                        )
+                    });
+                assert_eq!(finding.evidence["source"], "response-header");
+                reached += 1;
+            }
+
+            // The page probe, once per source the vendor declares.
+            for (source, declared) in [
+                ("script src", !signature.script_substrings.is_empty()),
+                ("DOM element", !signature.selectors.is_empty()),
+                ("window global", !signature.globals.is_empty()),
+            ] {
+                if !declared {
+                    continue;
+                }
+                let mut e = evidence(200, &[], None);
+                let mut render = clean_render();
+                render.probes.insert(
+                    signature.key.clone(),
+                    ProbeResult {
+                        script: source == "script src",
+                        selector: source == "DOM element",
+                        global: source == "window global",
+                    },
+                );
+                e.render = Some(render);
+                let report = check(&e, &CheckOptions::default());
+                assert!(
+                    report
+                        .findings
+                        .iter()
+                        .any(|f| f.detail == format!("{} ({source})", signature.label)),
+                    "{}: a {source} signal names no vendor",
+                    signature.key
+                );
+                reached += 1;
+            }
+        }
+        // Not vacuous: an empty corpus would satisfy every loop above.
+        assert!(
+            reached >= 5,
+            "only {reached} vendor signals were reachable, which is too few to be a matrix"
+        );
+        eprintln!("coverage-matrix: {reached} vendor signals reachable through check()");
+    }
+
+    /// Every check the report names, and every verdict it can carry,
+    /// reachable from evidence. A verdict nothing can produce is a
+    /// documented state that never happens.
+    #[test]
+    fn coverage_matrix_every_check_and_every_verdict_is_reachable() {
+        let mut rendered = evidence(200, &[], None);
+        rendered.render = Some(clean_render());
+        assert_eq!(
+            check(&rendered, &CheckOptions::default()).verdict,
+            Verdict::Clear
+        );
+        assert_eq!(
+            check(&evidence(200, &[], None), &CheckOptions::default()).verdict,
+            Verdict::Inconclusive
+        );
+        assert_eq!(
+            check(&evidence(429, &[], None), &CheckOptions::default()).verdict,
+            Verdict::Restricted
+        );
+        // `blocked` belongs to a page that could not be reached at all,
+        // so it is built by the surfaces rather than by `check`.
+        assert_eq!(
+            crate::cli::blocked_report("https://example.com", "dns failure", None).verdict,
+            Verdict::Blocked
+        );
+
+        let kinds = [
+            (
+                "antibot",
+                check(
+                    &evidence(200, &[("cf-ray", "x")], None),
+                    &CheckOptions::default(),
+                ),
+            ),
+            (
+                "rate_limit",
+                check(&evidence(429, &[], None), &CheckOptions::default()),
+            ),
+            (
+                "robots",
+                check(
+                    &evidence(200, &[], Some("User-agent: *\nDisallow: /search")),
+                    &CheckOptions::default(),
+                ),
+            ),
+            (
+                "auth",
+                check(&evidence(401, &[], None), &CheckOptions::default()),
+            ),
+        ];
+        for (kind, report) in kinds {
+            assert!(
+                report.findings.iter().any(|f| f.kind == kind),
+                "the {kind} check produces no finding anything can trigger"
+            );
+        }
+        eprintln!("coverage-matrix: 4 checks and 4 verdicts reachable");
     }
 
     #[test]
