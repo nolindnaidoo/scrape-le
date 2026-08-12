@@ -21,6 +21,12 @@ root is a separate product with its own `CLAUDE.md`.
   `render.rs` only when it needs the network or the browser.
 - `../signatures/` and `../fixtures/` are shared with the extension —
   changing them changes both frontends and needs a CHANGELOG entry.
+  **What they hold equal is the shared `analyze_robots_txt` MCP tool**,
+  which must answer identically from either server; a difference there is
+  a bug. The surfaces themselves are IDE-first and terminal-first and are
+  meant to differ — batch input, exit codes and JSON Lines have no editor
+  equivalent and are not drift. SPEC.md's "Deliberate divergences" is the
+  bar for a new one.
 - Write regression tests for every bug you fix; keep unit tests free
   of clocks, randomness, and the network.
 - Browser behavior cannot be verified by reading code: run it, or say

@@ -3,11 +3,11 @@
 A port of the [Scrape-LE](https://github.com/nolindnaidoo/scrape-le) VS
 Code extension to a Rust CLI and MCP server.
 
-**Parity first.** The extension is the reference implementation. Anything
-this produces for a given URL must match what the extension produces for
-that URL. A difference is a regression until proven otherwise — not an
-improvement. Enhancements come after parity, and are listed at the bottom
-so nobody smuggles one in early.
+**One answer is held equal; the surfaces are not.** The shared
+`analyze_robots_txt` MCP tool must return the same the verdict, its signals, and their order
+from either server — a difference there is a bug. Everything else is
+IDE-first in the extension and terminal-first here, and is meant to
+differ. See "Deliberate divergences".
 
 ## The one question
 

@@ -41,6 +41,16 @@ artifact users actually install.
 - **This repo is one of ten identical ones.** Config files and workflows are
   byte-identical across the family; a change here needs copying to the other
   nine. See `../CLAUDE.md`.
+- **Detection is shared with the Rust CLI**, and `crate/signatures/` +
+  `crate/fixtures/` are the contract. Run
+  `bun scripts/check-detection-parity.ts` after any change to either, and
+  update the corpus in the same commit.
+- **What the contract holds equal is the shared `analyze_robots_txt` MCP
+  tool**, which both servers offer and must answer identically; a difference
+  there is a bug. **The surfaces are meant to differ.** This one is
+  IDE-first — a URL you are looking at, answered in the editor. The CLI is
+  terminal-first: batch input, exit codes and JSON Lines, none of which has
+  an editor equivalent. That is not drift — see `crate/SPEC.md`.
 - **Localization is two mechanisms, and they fail separately.** `src/i18n/package.nls.*.json`
   covers the manifest; `l10n/bundle.l10n.*.json` covers runtime strings through
   `vscode.l10n.t()`. Twelve locales each, held in exact key parity by the
