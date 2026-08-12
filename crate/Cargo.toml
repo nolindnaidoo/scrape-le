@@ -10,7 +10,7 @@ authors = ["Nolin D Naidoo"]
 homepage = "https://letools.dev/tools/scrape-le"
 repository = "https://github.com/nolindnaidoo/scrape-le"
 keywords = ["robots-txt", "web-scraping", "crawler", "anti-bot", "scraping"]
-categories = ["command-line-utilities", "web-programming", "development-tools", "network-programming", "parsing"]
+categories = ["command-line-utilities", "web-programming", "development-tools", "text-processing", "parsing"]
 # What a consumer gets. SPEC.md ships because it is the behavioural
 # contract — verdicts, exit codes, batching — and someone scripting
 # against the exit codes needs it. AGENTS.md and CLAUDE.md are how this
