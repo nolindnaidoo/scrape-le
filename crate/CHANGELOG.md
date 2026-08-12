@@ -109,3 +109,7 @@ from the VS Code extension against a signature corpus both share.
 - Two deliberate differences from the extension, both documented: the
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
+
+[0.1.2]: https://crates.io/crates/scrape-le/0.1.2
+[0.1.1]: https://crates.io/crates/scrape-le/0.1.1
+[0.1.0]: https://crates.io/crates/scrape-le/0.1.0

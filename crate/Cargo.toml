@@ -17,7 +17,7 @@ categories = ["command-line-utilities", "web-programming", "development-tools"]
 # repo is worked on, not how the tool is used, and examples/spike.rs is
 # a network-touching development spike. signatures/ and fixtures/ are
 # not optional: the build embeds the first and the tests read both.
-exclude = ["AGENTS.md", "CLAUDE.md", "examples/"]
+exclude = ["AGENTS.md", "CLAUDE.md", "rust-toolchain.toml", "examples/"]
 
 [[bin]]
 name = "scrape-le"
