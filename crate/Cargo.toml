@@ -5,12 +5,12 @@ edition = "2024"
 rust-version = "1.88"
 license = "MIT"
 readme = "README.md"
-description = "Check whether a page is scrapeable before the scraper is written"
+description = "Check whether a page is scrapeable before the scraper is written — robots.txt rules, anti-bot detection and headless-browser requirements, as an exit code"
 authors = ["Nolin D Naidoo"]
 homepage = "https://letools.dev/tools/scrape-le"
 repository = "https://github.com/nolindnaidoo/scrape-le"
-keywords = ["scraping", "robots-txt", "anti-bot", "headless", "cli"]
-categories = ["command-line-utilities", "web-programming", "development-tools"]
+keywords = ["robots-txt", "web-scraping", "crawler", "anti-bot", "scraping"]
+categories = ["command-line-utilities", "web-programming", "development-tools", "network-programming", "parsing"]
 # What a consumer gets. SPEC.md ships because it is the behavioural
 # contract — verdicts, exit codes, batching — and someone scripting
 # against the exit codes needs it. AGENTS.md and CLAUDE.md are how this
