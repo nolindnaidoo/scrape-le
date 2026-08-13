@@ -2,7 +2,7 @@
 	"name": "scrape-le",
 	"publisher": "nolindnaidoo",
 	"displayName": "Scrape-LE",
-	"description": "Zero Hassle Web Scrapeability Checker - Validate scraper targets before debugging",
+	"description": "Check whether a page is scrapeable before the scraper is written, and say when it cannot tell",
 	"version": "2.2.4",
 	"license": "MIT",
 	"author": {
