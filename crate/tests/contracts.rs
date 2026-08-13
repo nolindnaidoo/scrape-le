@@ -8,6 +8,8 @@ use std::fmt::Write as _;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 /// A response the fixture server should give for a path.
@@ -60,18 +62,33 @@ const ROUTES: &[Route] = &[
 /// Serves the routes above until the process ends. Bound to port 0 so
 /// concurrent test binaries never collide.
 fn start_server() -> u16 {
+    start_counting_server(0).0
+}
+
+/// The same server, plus the number of `/robots.txt` requests it has
+/// been sent and an optional run of leading failures on that one route.
+///
+/// Counting is how "one robots.txt per origin" is asserted: the win is a
+/// request that no longer happens, and a count says that exactly, where
+/// a duration would mostly measure whichever machine is running the
+/// suite. `fail_first` closes the connection without writing a response,
+/// which is what a dropped or refused one looks like from the client.
+fn start_counting_server(fail_first: usize) -> (u16, Arc<AtomicUsize>) {
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
     let port = listener.local_addr().expect("addr").port();
+    let robots_requests = Arc::new(AtomicUsize::new(0));
+    let counter = Arc::clone(&robots_requests);
     thread::spawn(move || {
         for stream in listener.incoming() {
             let Ok(stream) = stream else { continue };
-            thread::spawn(move || serve_one(stream));
+            let counter = Arc::clone(&counter);
+            thread::spawn(move || serve_one(stream, &counter, fail_first));
         }
     });
-    port
+    (port, robots_requests)
 }
 
-fn serve_one(mut stream: TcpStream) {
+fn serve_one(mut stream: TcpStream, robots_requests: &AtomicUsize, fail_first: usize) {
     let mut reader = BufReader::new(stream.try_clone().expect("clone"));
     let mut request_line = String::new();
     if reader.read_line(&mut request_line).is_err() {
@@ -79,7 +96,19 @@ fn serve_one(mut stream: TcpStream) {
     }
     let path = request_line.split_whitespace().nth(1).unwrap_or("/");
 
-    let route = ROUTES.iter().find(|route| route.path == path);
+    if path == "/robots.txt" && robots_requests.fetch_add(1, Ordering::SeqCst) < fail_first {
+        return;
+    }
+
+    // `/page/<n>` is any number of distinct, unremarkable pages on one
+    // host — what a batch of fifty URLs on one site actually looks like,
+    // which no fixed route table can supply. They answer as `/open`.
+    let wanted = if path.starts_with("/page/") {
+        "/open"
+    } else {
+        path
+    };
+    let route = ROUTES.iter().find(|route| route.path == wanted);
     let response = match route {
         Some(route) => {
             let mut head = format!("HTTP/1.1 {}\r\n", route.status);
@@ -262,6 +291,84 @@ fn a_batch_reports_every_input_index() {
         .collect();
     indices.sort_unstable();
     assert_eq!(indices, [0, 1, 2]);
+
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// Writes a batch input file and returns its path plus the directory to
+/// clean up.
+fn batch_input(port: u16, name: &str, urls: &[String]) -> (std::path::PathBuf, std::path::PathBuf) {
+    let directory = std::env::temp_dir().join(format!("scrape-le-{name}-{port}"));
+    std::fs::create_dir_all(&directory).expect("temp dir");
+    let input = directory.join("urls.txt");
+    std::fs::write(&input, urls.join("\n")).expect("write input");
+    (input, directory)
+}
+
+/// **What grouping by host was always for.** Twenty paths on one origin
+/// is one robots.txt request, not twenty — and the twenty answers are
+/// the ones each path had when each fetched and parsed its own copy.
+#[test]
+fn a_batch_asks_one_origin_for_robots_txt_once() {
+    let (port, robots_requests) = start_counting_server(0);
+    let mut urls: Vec<String> = (0..19)
+        .map(|i| format!("http://127.0.0.1:{port}/page/{i}"))
+        .collect();
+    urls.push(format!("http://127.0.0.1:{port}/forbidden"));
+    let (input, directory) = batch_input(port, "cache", &urls);
+
+    let run = run(&["--input", input.to_str().expect("path")]);
+
+    assert_eq!(
+        robots_requests.load(Ordering::SeqCst),
+        1,
+        "20 URLs on one origin asked for robots.txt more than once"
+    );
+    let verdicts: Vec<String> = run.stdout.lines().map(verdict_of).collect();
+    assert_eq!(verdicts.len(), 20);
+    assert_eq!(
+        verdicts.iter().filter(|v| *v == "inconclusive").count(),
+        19,
+        "every unremarkable page answers as it does alone: {verdicts:?}"
+    );
+    assert_eq!(
+        verdicts.iter().filter(|v| *v == "restricted").count(),
+        1,
+        "the disallowed path is still disallowed: {verdicts:?}"
+    );
+    assert!(run.stdout.contains("Disallow: /forbidden"));
+    assert_eq!(run.code, 1);
+
+    std::fs::remove_dir_all(&directory).ok();
+}
+
+/// **Regression.** A robots.txt that fails to arrive must not answer for
+/// the rest of the run. The cache holds what an origin served, never a
+/// failure to serve it, so the next URL on that host asks again — and
+/// the rules that come back are the ones that decide. Caching the miss
+/// would have had one dropped connection read as "nothing forbids you"
+/// for every remaining URL on the host, which is the single direction
+/// this tool may not be wrong in.
+#[test]
+fn a_failed_robots_txt_does_not_answer_for_the_rest_of_the_run() {
+    let (port, robots_requests) = start_counting_server(1);
+    let urls = [
+        format!("http://127.0.0.1:{port}/page/0"),
+        format!("http://127.0.0.1:{port}/forbidden"),
+    ];
+    let (input, directory) = batch_input(port, "retry", &urls);
+
+    let run = run(&["--input", input.to_str().expect("path")]);
+
+    // URLs on one host run in input order, so the first request is the
+    // one that fails and the second is the retry.
+    assert_eq!(robots_requests.load(Ordering::SeqCst), 2);
+    let verdicts: Vec<String> = run.stdout.lines().map(verdict_of).collect();
+    assert!(
+        verdicts.contains(&"restricted".to_string()),
+        "the retry's rules never reached the second URL: {verdicts:?}"
+    );
+    assert!(run.stdout.contains("Disallow: /forbidden"));
 
     std::fs::remove_dir_all(&directory).ok();
 }

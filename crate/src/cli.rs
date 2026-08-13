@@ -12,6 +12,7 @@ use crate::batch::{BatchOptions, DEFAULT_CONCURRENCY, Summary, Target};
 use crate::check_url::{CheckOutcome, check_url};
 use crate::detect::report::{CheckStatus, Report, Severity, Verdict};
 use crate::detect::url::{extract_url, normalize_url, validate_url};
+use crate::fetch::RobotsCache;
 
 const USAGE: &str = "usage: scrape-le [options] <url>
        scrape-le [options] --input <file|->
@@ -180,7 +181,7 @@ fn run_single(raw: &str, options: &Options) -> ExitCode {
         eprintln!("scrape-le: not an http(s) URL: {raw}");
         return ExitCode::from(2);
     }
-    match check_url(&url, None, options) {
+    match check_url(&url, None, options, &RobotsCache::new()) {
         CheckOutcome::Malformed(reason) => {
             eprintln!("scrape-le: {reason}");
             ExitCode::from(2)
@@ -253,11 +254,16 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
     let started = std::time::Instant::now();
     let hosts = crate::batch::group_by_host(targets).len();
     let malformed = Mutex::new(0usize);
+    // One robots.txt per origin for the whole batch, shared across the
+    // workers: the grouping already puts every URL on a host in one
+    // queue, so this is the fetch and the parse that grouping was
+    // supposed to save.
+    let robots = RobotsCache::new();
 
     let summary: Summary = crate::batch::run(
         targets,
         &batch_options,
-        |target| match check_url(&target.url, Some(target.index), options) {
+        |target| match check_url(&target.url, Some(target.index), options, &robots) {
             CheckOutcome::Report(report) => *report,
             CheckOutcome::Malformed(reason) => {
                 eprintln!("scrape-le: entry {}: {reason}", target.index);

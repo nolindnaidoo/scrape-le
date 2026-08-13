@@ -127,9 +127,10 @@ host.** A tool whose premise is asking whether it is acceptable to hit a
 site cannot hammer that site while asking, and a batch of a hundred URLs
 is very often a hundred paths on one site. So hosts run in parallel,
 URLs within a host run sequentially, `Crawl-delay` is honoured between
-them, `robots.txt` is fetched once per host, exact-duplicate URLs are
-checked once, and reports stream as they complete carrying their input
-`index`. The exit code is the worst verdict in the batch.
+them, `robots.txt` is fetched and parsed once per origin rather than
+once per URL, exact-duplicate URLs are checked once, and reports stream
+as they complete carrying their input `index`. The exit code is the
+worst verdict in the batch.
 
 ## Design commitments
 

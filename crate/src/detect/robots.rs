@@ -51,49 +51,81 @@ struct Group {
     crawl_delay: Option<f64>,
 }
 
-/// Parses robots.txt and evaluates `pathname` against the rules that
-/// apply. `agent` is the caller's product token (`MyBot/1.0` → `mybot`);
-/// `None` evaluates the generic rules only, as the extension does.
+/// One parsed robots.txt, with every rule's matcher already compiled.
+///
+/// **Parsing is per document; evaluating is per path.** Splitting them
+/// is what lets a batch parse a host's file once and ask it fifty
+/// questions: `fetch::RobotsCache` holds one of these per origin for
+/// the length of a run. Nothing here is path- or agent-specific, so a
+/// held document answers exactly what a fresh parse of the same bytes
+/// would — asserted by a test, because that equivalence is the whole
+/// licence to reuse it.
+pub(crate) struct RobotsDocument {
+    groups: Vec<Group>,
+    sitemaps: Vec<String>,
+}
+
+impl RobotsDocument {
+    pub(crate) fn parse(content: &str) -> Self {
+        let (groups, sitemaps) = parse_groups(content);
+        Self { groups, sitemaps }
+    }
+
+    /// Evaluates `pathname` against the rules that apply. `agent` is the
+    /// caller's product token (`MyBot/1.0` → `mybot`); `None` evaluates
+    /// the generic rules only, as the extension does.
+    pub(crate) fn evaluate(&self, pathname: &str, agent: Option<&str>) -> RobotsTxtInfo {
+        let token = agent.map(product_token);
+
+        // An agent-specific group wins; with no match — or no agent —
+        // the generic groups answer, which is RFC 9309 and also the
+        // extension's only behaviour.
+        let (selected, answering_agent) = match token.as_deref() {
+            Some(token)
+                if self
+                    .groups
+                    .iter()
+                    .any(|g| g.agents.iter().any(|a| a == token)) =>
+            {
+                (select(&self.groups, token), token.to_string())
+            }
+            _ => (select(&self.groups, "*"), "*".to_string()),
+        };
+
+        let rules: Vec<&RobotsRule> = selected.iter().flat_map(|g| g.rules.iter()).collect();
+        // **The last one wins**, across groups as well as within one.
+        // The extension keeps assigning to a single `crawlDelay` as it
+        // walks the file, so a document with two applicable groups
+        // reports the second; taking the first here had the two servers
+        // answer the same file differently.
+        let crawl_delay = selected.iter().rev().find_map(|group| group.crawl_delay);
+        let decision = decide_path(pathname, &rules);
+
+        RobotsTxtInfo {
+            exists: true,
+            allows_crawling: decision.allowed,
+            crawl_delay,
+            disallowed_paths: rules
+                .iter()
+                .filter(|r| !r.allow)
+                .map(|r| r.pattern.clone())
+                .collect(),
+            sitemaps: self.sitemaps.clone(),
+            agent: answering_agent,
+            matched_rule: decision.matched,
+        }
+    }
+}
+
+/// Parses and evaluates in one call — for a caller holding a document it
+/// asks exactly one question of, which is every caller that did not
+/// fetch it: `analyze_robots_txt` is handed the content by the agent.
 pub(crate) fn parse_robots_txt(
     content: &str,
     pathname: &str,
     agent: Option<&str>,
 ) -> RobotsTxtInfo {
-    let (groups, sitemaps) = parse_groups(content);
-    let token = agent.map(product_token);
-
-    // An agent-specific group wins; with no match — or no agent — the
-    // generic groups answer, which is RFC 9309 and also the extension's
-    // only behaviour.
-    let (selected, answering_agent) = match token.as_deref() {
-        Some(token) if groups.iter().any(|g| g.agents.iter().any(|a| a == token)) => {
-            (select(&groups, token), token.to_string())
-        }
-        _ => (select(&groups, "*"), "*".to_string()),
-    };
-
-    let rules: Vec<&RobotsRule> = selected.iter().flat_map(|g| g.rules.iter()).collect();
-    // **The last one wins**, across groups as well as within one. The
-    // extension keeps assigning to a single `crawlDelay` as it walks the
-    // file, so a document with two applicable groups reports the second;
-    // taking the first here had the two servers answer the same file
-    // differently.
-    let crawl_delay = selected.iter().rev().find_map(|group| group.crawl_delay);
-    let decision = decide_path(pathname, &rules);
-
-    RobotsTxtInfo {
-        exists: true,
-        allows_crawling: decision.allowed,
-        crawl_delay,
-        disallowed_paths: rules
-            .iter()
-            .filter(|r| !r.allow)
-            .map(|r| r.pattern.clone())
-            .collect(),
-        sitemaps,
-        agent: answering_agent,
-        matched_rule: decision.matched,
-    }
+    RobotsDocument::parse(content).evaluate(pathname, agent)
 }
 
 fn select<'a>(groups: &'a [Group], token: &str) -> Vec<&'a Group> {
@@ -340,6 +372,43 @@ mod tests {
                 "case {name:?}: sitemaps"
             );
         }
+    }
+
+    /// The licence to hold a parsed document across a whole host's
+    /// worth of URLs: one kept document must answer every path and
+    /// every agent exactly as a fresh parse of the same bytes does.
+    /// Were that ever untrue, a batch would answer differently from a
+    /// single check of the same URL — the cache turning into a second
+    /// implementation of the rules.
+    #[test]
+    fn a_kept_document_answers_what_a_fresh_parse_answers() {
+        let cases: serde_json::Value = serde_json::from_str(CASES).expect("fixture JSON");
+        let mut checked = 0;
+        for file in [
+            "simple.txt",
+            "disallow-all.txt",
+            "wildcards.txt",
+            "multi-group.txt",
+            "agent-specific.txt",
+        ] {
+            let body = fixture_body(file);
+            let kept = RobotsDocument::parse(body);
+            // Every path any case names, against every agent any case
+            // names — the paths and agents this corpus actually cares
+            // about, rather than ones invented here.
+            for case in cases.as_array().expect("array of cases") {
+                let path = case["path"].as_str().expect("path");
+                for agent in [None, Some("googlebot"), Some("PickyBot/1.0"), Some("mybot")] {
+                    assert_eq!(
+                        kept.evaluate(path, agent),
+                        parse_robots_txt(body, path, agent),
+                        "{file} {path:?} as {agent:?}"
+                    );
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked > 0, "expected paths to check");
     }
 
     /// The divergence annotations are a contract too: where a fixture

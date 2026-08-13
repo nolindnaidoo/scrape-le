@@ -3,6 +3,7 @@
 //! `fetch.rs` and `render.rs` gather the evidence, this decides.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use serde_json::json;
 
@@ -12,11 +13,16 @@ use super::ratelimit::detect_rate_limit;
 use super::report::{
     CheckStatus, Checks, Finding, Report, RobotsReport, Severity, Timing, Verdict,
 };
-use super::robots::parse_robots_txt;
+use super::robots::RobotsDocument;
 use super::signatures::signatures;
 
-/// What a fetch produced. `robots_body` is `None` when robots.txt did
-/// not exist or was unreachable — distinct from an empty file.
+/// What a fetch produced. `robots` is `None` when robots.txt did not
+/// exist or was unreachable — distinct from an empty file.
+///
+/// It arrives parsed, and shared: one origin's document answers for
+/// every URL on it in a run, so the rules are compiled once rather than
+/// once per path. Which document is a question for `fetch.rs`; what it
+/// says about a path is decided here.
 pub(crate) struct Evidence {
     pub(crate) url: String,
     pub(crate) final_url: String,
@@ -24,7 +30,7 @@ pub(crate) struct Evidence {
     /// lowercased header names, as delivered
     pub(crate) headers: HashMap<String, String>,
     pub(crate) body_html: String,
-    pub(crate) robots_body: Option<String>,
+    pub(crate) robots: Option<Arc<RobotsDocument>>,
     pub(crate) render: Option<RenderEvidence>,
     pub(crate) fetch_ms: u64,
     pub(crate) total_ms: u64,
@@ -54,7 +60,7 @@ impl Evidence {
     pub(crate) fn from_render(
         url: &str,
         render: RenderEvidence,
-        robots_body: Option<String>,
+        robots: Option<Arc<RobotsDocument>>,
     ) -> Self {
         Self {
             url: url.to_string(),
@@ -62,7 +68,7 @@ impl Evidence {
             status: render.status,
             headers: render.headers.clone().unwrap_or_default(),
             body_html: render.body_html.clone(),
-            robots_body,
+            robots,
             render: Some(render),
             fetch_ms: 0,
             total_ms: 0,
@@ -230,7 +236,7 @@ fn check_robots(
     options: &CheckOptions,
     findings: &mut Vec<Finding>,
 ) -> (CheckStatus, Option<RobotsReport>) {
-    let Some(body) = &evidence.robots_body else {
+    let Some(document) = &evidence.robots else {
         // no robots.txt is an answer, not a failure: nothing forbids
         return (
             CheckStatus::Ran,
@@ -247,7 +253,7 @@ fn check_robots(
     let Ok(parsed_url) = url::Url::parse(&evidence.url) else {
         return (CheckStatus::Skipped, None);
     };
-    let info = parse_robots_txt(body, parsed_url.path(), options.agent.as_deref());
+    let info = document.evaluate(parsed_url.path(), options.agent.as_deref());
     let report = RobotsReport {
         exists: info.exists,
         allows_crawling: info.allows_crawling,
@@ -354,7 +360,7 @@ mod tests {
                 .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
                 .collect(),
             body_html: "<html><title>Search — Example</title></html>".to_string(),
-            robots_body: robots.map(str::to_string),
+            robots: robots.map(|body| Arc::new(RobotsDocument::parse(body))),
             render: None,
             fetch_ms: 10,
             total_ms: 12,

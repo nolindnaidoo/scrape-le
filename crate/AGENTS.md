@@ -81,6 +81,16 @@ crate/src/
   byte-identical to the extension. Corpus cases that diverge carry a
   `divergence` annotation in `../fixtures/`, and a test asserts the CLI
   actually answers what the annotation claims.
+- **robots.txt is held per origin, and only when an origin served it.**
+  The cache key is scheme + host + port — what decides the URL fetched —
+  while `batch.rs` groups on the host alone; politeness is owed to a
+  machine, an answer belongs to a document, and the two keys are not
+  meant to match. Nothing is kept for a 404, a 5xx, a refusal or a
+  timeout: those are asked again by the next URL on the host, because a
+  blip that read as "nothing forbids you" for the rest of a batch is the
+  one direction this tool may not be wrong in. A run owns one cache
+  (`RobotsCache`), passed rather than global, because a run is a batch on
+  one surface and a single tool call on the other.
 - **stdout is protocol, stderr is human. There is no `--json` flag.**
   One mode, nothing to misremember, and the human summary is a
   projection of the same report so the two cannot drift.

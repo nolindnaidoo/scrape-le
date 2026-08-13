@@ -234,9 +234,27 @@ at a time, and that is correct.
 
 ### What falls out of it
 
-**robots.txt is fetched once per host, not once per URL.** A hundred URLs
-on one host is one robots.txt request. Faster and politer, and free —
-the grouping already exists.
+**robots.txt is fetched and parsed once per origin, not once per URL.** A
+hundred URLs on one site is one robots.txt request and one parse; the
+rest read the rules already in hand. Faster and politer both.
+
+The key is the **origin** — scheme, host and port — because that is what
+decides the URL fetched, `<origin>/robots.txt`. `http://a.com` and
+`https://a.com` may serve different rules and are held separately. This
+is deliberately narrower than the key the *scheduler* groups on, which
+is the host alone: never two concurrent requests to one machine,
+whatever the scheme or port. Politeness is owed to a machine, an answer
+belongs to a document.
+
+**Only what an origin served is kept, never a failure to get it.** A
+404, a 503, a refused connection or a timeout all mean this run has no
+document, and all of them are asked again by the next URL on that host —
+exactly as they were before anything was held. A blip must never read as
+"nothing forbids you" for the rest of a batch.
+
+The span is one run: a whole batch on the command line, a single
+`scrape_le_check` call over MCP. The MCP server outlives any answer it
+would be safe to keep, so it keeps none between calls.
 
 **`Crawl-delay` is honored between same-host requests.** The parser
 already reads it. Reporting a site's declared delay while ignoring it is

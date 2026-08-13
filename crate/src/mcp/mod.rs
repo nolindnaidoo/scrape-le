@@ -175,6 +175,11 @@ fn check_tool(arguments: &Value) -> Value {
         ignore_crawl_delay: false,
     };
 
+    // The run is this call. A `urls` list of many paths on one host
+    // costs one robots.txt; a second call an hour later fetches afresh,
+    // because this server outlives any answer it is safe to keep.
+    let robots = crate::fetch::RobotsCache::new();
+
     let mut reports = Vec::with_capacity(urls.len());
     for (index, raw) in urls.iter().enumerate() {
         let url = crate::detect::url::normalize_url(raw);
@@ -184,7 +189,7 @@ fn check_tool(arguments: &Value) -> Value {
             return tool_failure(&format!("{raw} is not an http or https URL"));
         }
         let position = (urls.len() > 1).then_some(index);
-        match check_url(&url, position, &options) {
+        match check_url(&url, position, &options, &robots) {
             CheckOutcome::Report(report) => {
                 reports.push(serde_json::to_value(&report).expect("report serializes"));
             }

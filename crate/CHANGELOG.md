@@ -40,6 +40,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Each robots.txt rule is compiled once when the file is parsed rather
   than once per path checked. No change to any answer.
+- **A batch reads a site's robots.txt once, not once per URL.** Fifty
+  paths on one site used to fetch and re-parse the same file fifty
+  times, compiling every rule again for an answer that could not have
+  changed; it is now fetched and parsed once per origin and the rest
+  read the rules already in hand. A batch of 200 URLs across 8 sites
+  went from 200 robots.txt requests to 8, and from 0.29 s to 0.08 s with
+  a 250-rule file — 0.83 s to 0.13 s with a 1000-rule one. Held per
+  origin, so `http://` and `https://` on one host stay separate; nothing
+  is kept when a fetch fails, so a blip cannot read as permission for
+  the rest of the run. **No change to any answer** — a batch's reports
+  are byte-identical before and after.
 
 ## [0.1.1] - 2026-08-07
 
