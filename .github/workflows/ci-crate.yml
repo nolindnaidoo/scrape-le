@@ -356,7 +356,7 @@ jobs:
         with:
           toolchain: stable
       - name: 500 documents inside the budget, and linear in both directions
-        run: cargo test --test budget -- --test-threads=1 --nocapture
+        run: cargo test --release --locked --test budget -- --test-threads=1 --nocapture
 
   # Does the crate open what it claims?
   #
