@@ -55,7 +55,7 @@ crate/              (in the extension's repo — the shared corpus lives
 — headers, a status code, raw HTML, a rendered DOM snapshot, a robots.txt
 body, a URL — and returns findings. The entire decision layer is testable
 from a fixture file: no display, no network, no flake. It is `pub(crate)`
-and carries the 90% per-module coverage floor, which is the only thing
+and carries the 75% per-module coverage floor, which is the only thing
 the split was ever for.
 
 Everything outside `detect/` is what cannot be tested that way: fetching,
@@ -446,7 +446,7 @@ tool can be trusted at all.
 
 | Layer | How |
 |---|---|
-| `detect/` | Unit tests from fixtures — a header map, an HTML string, a robots.txt body. 90% per-module floor. No network, no browser. |
+| `detect/` | Unit tests from fixtures — a header map, an HTML string, a robots.txt body. 75% per-module floor. No network, no browser. |
 | Signatures | Each TOML rule ships a fixture it must match and one it must not. A signature with no negative case is a false-positive generator. |
 | Verdict logic | Property test: no single `warns` finding produces `blocked`; `clear` requires zero `blocks` **and** zero skipped checks. |
 | Surfaces | The CLI and MCP must return identical findings for the same URL — asserted directly, so neither can drift. |

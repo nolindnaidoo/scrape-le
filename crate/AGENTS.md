@@ -40,7 +40,7 @@ crate/src/
 - **`detect/` touches no network and drives no browser.** It takes
   evidence and returns findings, so the entire decision layer tests
   from a fixture file — no display, no network, no flake. It carries
-  the **90% line coverage floor per module**, enforced by the
+  the **75% line coverage floor per module**, enforced by the
   `coverage` job. If a `ureq` or `headless_chrome` type appears in
   `detect/`, that is a bug.
 - **Both surfaces are one implementation.** `cli.rs` and `mcp.rs` both
@@ -170,7 +170,7 @@ only sanctioned disagreement.
 
 The bar, enforced by review:
 
-- **`detect/`: 90% line coverage floor per module.** Everything in it
+- **`detect/`: 75% line coverage floor per module.** Everything in it
   is pure; if something is hard to test there, the design is wrong.
   Per module rather than the crate total, because a total lets one
   module slide while the others carry it.

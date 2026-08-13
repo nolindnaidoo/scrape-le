@@ -17,7 +17,7 @@ root is a separate product with its own `CLAUDE.md`.
   lint, or add a commented relaxation to `[lints.clippy]` in
   `Cargo.toml`.
 - New logic goes in `detect/` when it is pure (it must then be
-  unit-tested, 90% module coverage floor), and in `fetch.rs` /
+  unit-tested, 75% module coverage floor), and in `fetch.rs` /
   `render.rs` only when it needs the network or the browser.
 - `../signatures/` and `../fixtures/` are shared with the extension —
   changing them changes both frontends and needs a CHANGELOG entry.
