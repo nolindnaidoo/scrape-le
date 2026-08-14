@@ -6,6 +6,12 @@
 </p>
 
 <p align="center">
+  <a href="https://crates.io/crates/scrape-le">
+    <img src="https://img.shields.io/crates/v/scrape-le.svg" alt="scrape-le on crates.io" />
+  </a>
+  <a href="https://crates.io/crates/scrape-le">
+    <img src="https://img.shields.io/crates/d/scrape-le.svg" alt="crates.io downloads" />
+  </a>
   <a href="https://github.com/nolindnaidoo/scrape-le/actions/workflows/ci-crate.yml">
     <img src="https://github.com/nolindnaidoo/scrape-le/actions/workflows/ci-crate.yml/badge.svg" alt="Build Status" />
   </a>
@@ -20,7 +26,7 @@
 
 > **Useful?** A star is how other developers find it —
 > [★ GitHub](https://github.com/nolindnaidoo/scrape-le) ·
-> [letools.dev](https://letools.dev)
+> [letools.dev/tools/scrape-le](https://letools.dev/tools/scrape-le)
 
 Most scraper failures are discovered after the scraper is written: the
 page renders a challenge, robots.txt forbade the path all along, the
@@ -87,7 +93,7 @@ absence cannot be claimed for a check that did not run. That is why a
 `--no-render` run can never come back `clear`, and why the report names
 which checks were partial.
 
-## Commands and flags
+## Options
 
 | | |
 |---|---|
@@ -178,7 +184,7 @@ permission to scrape.
 | **Any MCP agent, via Node** | `analyze_robots_txt` over stdio | `npx scrape-le-mcp` · [npm](https://www.npmjs.com/package/scrape-le-mcp) |
 | **Zed** | The MCP server as a context server | [add it by hand](https://zed.dev/docs/ai/mcp) *(no listing yet)* |
 
-All ten LE tools are on **[letools.dev](https://letools.dev)**.
+All sixteen LE tools are on **[letools.dev](https://letools.dev)**.
 
 ## More from the LE family
 
@@ -214,6 +220,7 @@ Each stands on its own: no shared crate, no published core. Where two of them
 agree, it is because the same answer was right twice.
 
 **Contact** — [nolindnaidoo.com](https://nolindnaidoo.com) · [GitHub](https://github.com/nolindnaidoo) · [LinkedIn](https://www.linkedin.com/in/nolindnaidoo/)
+
 ## Also by nolindnaidoo
 
 **Rust** — pixelcoords and pixelactions are one loop: pixelcoords answers

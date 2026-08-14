@@ -17,6 +17,9 @@
   <a href="https://www.npmjs.com/package/scrape-le-mcp">
     <img src="https://img.shields.io/npm/v/scrape-le-mcp?style=for-the-badge&label=MCP%20server&color=blue&logo=npm" alt="scrape-le-mcp on npm" />
   </a>
+  <a href="https://crates.io/crates/scrape-le">
+    <img src="https://img.shields.io/crates/v/scrape-le?style=for-the-badge&label=Rust%20CLI&color=blue&logo=rust" alt="scrape-le on crates.io" />
+  </a>
   <a href="https://letools.dev/tools/scrape-le">
     <img src="https://img.shields.io/badge/LE%20Tools-letools.dev-blue?style=for-the-badge" alt="LE Tools" />
   </a>
@@ -38,6 +41,16 @@
 Run `Scrape-LE: Check URL Scrapeability` (`Ctrl+Alt+S` / `Cmd+Alt+S`), enter a URL, and the page loads in a real headless Chromium. The report lands in the output channel: HTTP status, page title, load time, console errors, a full-page screenshot, and four detections. Works in VS Code and VS Code–based editors like Cursor and VSCodium (installable from Open VSX).
 
 One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into Playwright's browser cache).
+
+## Install
+
+| Where | What you get | Install |
+|---|---|---|
+| **VS Code** | The same check, in your editor, on a keystroke | [Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le) |
+| **Cursor, VSCodium, Windsurf** | The same extension | [Open VSX](https://open-vsx.org/extension/OffensiveEdge/scrape-le) |
+| **A terminal or a CI step** | The same run over a whole tree, with exit codes | `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
+| **Any MCP agent, via Node** | `analyze_robots_txt` over stdio | `npx scrape-le-mcp` · [npm](https://www.npmjs.com/package/scrape-le-mcp) |
+| **Zed** | The MCP server as a context server | [add it by hand](https://zed.dev/docs/ai/mcp) *(no listing yet)* |
 
 ## Use it from an AI agent
 
@@ -74,7 +87,7 @@ Most hosts read a JSON config. Add one entry:
 }
 ```
 
-`-y` skips the install prompt on first run. Pin a version if you would rather not track releases — `scrape-le-mcp@2.2.1`.
+`-y` skips the install prompt on first run. Pin a version if you would rather not track releases — `scrape-le-mcp@2.2.4`.
 
 Prefer not to go through `npx` on every launch? Install it once and point at the binary instead:
 
@@ -110,9 +123,7 @@ scrape-le --input urls.txt             # a batch, streamed as it completes
 scrape-le mcp                          # the same check over MCP on stdio
 ```
 
-The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** Install it with `cargo install scrape-le`; the spec ([`crate/SPEC.md`](crate/SPEC.md)) and standards live alongside it in [`crate/`](crate/README.md).
-
-## Detections
+The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** ## Detections
 
 | Detection | How it works |
 |---|---|
@@ -175,19 +186,15 @@ setting of its own.
 - Error notifications redact home directories and credential-shaped fragments.
 - Respect the sites you check: a scrapeability report is information, not permission.
 
-## Development
+## Documentation
 
-```bash
-bun install
-bun run build            # esbuild bundle -> dist/extension.js
-bun run typecheck        # tsc --noEmit (includes tests)
-bun run test             # vitest unit suite
-bun run test:integration # real VS Code extension host
-bun run lint             # biome
-bun run package          # VSIX into release/
-```
-
-Architecture and conventions live in [AGENTS.md](AGENTS.md). Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+| What | Where |
+|---|---|
+| What the tool is allowed to say — scope, output contract, refusals, non-goals | [`crate/SPEC.md`](crate/SPEC.md) |
+| How the extension is built and held together — architecture, invariants, toolchain, release | [AGENTS.md](AGENTS.md) |
+| How the CLI is built and held together | [`crate/AGENTS.md`](crate/AGENTS.md) |
+| What changed | [CHANGELOG.md](CHANGELOG.md) · [`crate/CHANGELOG.md`](crate/CHANGELOG.md) |
+| The tool's page, and the other fifteen | [letools.dev/tools/scrape-le](https://letools.dev/tools/scrape-le) |
 
 ## Performance
 
@@ -259,6 +266,7 @@ Each stands on its own: no shared crate, no published core. Where two of them
 agree, it is because the same answer was right twice.
 
 **Contact** — [nolindnaidoo.com](https://nolindnaidoo.com) · [GitHub](https://github.com/nolindnaidoo) · [LinkedIn](https://www.linkedin.com/in/nolindnaidoo/)
+
 ## Also by nolindnaidoo
 
 **Rust** — pixelcoords and pixelactions are one loop: pixelcoords answers
