@@ -18,6 +18,10 @@ categories = ["command-line-utilities", "web-programming", "development-tools", 
 # a network-touching development spike. signatures/ and fixtures/ are
 # not optional: the build embeds the first and the tests read both.
 exclude = ["AGENTS.md", "CLAUDE.md", "rust-toolchain.toml", "examples/"]
+# Excluding a directory does not stop cargo auto-discovering a target in
+# it, so every `cargo package` printed "ignoring example `spike`". A
+# warning on every run of a command is one people stop reading.
+autoexamples = false
 
 [[bin]]
 name = "scrape-le"
