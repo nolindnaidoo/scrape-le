@@ -1,7 +1,7 @@
 id = "scrape-le"
 name = "Scrape-LE"
 description = "Analyse robots.txt content and report whether a path may be crawled."
-version = "2.2.4"
+version = "2.2.5"
 schema_version = 1
 authors = ["nolindnaidoo"]
 repository = "https://github.com/nolindnaidoo/scrape-le"

@@ -5,6 +5,27 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5]
+
+### Fixed
+
+- **The Help command's Open VSX rating link pointed at a namespace that
+  does not exist.** It named `nolindnaidoo`; the extension is published
+  under `OffensiveEdge`, so anyone following it from inside the editor
+  got a 404 on the one page that asks them for a rating.
+
+### Changed
+
+- **New icon artwork.** All sixteen tools were redrawn in one style, so
+  the family reads as one set wherever the listings sit side by side —
+  the Marketplace, Open VSX and letools.dev. The framing is unchanged:
+  the drawing fills 65.8% of an 800×800 canvas, and every smaller size
+  is derived from that one file rather than drawn again.
+
+- The README carries the family's pillars: an Install section naming
+  every channel, and a Documentation table routing to SPEC.md, AGENTS.md
+  and the changelogs. `## Development` restated AGENTS.md and is gone.
+
 ## [2.2.4] - 2026-08-07
 
 ### Changed
@@ -20,12 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `homepage` in the extension and MCP manifests, and `websiteUrl` in the
   registry entry, resolve to the same detail page.
-
-- **New icon artwork.** All sixteen tools were redrawn in one style, so
-  the family reads as one set wherever the listings sit side by side —
-  the Marketplace, Open VSX and letools.dev. The framing is unchanged:
-  the drawing fills 65.8% of an 800×800 canvas, and every smaller size
-  is derived from that one file rather than drawn again.
 
 ## [2.2.3] - 2026-08-05
 
