@@ -262,6 +262,18 @@ hypocrisy the rest of this design does not permit. `--ignore-crawl-delay`
 is the explicit opt-out, and the report records that it was used, so the
 output cannot misrepresent how it was obtained.
 
+**A declared delay is capped at five minutes.** The value is a third
+party's, so it is input rather than configuration, and two values a site
+can legally declare took the process out. `Crawl-delay: Infinity` parses
+— `Number.parseFloat` says so, per the rule below — and reached
+`Duration::from_secs_f64`, which panics on a non-finite float; the panic
+crossed a scoped thread and ended the batch, so stdout carried nothing
+at all, including for URLs already fetched. `Crawl-delay: 1e18` did not
+panic, it slept for roughly thirty-one billion years. A delay that is
+not finite and positive is not waited for; one longer than five minutes
+waits five. `robots.crawl_delay` still reports the declared value
+verbatim, so a reader can see the site asked for more than was given.
+
 **Exact-duplicate URLs are checked once.** Same URL, same run, same
 answer — a second render spends two seconds to learn nothing. Each input
 index still gets its own record.

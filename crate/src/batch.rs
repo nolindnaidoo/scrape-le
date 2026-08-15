@@ -21,6 +21,44 @@ use crate::detect::report::{Report, Verdict};
 /// Chromium contexts are the scarce resource, not sockets.
 pub(crate) const DEFAULT_CONCURRENCY: usize = 4;
 
+/// The longest this will wait between two requests to one host.
+///
+/// **A `Crawl-delay` is input, not configuration** — it comes off a
+/// third party's robots.txt, and two values a site can legally declare
+/// took the process out. `Crawl-delay: Infinity` parses: the spec pins
+/// `Number.parseFloat` semantics and `parseFloat("Infinity")` is
+/// infinite. It reached `Duration::from_secs_f64`, which panics on a
+/// non-finite float, and the panic crossed the scoped thread and ended
+/// the whole batch — including URLs already fetched and reported, so
+/// stdout carried nothing at all. `Crawl-delay: 1e18` did not panic; it
+/// slept for roughly thirty-one billion years, which is the same outage
+/// with no message.
+///
+/// Five minutes is longer than any delay worth honouring in a batch and
+/// short enough that a caller sees a slow run rather than a hung one.
+/// The declared value is still reported verbatim in `robots.crawl_delay`,
+/// so a reader can see that the site asked for more than was waited.
+const MAX_CRAWL_DELAY: Duration = Duration::from_secs(300);
+
+/// How long to wait after a request to this host, from a declared delay.
+///
+/// `None` when there is nothing to wait for. Anything not finite and
+/// positive is nothing to wait for: a `NaN` or a negative delay is not a
+/// request for patience, and an infinite one cannot be honoured by any
+/// process that intends to finish.
+fn wait_for(seconds: f64) -> Option<Duration> {
+    if !seconds.is_finite() || seconds <= 0.0 {
+        return None;
+    }
+    // Clamped *before* the conversion, not after. `from_secs_f64` panics
+    // on a value too large for a `Duration` as well as on a non-finite
+    // one, so `1e300` is finite, positive, and still fatal.
+    if seconds >= MAX_CRAWL_DELAY.as_secs_f64() {
+        return Some(MAX_CRAWL_DELAY);
+    }
+    Some(Duration::from_secs_f64(seconds))
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct BatchOptions {
     pub(crate) concurrency: usize,
@@ -194,8 +232,7 @@ where
                             .robots
                             .as_ref()
                             .and_then(|robots| robots.crawl_delay)
-                            .filter(|seconds| *seconds > 0.0)
-                            .map(Duration::from_secs_f64);
+                            .and_then(wait_for);
                         if tx.send(report).is_err() {
                             return;
                         }
@@ -491,5 +528,43 @@ mod tests {
         );
         assert_eq!(summary.total(), 5);
         assert_eq!(summary.blocked, 1);
+    }
+}
+
+#[cfg(test)]
+mod delay_tests {
+    use super::{MAX_CRAWL_DELAY, wait_for};
+    use std::time::Duration;
+
+    /// The two values that took the process out, and the shapes beside
+    /// them. `Infinity` is a legal parse — the spec pins
+    /// `Number.parseFloat`, and `parseFloat("Infinity")` is infinite —
+    /// so it reached `Duration::from_secs_f64`, which panics on a
+    /// non-finite float and killed the whole batch from a scoped thread.
+    #[test]
+    fn a_delay_no_process_could_honour_is_not_waited_for() {
+        assert_eq!(wait_for(f64::INFINITY), None);
+        assert_eq!(wait_for(f64::NEG_INFINITY), None);
+        assert_eq!(wait_for(f64::NAN), None);
+        assert_eq!(wait_for(-1.0), None);
+        assert_eq!(wait_for(0.0), None);
+    }
+
+    /// `Crawl-delay: 1e18` never panicked; it slept for thirty-one
+    /// billion years, which is the same outage without a message.
+    #[test]
+    fn an_absurd_delay_is_capped_rather_than_obeyed() {
+        assert_eq!(wait_for(1e18), Some(MAX_CRAWL_DELAY));
+        assert_eq!(wait_for(1e300), Some(MAX_CRAWL_DELAY));
+        assert_eq!(wait_for(100_000_000_000.0), Some(MAX_CRAWL_DELAY));
+    }
+
+    /// An ordinary delay is honoured exactly. The cap is a backstop for
+    /// input nobody meant, not a policy about polite crawling.
+    #[test]
+    fn an_ordinary_delay_is_honoured_exactly() {
+        assert_eq!(wait_for(2.0), Some(Duration::from_secs(2)));
+        assert_eq!(wait_for(0.5), Some(Duration::from_millis(500)));
+        assert_eq!(wait_for(30.0), Some(Duration::from_secs(30)));
     }
 }

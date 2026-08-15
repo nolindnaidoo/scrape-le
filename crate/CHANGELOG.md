@@ -7,6 +7,30 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-08-15
+
+### Fixed
+
+- **A remote `Crawl-delay` can no longer end the process.**
+  `Crawl-delay: Infinity` is a legal parse — the spec pins
+  `Number.parseFloat` semantics and `parseFloat("Infinity")` is
+  infinite — and it reached `Duration::from_secs_f64`, which panics on a
+  non-finite float. The panic crossed a scoped thread and killed the
+  whole batch: exit 101, and stdout carried nothing at all, including
+  the URLs already fetched and reported. Any site could do it.
+
+- **A `Crawl-delay` is capped at five minutes.** `Crawl-delay: 1e18`
+  never panicked; it slept for roughly thirty-one billion years, which
+  is the same outage without a message. A plain typo —
+  `Crawl-delay: 100000000000` — did the same. `robots.crawl_delay` still
+  reports the declared value verbatim, so the output does not
+  misrepresent what the site asked for.
+
+  The cap is applied *before* the conversion, not after: `1e300` is
+  finite and positive and still too large for a `Duration`, so clamping
+  the result would have left the panic in place. The regression test
+  found that, having been written first.
+
 ## [0.1.4] - 2026-08-15
 
 ### Added
@@ -149,6 +173,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.1.5]: https://crates.io/crates/scrape-le/0.1.5
 [0.1.4]: https://crates.io/crates/scrape-le/0.1.4
 [0.1.3]: https://crates.io/crates/scrape-le/0.1.3
 [0.1.2]: https://crates.io/crates/scrape-le/0.1.2
