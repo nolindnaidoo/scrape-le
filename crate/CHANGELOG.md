@@ -7,6 +7,17 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-08-15
+
+### Added
+
+- **The crates.io page carries a demo of the CLI.** It had the icon and
+  nothing else, because the only recording in the repository was of the
+  VS Code extension reading an editor buffer — a clip of something this
+  binary does not do. `assets/demo.tape` records the real binary against
+  the files in `assets/demo/`, so the clip is reproducible (`cd assets
+  && vhs demo.tape`) rather than an artifact nobody can regenerate.
+
 ## [0.1.3] - 2026-08-15
 
 ### Fixed
@@ -138,6 +149,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.1.4]: https://crates.io/crates/scrape-le/0.1.4
 [0.1.3]: https://crates.io/crates/scrape-le/0.1.3
 [0.1.2]: https://crates.io/crates/scrape-le/0.1.2
 [0.1.1]: https://crates.io/crates/scrape-le/0.1.1
