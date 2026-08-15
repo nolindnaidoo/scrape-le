@@ -63,12 +63,46 @@ struct Group {
 pub(crate) struct RobotsDocument {
     groups: Vec<Group>,
     sitemaps: Vec<String>,
+    /// The rules exist and could not be read.
+    ///
+    /// RFC 9309 §2.3.1.4: a robots.txt unreachable through a server
+    /// error or a network failure means a crawler "MUST assume complete
+    /// disallow". That is not the same as §2.3.1.3's *unavailable* —
+    /// a 404, which allows everything — and collapsing the two reported
+    /// `exists: false, allows_crawling: true` over a 500, which is
+    /// "nothing forbids you" from a blip.
+    ///
+    /// Carried rather than baked into the rules so the report can say
+    /// which of the two happened: the verdict is a complete disallow
+    /// either way, but `exists` stays false and the finding says the
+    /// file could not be read instead of quoting a rule no server sent.
+    unreachable: bool,
 }
 
 impl RobotsDocument {
     pub(crate) fn parse(content: &str) -> Self {
         let (groups, sitemaps) = parse_groups(content);
-        Self { groups, sitemaps }
+        Self {
+            groups,
+            sitemaps,
+            unreachable: false,
+        }
+    }
+
+    /// A robots.txt that could not be read: RFC 9309 §2.3.1.4's complete
+    /// disallow, carrying the fact that no rule was actually served.
+    pub(crate) fn unreachable() -> Self {
+        let (groups, sitemaps) = parse_groups("User-agent: *\nDisallow: /\n");
+        Self {
+            groups,
+            sitemaps,
+            unreachable: true,
+        }
+    }
+
+    /// Whether the rules were assumed rather than served.
+    pub(crate) fn is_unreachable(&self) -> bool {
+        self.unreachable
     }
 
     /// Evaluates `pathname` against the rules that apply. `agent` is the
@@ -102,7 +136,8 @@ impl RobotsDocument {
         let decision = decide_path(pathname, &rules);
 
         RobotsTxtInfo {
-            exists: true,
+            // Never claim a file the origin did not serve.
+            exists: !self.unreachable,
             allows_crawling: decision.allowed,
             crawl_delay,
             disallowed_paths: rules
@@ -534,5 +569,38 @@ mod tests {
         assert!(!matches_robots_pattern("/*.json$", "/data.json?x=1"));
         assert!(matches_robots_pattern("/private*", "/private/file"));
         assert!(matches_robots_pattern("/", "/anything"));
+    }
+}
+
+#[cfg(test)]
+mod unreachable_tests {
+    use super::RobotsDocument;
+
+    /// **RFC 9309 draws a line this used to collapse.** §2.3.1.3: an
+    /// *unavailable* robots.txt — 404 — allows crawling, because the
+    /// site has no rules. §2.3.1.4: an *unreachable* one — 5xx or a
+    /// network failure — means "MUST assume complete disallow", because
+    /// the rules exist and could not be read. Both returned "no
+    /// robots.txt", so a 500 reported `allows_crawling: true`.
+    #[test]
+    fn an_unreachable_robots_txt_disallows_everything() {
+        let document = RobotsDocument::unreachable();
+        let info = document.evaluate("/anything", None);
+        assert!(!info.allows_crawling);
+        assert!(document.is_unreachable());
+    }
+
+    /// And it never claims a file the origin did not serve. Quoting a
+    /// rule here would have a reader fetch robots.txt, get a 500, and
+    /// find the tool's explanation contradicted by the server.
+    #[test]
+    fn an_unreachable_robots_txt_does_not_claim_to_exist() {
+        let info = RobotsDocument::unreachable().evaluate("/anything", None);
+        assert!(!info.exists);
+
+        // A served document still does.
+        let served = RobotsDocument::parse("User-agent: *\nDisallow: /admin\n");
+        assert!(served.evaluate("/admin", None).exists);
+        assert!(!served.is_unreachable());
     }
 }

@@ -262,6 +262,22 @@ hypocrisy the rest of this design does not permit. `--ignore-crawl-delay`
 is the explicit opt-out, and the report records that it was used, so the
 output cannot misrepresent how it was obtained.
 
+**An unreachable robots.txt disallows everything; an absent one does
+not.** RFC 9309 draws the line and this used to collapse it: §2.3.1.3
+says an *unavailable* robots.txt — a 404 — allows crawling, because the
+site has no rules, while §2.3.1.4 says an *unreachable* one — 5xx, or a
+network failure — means a crawler "MUST assume complete disallow",
+because the rules exist and could not be read. Both answered "no
+robots.txt", so a 500 reported `exists: false, allows_crawling: true`:
+"nothing forbids you", from a blip.
+
+The report says which happened. `exists` stays **false** — no file was
+served, and claiming one would have a reader fetch it, get a 500, and
+find the explanation contradicted — and the finding reads *robots.txt
+could not be read; assuming complete disallow*, quoting no rule. The
+assumed document is **not cached**, so the next URL on that host asks
+again rather than one dropped connection disallowing the rest of the run.
+
 **A declared delay is capped at five minutes.** The value is a third
 party's, so it is input rather than configuration, and two values a site
 can legally declare took the process out. `Crawl-delay: Infinity` parses

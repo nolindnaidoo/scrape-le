@@ -81,7 +81,17 @@ impl RobotsCache {
         // every host in the batch behind whichever one is answering
         // slowest, which is precisely the concurrency the scheduler
         // exists to provide.
-        let document = Arc::new(RobotsDocument::parse(&fetch_robots(agent, &origin)?));
+        let body = match fetch_robots(agent, &origin) {
+            RobotsFetch::Served(body) => body,
+            RobotsFetch::Absent => return None,
+            // **Not cached.** The rules are assumed, not served, and the
+            // cache holds only what an origin actually sent — otherwise
+            // one dropped connection would disallow every remaining URL
+            // on that host for the whole run, with no retry. Each URL
+            // asks again until an answer arrives.
+            RobotsFetch::Unreachable => return Some(Arc::new(RobotsDocument::unreachable())),
+        };
+        let document = Arc::new(RobotsDocument::parse(&body));
         if let Ok(mut origins) = self.origins.lock() {
             origins.insert(origin, Arc::clone(&document));
         }
@@ -143,20 +153,44 @@ pub(crate) fn fetch_robots_only(url: &str, robots: &RobotsCache) -> Option<Arc<R
     robots.document(&agent(), url)
 }
 
-/// `<origin>/robots.txt`, exactly one request. A non-2xx or
-/// unreachable robots.txt is `None` — "no robots.txt" — matching the
-/// extension's `response.ok` check.
-fn fetch_robots(agent: &ureq::Agent, origin: &str) -> Option<String> {
-    let mut response = agent.get(&format!("{origin}/robots.txt")).call().ok()?;
-    if !response.status().is_success() {
-        return None;
+/// `<origin>/robots.txt`, exactly one request.
+///
+/// **A 4xx and a 5xx are opposite answers.** RFC 9309 §2.3.1.3: an
+/// *unavailable* robots.txt — 404 and the rest of 4xx — allows
+/// crawling, because the site has no rules. §2.3.1.4: an *unreachable*
+/// one — 5xx, or a network failure — means "MUST assume complete
+/// disallow", because the rules exist and could not be read. This
+/// collapsed both into `None`, so a 500 reported `exists: false,
+/// allows_crawling: true`: "nothing forbids you", from a blip. SPEC.md
+/// already forbids exactly that for the batch cache.
+fn fetch_robots(agent: &ureq::Agent, origin: &str) -> RobotsFetch {
+    let Ok(mut response) = agent.get(&format!("{origin}/robots.txt")).call() else {
+        return RobotsFetch::Unreachable;
+    };
+    let status = response.status();
+    if status.is_server_error() {
+        return RobotsFetch::Unreachable;
+    }
+    if !status.is_success() {
+        return RobotsFetch::Absent;
     }
     response
         .body_mut()
         .with_config()
         .limit(BODY_LIMIT)
         .read_to_string()
-        .ok()
+        .map_or(RobotsFetch::Unreachable, RobotsFetch::Served)
+}
+
+/// What asking an origin for its robots.txt produced.
+enum RobotsFetch {
+    /// Served, 2xx. The rules are whatever it says.
+    Served(String),
+    /// Answered, not 2xx and not a server error: there are no rules.
+    Absent,
+    /// Could not be read — 5xx, a network failure, a body that would not
+    /// decode. The rules exist and are unknown.
+    Unreachable,
 }
 
 fn agent() -> ureq::Agent {

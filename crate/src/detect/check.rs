@@ -265,6 +265,21 @@ fn check_robots(
     if info.allows_crawling {
         return (CheckStatus::Ran, Some(report));
     }
+    // **Say which of the two happened.** A robots.txt that could not be
+    // read is a complete disallow by RFC 9309 §2.3.1.4, but no server
+    // sent the rule — quoting one would have a reader fetch the file,
+    // get a 500, and find the tool's explanation contradicted.
+    if document.is_unreachable() {
+        findings.push(Finding {
+            kind: "robots".to_string(),
+            severity: Severity::Blocks,
+            detail: "robots.txt could not be read; assuming complete disallow \
+                     (RFC 9309 §2.3.1.4)"
+                .to_string(),
+            evidence: json!({ "source": "robots.txt", "agent": info.agent }),
+        });
+        return (CheckStatus::Ran, Some(report));
+    }
     let rule = info.matched_rule.clone().unwrap_or_default();
     findings.push(Finding {
         kind: "robots".to_string(),

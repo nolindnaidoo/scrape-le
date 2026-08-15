@@ -7,6 +7,32 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-08-15
+
+### Fixed
+
+- **A 5xx robots.txt no longer reads as "nothing forbids you".** RFC
+  9309 §2.3.1.3 makes an *unavailable* robots.txt — a 404 — allow
+  crawling; §2.3.1.4 makes an *unreachable* one — 5xx or a network
+  failure — a complete disallow. Both collapsed to "no robots.txt", so a
+  500 reported `exists: false, allows_crawling: true`. That is
+  over-optimism in the one direction SPEC.md forbids, and it already
+  said so about the batch cache.
+
+### Changed
+
+- **The report distinguishes the two.** An unreachable robots.txt keeps
+  `exists: false` — no file was served — and its finding reads
+  *robots.txt could not be read; assuming complete disallow (RFC 9309
+  §2.3.1.4)*, quoting no rule. An earlier cut of this fix produced the
+  right verdict with a fabricated explanation, `Disallow: / for
+  User-agent: *`, which a reader could have disproved by fetching the
+  file.
+
+- The assumed document is **not cached**, so a transient failure does
+  not disallow every remaining URL on that host. The existing regression
+  covering exactly that caught the first attempt, which did cache it.
+
 ## [0.1.5] - 2026-08-15
 
 ### Fixed
@@ -173,6 +199,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.2.0]: https://crates.io/crates/scrape-le/0.2.0
 [0.1.5]: https://crates.io/crates/scrape-le/0.1.5
 [0.1.4]: https://crates.io/crates/scrape-le/0.1.4
 [0.1.3]: https://crates.io/crates/scrape-le/0.1.3
