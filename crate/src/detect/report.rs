@@ -90,5 +90,18 @@ pub(crate) struct Report {
     pub(crate) console_errors: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) screenshot: Option<String>,
+    /// Whether this run was told not to wait for a declared
+    /// `Crawl-delay` (`--ignore-crawl-delay`).
+    ///
+    /// **Always serialized, never skipped.** The point of honouring a
+    /// site's declared delay is that the output says how it was
+    /// obtained, and a field that disappears when false is a report
+    /// that says nothing — two runs of the same batch, one polite and
+    /// one not, were byte-identical apart from `timing_ms`. The MCP
+    /// surface has no such option and always reports `false`; that its
+    /// URLs carry no between-request wait at all is the terminal-only
+    /// divergence SPEC.md records, not this flag.
+    #[serde(default)]
+    pub(crate) crawl_delay_ignored: bool,
     pub(crate) timing_ms: Timing,
 }

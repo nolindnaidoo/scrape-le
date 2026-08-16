@@ -160,6 +160,7 @@ a second prose generator that could drift from it.
   "checks_skipped": [],
   "console_errors": [],
   "screenshot": "./scrape-le-example.com-20260805.png",
+  "crawl_delay_ignored": false,
   "timing_ms": { "fetch": 210, "render": 1840, "total": 2104 }
 }
 ```
@@ -259,8 +260,16 @@ would be safe to keep, so it keeps none between calls.
 **`Crawl-delay` is honored between same-host requests.** The parser
 already reads it. Reporting a site's declared delay while ignoring it is
 hypocrisy the rest of this design does not permit. `--ignore-crawl-delay`
-is the explicit opt-out, and the report records that it was used, so the
-output cannot misrepresent how it was obtained.
+is the explicit opt-out, and **every report of that run carries
+`crawl_delay_ignored: true`**, with the batch summary and the single-URL
+summary saying the same — so the output cannot misrepresent how it was
+obtained. The field is always present: one that vanished when false
+would leave a polite run and an impolite one byte-identical apart from
+`timing_ms`, which is the same silence with extra steps.
+
+The MCP surface has no such option and always reports `false`. That its
+URLs carry no between-request wait at all is the terminal-only
+divergence recorded below, not this flag.
 
 **An unreachable robots.txt disallows everything; an absent one does
 not.** RFC 9309 draws the line and this used to collapse it: §2.3.1.3

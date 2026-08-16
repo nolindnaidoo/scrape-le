@@ -270,7 +270,12 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
                 if let Ok(mut count) = malformed.lock() {
                     *count += 1;
                 }
-                blocked_report(&target.url, &reason, Some(target.index))
+                blocked_report(
+                    &target.url,
+                    &reason,
+                    Some(target.index),
+                    options.ignore_crawl_delay,
+                )
             }
         },
         &emit,
@@ -285,6 +290,12 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
         summary.total(),
         started.elapsed().as_secs_f64()
     );
+    // A batch is where the wait actually costs something, and the batch
+    // summary is the only human output it produces — so the fact the
+    // reports carry is said here rather than only in the JSON.
+    if options.ignore_crawl_delay {
+        eprintln!("declared Crawl-delay not waited for (--ignore-crawl-delay)");
+    }
 
     if malformed.into_inner().unwrap_or(0) > 0 {
         return ExitCode::from(2);
@@ -371,6 +382,11 @@ fn render_human(report: &Report) {
             robots.agent
         );
     }
+    // The summary is a projection of the report, so what the report
+    // records about how it was obtained is said here too.
+    if report.crawl_delay_ignored {
+        eprintln!("  robots  declared Crawl-delay not waited for (--ignore-crawl-delay)");
+    }
     let checks = [
         ("antibot", report.checks.antibot),
         ("rate-limit", report.checks.rate_limit),
@@ -403,7 +419,12 @@ fn verdict_word(verdict: Verdict) -> &'static str {
     }
 }
 
-pub(crate) fn blocked_report(url: &str, reason: &str, index: Option<usize>) -> Report {
+pub(crate) fn blocked_report(
+    url: &str,
+    reason: &str,
+    index: Option<usize>,
+    crawl_delay_ignored: bool,
+) -> Report {
     use crate::detect::report::{Checks, Finding, Timing};
     Report {
         schema: 1,
@@ -434,6 +455,7 @@ pub(crate) fn blocked_report(url: &str, reason: &str, index: Option<usize>) -> R
         robots: None,
         console_errors: Vec::new(),
         screenshot: None,
+        crawl_delay_ignored,
         timing_ms: Timing {
             fetch: 0,
             render: None,

@@ -43,7 +43,10 @@ pub(crate) fn check_url(
             Err(FetchError::Malformed(reason)) => return CheckOutcome::Malformed(reason),
             Err(FetchError::Blocked(reason)) => {
                 return CheckOutcome::Report(Box::new(crate::cli::blocked_report(
-                    url, &reason, index,
+                    url,
+                    &reason,
+                    index,
+                    options.ignore_crawl_delay,
                 )));
             }
         },
@@ -56,6 +59,7 @@ pub(crate) fn check_url(
         &CheckOptions {
             agent: options.agent.clone(),
             index,
+            ignore_crawl_delay: options.ignore_crawl_delay,
         },
     );
     CheckOutcome::Report(Box::new(report))

@@ -325,6 +325,7 @@ mod tests {
             robots: None,
             console_errors: Vec::new(),
             screenshot: None,
+            crawl_delay_ignored: false,
             timing_ms: Timing {
                 fetch: 1,
                 render: None,

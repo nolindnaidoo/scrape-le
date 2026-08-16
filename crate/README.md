@@ -111,7 +111,7 @@ which checks were partial.
 | `--agent <token>` | evaluate robots.txt as this crawler (RFC 9309 group selection) instead of `User-agent: *` |
 | `--signatures <file>` | add or replace vendor signatures from a TOML file |
 | `--concurrency <n>` | hosts checked at once (default 4); same-host URLs are always sequential |
-| `--ignore-crawl-delay` | do not honour a declared `Crawl-delay`; recorded in the report when used |
+| `--ignore-crawl-delay` | do not honour a declared `Crawl-delay`; every report of the run then carries `crawl_delay_ignored: true`, and the summary says so |
 | `doctor` | is a browser available, which one, what will run |
 | `mcp` | serve the same checks over MCP on stdio |
 

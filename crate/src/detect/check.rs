@@ -99,6 +99,9 @@ pub(crate) struct CheckOptions {
     pub(crate) agent: Option<String>,
     /// the URL's position in a batch input
     pub(crate) index: Option<usize>,
+    /// the run was told not to wait for a declared `Crawl-delay`, which
+    /// the report carries so it cannot misrepresent how it was obtained
+    pub(crate) ignore_crawl_delay: bool,
 }
 
 pub(crate) fn check(evidence: &Evidence, options: &CheckOptions) -> Report {
@@ -146,6 +149,7 @@ pub(crate) fn check(evidence: &Evidence, options: &CheckOptions) -> Report {
         robots,
         console_errors: render.map(|r| r.console_errors.clone()).unwrap_or_default(),
         screenshot: render.and_then(|r| r.screenshot.clone()),
+        crawl_delay_ignored: options.ignore_crawl_delay,
         timing_ms: Timing {
             fetch: evidence.fetch_ms,
             render: render.map(|r| r.render_ms),
@@ -723,7 +727,7 @@ mod tests {
         // `blocked` belongs to a page that could not be reached at all,
         // so it is built by the surfaces rather than by `check`.
         assert_eq!(
-            crate::cli::blocked_report("https://example.com", "dns failure", None).verdict,
+            crate::cli::blocked_report("https://example.com", "dns failure", None, false).verdict,
             Verdict::Blocked
         );
 

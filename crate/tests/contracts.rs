@@ -373,6 +373,48 @@ fn a_failed_robots_txt_does_not_answer_for_the_rest_of_the_run() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
+/// **Regression.** `--ignore-crawl-delay` worked and left no trace: a
+/// three-URL batch on one host dropped from 4.02s to 0.00s, and the
+/// reports were byte-identical apart from `timing_ms`. README, SPEC and
+/// `--help` all promise the report records that the flag was used, so
+/// the output cannot misrepresent how it was obtained.
+#[test]
+fn ignoring_the_crawl_delay_is_recorded_in_every_report() {
+    let port = start_server();
+    let urls = [
+        format!("http://127.0.0.1:{port}/open"),
+        format!("http://127.0.0.1:{port}/forbidden"),
+    ];
+    let (input, directory) = batch_input(port, "delay", &urls);
+    let path = input.to_str().expect("path");
+
+    let honoured = run(&["--input", path]);
+    let ignored = run(&["--input", path, "--ignore-crawl-delay"]);
+
+    for line in honoured.stdout.lines() {
+        let report: serde_json::Value = serde_json::from_str(line).expect("JSON");
+        assert_eq!(
+            report["crawl_delay_ignored"], false,
+            "a polite run claimed the delay was skipped: {line}"
+        );
+    }
+    for line in ignored.stdout.lines() {
+        let report: serde_json::Value = serde_json::from_str(line).expect("JSON");
+        assert_eq!(
+            report["crawl_delay_ignored"], true,
+            "the flag left no trace in the report: {line}"
+        );
+    }
+
+    // And a single URL, which shares the projection but not the batch.
+    let single = run(&[&urls[0], "--ignore-crawl-delay"]);
+    let report: serde_json::Value =
+        serde_json::from_str(single.stdout.lines().next().expect("a report")).expect("JSON");
+    assert_eq!(report["crawl_delay_ignored"], true);
+
+    std::fs::remove_dir_all(&directory).ok();
+}
+
 /// The CLI and the MCP server must answer the same URL identically —
 /// asserted directly, so neither surface can drift from the other.
 #[test]
