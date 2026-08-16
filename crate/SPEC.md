@@ -137,6 +137,13 @@ redirects.
 Status, page title, load time, console errors, and a full-page
 screenshot — as the extension reports them.
 
+**The screenshot is written into the working directory** on every
+rendered check, and `--help`, the README and the report all say so:
+`scrape-le-<host>-<date>-<digest>.png`, the digest taken over the whole
+URL. Host and date alone had a batch of paths on one site overwrite one
+image and every report but the last name a picture of a page it had not
+checked, so the name identifies the URL, not the site.
+
 ## Output
 
 One JSON report per URL on stdout, a human summary on stderr, and an exit
@@ -165,7 +172,7 @@ a second prose generator that could drift from it.
               "robots": "ran", "auth": "ran" },
   "checks_skipped": [],
   "console_errors": [],
-  "screenshot": "./scrape-le-example.com-20260805.png",
+  "screenshot": "./scrape-le-example-com-2026-08-05-75e891e1.png",
   "crawl_delay_ignored": false,
   "timing_ms": { "fetch": 210, "render": 1840, "total": 2104 }
 }

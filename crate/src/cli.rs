@@ -38,7 +38,9 @@ Options:
                          recorded in the report when used
 
 Rendering is the default and drives a browser you already have (Chrome,
-Chromium, Brave, Edge — or set CHROME). It never downloads one.
+Chromium, Brave, Edge — or set CHROME). It never downloads one. Every
+rendered check writes a full-page PNG into the working directory, one
+per URL per day, and the report names the file.
 
 Exit codes: 0 clear · 1 restricted/blocked/inconclusive · 2 malformed question.
 For a batch, the exit code is the worst verdict in it.";

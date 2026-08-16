@@ -92,6 +92,30 @@ fn check(url: &str) -> (i32, serde_json::Value) {
     (code, report)
 }
 
+/// Runs a batch in a directory of its own. The working directory is
+/// where a rendered check writes its screenshot, so a directory per run
+/// is what makes the images countable.
+fn check_batch(name: &str, urls: &[String]) -> (Vec<serde_json::Value>, std::path::PathBuf) {
+    let directory = std::env::temp_dir().join(format!("scrape-le-scenario-{name}"));
+    std::fs::remove_dir_all(&directory).ok();
+    std::fs::create_dir_all(&directory).expect("temp dir");
+    let input = directory.join("urls.txt");
+    std::fs::write(&input, urls.join("\n")).expect("write input");
+
+    let binary = env!("CARGO_BIN_EXE_scrape-le");
+    let output = Command::new(binary)
+        .arg("--input")
+        .arg(&input)
+        .current_dir(&directory)
+        .output()
+        .expect("binary runs");
+    let reports = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("a JSON report"))
+        .collect();
+    (reports, directory)
+}
+
 #[test]
 fn a_fully_rendered_clean_page_is_clear() {
     if !enabled() {
@@ -164,4 +188,46 @@ fn a_script_written_vendor_global_is_detected() {
         antibot["evidence"]["signal"], ".g-recaptcha",
         "the finding does not say which selector fired: {antibot}"
     );
+}
+
+/// **Regression.** The screenshot name came from the host and the date,
+/// so every URL on a site shared one on the same day: a batch wrote one
+/// image, overwrote it per URL, and every report but the last named a
+/// picture of a page it had not checked. Only a real capture can show
+/// it — the name is pinned by a unit test, the file on disk is not.
+#[test]
+fn two_pages_on_one_host_do_not_share_one_screenshot() {
+    if !enabled() {
+        eprintln!("skipped: set SCRAPE_LE_SCENARIOS=1 and have a browser installed");
+        return;
+    }
+    let _serialized = one_browser_at_a_time();
+    let port = start_server();
+    let urls = [
+        format!("http://127.0.0.1:{port}/clean"),
+        format!("http://127.0.0.1:{port}/widget"),
+    ];
+    let (reports, directory) = check_batch("shots", &urls);
+
+    assert_eq!(reports.len(), 2, "{reports:?}");
+    let named: Vec<&str> = reports
+        .iter()
+        .map(|report| report["screenshot"].as_str().expect("a screenshot"))
+        .collect();
+    assert_ne!(named[0], named[1], "two pages, one file: {named:?}");
+    for name in &named {
+        let path = directory.join(name.trim_start_matches("./"));
+        assert!(
+            path.exists(),
+            "the report names an image nothing wrote: {name}"
+        );
+    }
+    let written = std::fs::read_dir(&directory)
+        .expect("read the run's directory")
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "png"))
+        .count();
+    assert_eq!(written, 2, "two pages wrote {written} image(s)");
+
+    std::fs::remove_dir_all(&directory).ok();
 }

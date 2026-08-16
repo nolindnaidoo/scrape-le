@@ -334,10 +334,12 @@ fn evaluate_string(tab: &headless_chrome::Tab, script: &str) -> Result<String, S
         .ok_or_else(|| "evaluate returned no string".to_string())
 }
 
-/// Full-page screenshot into the working directory, named like the
-/// extension's `convertUrlToFilename`: hostname with dots dashed plus
-/// the date — which means a same-day re-check overwrites, exactly as
-/// the extension documents.
+/// Full-page screenshot into the working directory — every rendered
+/// check writes one, which `--help`, the README and SPEC.md all say.
+///
+/// Named for the URL and the date, so a same-day re-check of the *same*
+/// URL overwrites, as the extension documents, and two URLs never
+/// collide.
 ///
 /// Full-page is done by emulating a viewport the size of the document
 /// and capturing that, then clearing the override. `capture_screenshot`
@@ -365,14 +367,37 @@ fn capture_screenshot(tab: &headless_chrome::Tab, url: &str) -> Option<String> {
 /// platform separator, and the same repository then described itself two
 /// ways depending on the machine that ran the check.
 ///
+/// **The whole URL decides the name, not just its host.** Host and date
+/// alone gave every URL on a site the same filename on the same day, so
+/// a three-URL batch on one host wrote one image three times and two of
+/// the three reports named a picture of a page they had not checked.
+/// Two reports share a name exactly when they checked the same URL,
+/// which the batch's duplicate-dropping already makes one check.
+///
 /// Split out from the capture so the shape can be asserted without a
 /// browser; the capture itself belongs to `scenarios`.
 fn screenshot_name(url: &str, date: (i64, u8, u8)) -> Option<String> {
     let hostname = url::Url::parse(url).ok()?.host_str()?.replace('.', "-");
     let (year, month, day) = date;
     Some(format!(
-        "scrape-le-{hostname}-{year:04}-{month:02}-{day:02}.png"
+        "scrape-le-{hostname}-{year:04}-{month:02}-{day:02}-{:08x}.png",
+        digest(url)
     ))
+}
+
+/// FNV-1a over the URL, for the filename's per-URL half.
+///
+/// Hand-rolled rather than `DefaultHasher`, whose output the standard
+/// library does not promise to keep stable across releases: a name that
+/// moved with the compiler would have one check answer two ways, and the
+/// report's own test pins the string. Not a security boundary — it
+/// separates URLs in a directory listing, nothing more.
+fn digest(url: &str) -> u32 {
+    const OFFSET: u32 = 0x811c_9dc5;
+    const PRIME: u32 = 0x0100_0193;
+    url.bytes().fold(OFFSET, |hash, byte| {
+        (hash ^ u32::from(byte)).wrapping_mul(PRIME)
+    })
 }
 
 /// Emulates a viewport as tall as the document, so the capture covers
@@ -468,9 +493,32 @@ mod tests {
     fn the_screenshot_name_is_the_same_on_every_platform() {
         let name = screenshot_name("https://sub.example.com/a/b?c=1", (2026, 8, 6))
             .expect("a name for a URL with a host");
-        assert_eq!(name, "scrape-le-sub-example-com-2026-08-06.png");
+        assert_eq!(name, "scrape-le-sub-example-com-2026-08-06-58dbc252.png");
         assert!(!name.contains('\\'), "{name}");
         assert!(!name.contains(std::path::MAIN_SEPARATOR), "{name}");
+    }
+
+    /// **Regression.** The name came from the host and the date, so a
+    /// batch of three paths on one host wrote one file three times and
+    /// reports 0 and 1 pointed at report 2's page — the report naming an
+    /// image of something it had not checked.
+    #[test]
+    fn two_urls_on_one_host_do_not_share_a_screenshot_name() {
+        let date = (2026, 8, 6);
+        let first = screenshot_name("https://example.com/a", date).expect("a name");
+        let second = screenshot_name("https://example.com/b", date).expect("a name");
+        assert_ne!(first, second);
+        // Same URL, same day, same file: a re-check overwrites its own
+        // image rather than accumulating one per run.
+        assert_eq!(
+            first,
+            screenshot_name("https://example.com/a", date).expect("a name")
+        );
+        // A query string is part of the URL, so it is part of the name.
+        assert_ne!(
+            first,
+            screenshot_name("https://example.com/a?page=2", date).expect("a name")
+        );
     }
 
     #[test]

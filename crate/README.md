@@ -73,6 +73,11 @@ malformed.** Every finding carries its evidence — not "Cloudflare
 detected" but which signal, from which source — so a false positive is
 diagnosable rather than mysterious.
 
+A rendered check also writes a full-page PNG into the **working
+directory**, named `scrape-le-<host>-<date>-<digest of the URL>.png`,
+and the report carries the path. One file per URL per day: a re-check
+overwrites its own image, and two URLs never overwrite each other's.
+
 ## Install
 
 | Route | Command | Worth knowing |

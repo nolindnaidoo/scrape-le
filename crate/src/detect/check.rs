@@ -410,7 +410,7 @@ mod tests {
                 keyword: None,
             },
             console_errors: Vec::new(),
-            screenshot: Some("./scrape-le-example-com-2026-08-06.png".to_string()),
+            screenshot: Some("./scrape-le-example-com-2026-08-06-75e891e1.png".to_string()),
             render_ms: 1500,
         }
     }
