@@ -103,17 +103,48 @@ pub(crate) fn target_in_text(raw: &str) -> Option<String> {
     }
 }
 
-/// The scheme of an input written `<scheme>://…`, which is the only
-/// shape the blind prefixing can turn into a host. `localhost:3000`
-/// carries no authority marker and stays what it has always been: a bare
-/// host to prefix.
+/// The scheme of an input, whether or not it carries `://`.
+///
+/// The authority marker is the easy half. The hard half is a scheme
+/// written without one, because `mailto:x@y.com` and `localhost:3000`
+/// have the same shape and only what follows the colon tells them apart.
+/// Left unread, `mailto:x@y.com` was prefixed into
+/// `https://mailto:x@y.com` — userinfo `mailto:x`, **host `y.com`** —
+/// which validates, so the run fetched a host nobody named from a string
+/// that is not an http(s) URL at all. `javascript:` and `data:` were
+/// refused only because they happen not to parse.
+///
+/// So a colon names a scheme when what follows it cannot be a port, and
+/// names a port otherwise. `example.com:` stays a host: the corpus pins
+/// it, and an empty port is what a URL parser reads there too.
 fn scheme_of(url: &str) -> Option<&str> {
-    let (scheme, _) = url.split_once("://")?;
+    // `<scheme>://…`. Read here and nowhere else, so an entry that
+    // carries an authority marker keeps taking the path it always took —
+    // `warn: https://example.com/x` is text around a URL, not a scheme
+    // called `warn`, and the colon rule below must never reach it.
+    if let Some((scheme, _)) = url.split_once("://") {
+        return valid_scheme(scheme);
+    }
+    let (scheme, rest) = url.split_once(':')?;
+    let scheme = valid_scheme(scheme)?;
+    (!is_port(rest)).then_some(scheme)
+}
+
+/// RFC 3986 §3.1: `ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )`.
+fn valid_scheme(scheme: &str) -> Option<&str> {
     let mut characters = scheme.chars();
     let first = characters.next()?;
     (first.is_ascii_alphabetic()
         && characters.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')))
     .then_some(scheme)
+}
+
+/// Whether what follows a colon is a port rather than the rest of a URI:
+/// digits, up to whatever ends the authority. Empty counts, because
+/// `example.com:` is a host with no port and the corpus pins it as one.
+fn is_port(rest: &str) -> bool {
+    let port = rest.split(['/', '?', '#']).next().unwrap_or(rest);
+    port.is_empty() || port.bytes().all(|b| b.is_ascii_digit())
 }
 
 fn is_http(scheme: &str) -> bool {
@@ -183,6 +214,66 @@ mod tests {
         ] {
             assert_eq!(target_url(raw), None, "{raw}");
             assert_eq!(target_in_text(raw), None, "{raw}");
+        }
+    }
+
+    /// **Regression.** A scheme carrying no `://` was not a scheme to
+    /// this, so the blind prefixing turned `mailto:x@y.com` into
+    /// `https://mailto:x@y.com` — a URL whose *userinfo* is `mailto:x`
+    /// and whose **host is `y.com`**. It validated, and the run then
+    /// fetched a host nobody named, from a string that is not an
+    /// http(s) URL at all.
+    #[test]
+    fn a_scheme_without_an_authority_marker_is_still_a_scheme() {
+        for raw in [
+            "mailto:x@y.com",
+            "MAILTO:x@y.com",
+            "tel:+15551234",
+            "about:blank",
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "urn:isbn:0451450523",
+        ] {
+            assert_eq!(target_url(raw), None, "{raw}");
+            assert_eq!(target_in_text(raw), None, "{raw}");
+        }
+    }
+
+    /// And the colon that is a *port* still is one. This is the whole
+    /// difficulty: `localhost:3000` and `mailto:x@y.com` have the same
+    /// shape, and only what follows the colon tells them apart.
+    #[test]
+    fn a_port_is_not_mistaken_for_a_scheme() {
+        for (raw, expected) in [
+            ("localhost:3000", "https://localhost:3000"),
+            ("localhost:3000/admin", "https://localhost:3000/admin"),
+            ("example.com:8080/path", "https://example.com:8080/path"),
+            ("127.0.0.1:8731/plain", "https://127.0.0.1:8731/plain"),
+            ("example.com:", "https://example.com:"),
+            ("example.com", "https://example.com"),
+        ] {
+            assert_eq!(target_url(raw).as_deref(), Some(expected), "{raw}");
+        }
+    }
+
+    /// A batch entry may carry a URL amid text, and a colon in that text
+    /// must not swallow it. `warn: https://example.com/x` still yields
+    /// the URL — the refusal above is scoped to entries with no
+    /// authority marker anywhere, which is the only shape the blind
+    /// prefixing can turn into a host.
+    #[test]
+    fn a_colon_in_surrounding_text_does_not_swallow_the_url() {
+        for raw in [
+            "warn: https://example.com/x",
+            "warn:https://example.com/x",
+            "2026-08-16T00:00:00Z https://example.com/x",
+            "Line 12: https://example.com/x",
+        ] {
+            assert_eq!(
+                target_in_text(raw).as_deref(),
+                Some("https://example.com/x"),
+                "{raw}"
+            );
         }
     }
 

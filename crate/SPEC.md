@@ -261,11 +261,23 @@ verdict the URLs that ran produced. How a batch is scheduled is
 **The scheme decides whether the question can be asked at all.** `http`
 and `https` in any case, because RFC 3986 §3.1 makes a scheme
 case-insensitive and `fixtures/url.json` pins `HTTPS://EXAMPLE.COM`
-valid; anything else — `ftp:`, `file:`, `javascript:`, `data:` — is exit
-2 saying it is not an http(s) URL. A bare `example.com` or
-`localhost:3000` is still prefixed with `https://`, the corpus quirk;
-what is not prefixed is an input that already names a scheme, which used
-to become a *host* called `ftp` and be refused as a DNS failure.
+valid; anything else — `ftp:`, `file:`, `javascript:`, `data:`,
+`mailto:`, `tel:` — is exit 2 saying it is not an http(s) URL. A bare
+`example.com` or `localhost:3000` is still prefixed with `https://`, the
+corpus quirk; what is not prefixed is an input that already names a
+scheme, which used to become a *host* called `ftp` and be refused as a
+DNS failure.
+
+**A scheme is read whether or not it carries `://`**, because that is the
+shape the prefixing did real damage in: `mailto:x@y.com` became
+`https://mailto:x@y.com` — userinfo `mailto:x`, host `y.com` — which
+validates, so the run **fetched a host nobody named** from a string that
+is not an http(s) URL at all. `localhost:3000` is the same shape and must
+stay a host, so a colon names a scheme only when what follows it cannot
+be a port; an empty port keeps `example.com:` a host, as the corpus pins.
+An entry carrying `://` anywhere is read the way it always was, so
+`warn: https://example.com/x` in a batch still yields its URL rather than
+being refused as a scheme called `warn`.
 
 ## Batches
 

@@ -31,6 +31,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/café/page`, which is why the two servers agreed while both were
   wrong.
 
+- **A scheme written without `://` was fetched as a host.**
+  `mailto:x@y.com` was prefixed into `https://mailto:x@y.com`, whose
+  userinfo is `mailto:x` and whose **host is `y.com`** — so a run made a
+  request to a host nobody named, from a string that is not an http(s)
+  URL at all. 0.3.0 refused `ftp://` and `file://` by name but read a
+  scheme only when it carried an authority marker, and `javascript:` and
+  `data:` escaped only because they happen not to parse. A scheme is now
+  read either way, and `mailto:`, `tel:`, `about:` and `urn:` are exit 2
+  naming the scheme.
+
+  `localhost:3000` has the same shape and is the reason this needed
+  care: a colon names a scheme only when what follows it cannot be a
+  port, so `localhost:3000`, `example.com:8080/path`, `1.2.3.4:59999`
+  and the corpus's `example.com:` are all still hosts. An entry carrying
+  `://` anywhere keeps the reading it had, so a batch line like
+  `warn: https://example.com/x` still yields its URL instead of being
+  refused as a scheme called `warn`.
+
 ### Changed
 
 - **Longest-match-wins is measured on the encoded pattern**, which is
