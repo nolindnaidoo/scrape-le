@@ -182,12 +182,11 @@ fn check_tool(arguments: &Value) -> Value {
 
     let mut reports = Vec::with_capacity(urls.len());
     for (index, raw) in urls.iter().enumerate() {
-        let url = crate::detect::url::normalize_url(raw);
-        if !crate::detect::url::validate_url(&url) {
+        let Some(url) = crate::detect::url::target_url(raw) else {
             // The caller asked something unanswerable. That is a
             // tool-level failure it can fix, not the server breaking.
             return tool_failure(&format!("{raw} is not an http or https URL"));
-        }
+        };
         let position = (urls.len() > 1).then_some(index);
         match check_url(&url, position, &options, &robots) {
             CheckOutcome::Report(report) => {

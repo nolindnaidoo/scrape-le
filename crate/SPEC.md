@@ -228,8 +228,18 @@ extension.** A JSON array of strings, a JSON array of objects with a
 `url` key, a CSV with a `url` column, or a bare newline-separated list.
 
 A malformed entry is exit 2 naming the line — it does not poison the rest
-of the batch, which still runs and still reports. How a batch is
-scheduled is **Batches** below.
+of the batch, which still runs and still reports, and 2 outranks every
+verdict the URLs that ran produced. How a batch is scheduled is
+**Batches** below.
+
+**The scheme decides whether the question can be asked at all.** `http`
+and `https` in any case, because RFC 3986 §3.1 makes a scheme
+case-insensitive and `fixtures/url.json` pins `HTTPS://EXAMPLE.COM`
+valid; anything else — `ftp:`, `file:`, `javascript:`, `data:` — is exit
+2 saying it is not an http(s) URL. A bare `example.com` or
+`localhost:3000` is still prefixed with `https://`, the corpus quirk;
+what is not prefixed is an input that already names a scheme, which used
+to become a *host* called `ftp` and be refused as a DNS failure.
 
 ## Batches
 

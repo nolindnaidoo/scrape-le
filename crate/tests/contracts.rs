@@ -130,6 +130,9 @@ fn serve_one(mut stream: TcpStream, robots_requests: &AtomicUsize, fail_first: u
 struct Run {
     code: i32,
     stdout: String,
+    /// the human half — a refusal has to say what is actually wrong,
+    /// and only stderr carries it
+    stderr: String,
 }
 
 /// Runs the built binary. `--no-render` throughout: these tests pin the
@@ -143,6 +146,7 @@ fn run(args: &[&str]) -> Run {
     Run {
         code: output.status.code().expect("exit code"),
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
     }
 }
 
@@ -216,6 +220,52 @@ fn a_vendor_header_warns_and_names_its_evidence() {
 fn an_unparseable_url_exits_2() {
     let run = run(&["not a url at all"]);
     assert_eq!(run.code, 2);
+}
+
+/// **Regression.** A scheme is case-insensitive (RFC 3986 §3.1) and
+/// `fixtures/url.json` pins `HTTPS://EXAMPLE.COM` valid, but the blind
+/// `https://` prefixing did not recognise an upper-case one: it became
+/// `https://HTTP://host/…`, a host called `http`, and the run was
+/// refused as a DNS failure — an error about the network for a question
+/// about the scheme. `ftp://` and `file://` said the same, while
+/// `javascript:` and `data:`, which carry no `://` to be prefixed past,
+/// said what was actually wrong.
+#[test]
+fn an_upper_case_scheme_is_checked_and_an_unanswerable_one_says_so() {
+    let port = start_server();
+    let upper = run(&[&format!("HTTP://127.0.0.1:{port}/open")]);
+    assert_eq!(upper.code, 1, "{}", upper.stderr);
+    assert_eq!(verdict_of(&upper.stdout), "inconclusive");
+    let report: serde_json::Value =
+        serde_json::from_str(upper.stdout.lines().next().expect("a report")).expect("JSON");
+    assert_eq!(report["url"], format!("http://127.0.0.1:{port}/open"));
+
+    for raw in [
+        "ftp://example.com",
+        "file:///etc/hosts",
+        "javascript:alert(1)",
+        "data:text/html,x",
+    ] {
+        let refused = run(&[raw]);
+        assert_eq!(refused.code, 2, "{raw}");
+        assert!(refused.stdout.is_empty(), "{raw} wrote a report");
+        assert!(
+            refused.stderr.contains("not an http(s) URL"),
+            "{raw} was refused as {:?}",
+            refused.stderr.trim()
+        );
+    }
+
+    // And a batch entry answers the same way, naming its position.
+    let (input, directory) = batch_input(port, "schemes", &["ftp://example.com".to_string()]);
+    let batch = run(&["--input", input.to_str().expect("path")]);
+    assert_eq!(batch.code, 2);
+    assert!(
+        batch.stderr.contains("entry 0 is not an http(s) URL"),
+        "{}",
+        batch.stderr
+    );
+    std::fs::remove_dir_all(&directory).ok();
 }
 
 #[test]

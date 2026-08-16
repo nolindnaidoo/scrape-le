@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use crate::batch::{BatchOptions, DEFAULT_CONCURRENCY, Summary, Target};
 use crate::check_url::{CheckOutcome, check_url};
 use crate::detect::report::{CheckStatus, Report, Severity, Verdict};
-use crate::detect::url::{extract_url, normalize_url, validate_url};
+use crate::detect::url::{target_in_text, target_url};
 use crate::fetch::RobotsCache;
 
 const USAGE: &str = "usage: scrape-le [options] <url>
@@ -178,11 +178,10 @@ fn value<'a>(iter: &mut impl Iterator<Item = &'a String>, flag: &str) -> Result<
 }
 
 fn run_single(raw: &str, options: &Options) -> ExitCode {
-    let url = normalize_url(raw);
-    if !validate_url(&url) {
+    let Some(url) = target_url(raw) else {
         eprintln!("scrape-le: not an http(s) URL: {raw}");
         return ExitCode::from(2);
-    }
+    };
     match check_url(&url, None, options, &RobotsCache::new()) {
         CheckOutcome::Malformed(reason) => {
             eprintln!("scrape-le: {reason}");
@@ -225,14 +224,13 @@ fn run_batch(source: &str, options: &Options) -> ExitCode {
     let mut malformed = 0;
     for (index, raw_url) in urls.iter().enumerate() {
         // A batch line may carry a URL amid other text (a log line, a
-        // note column); extract_url finds it and falls back to plain
-        // normalization for a bare domain.
-        let url = extract_url(raw_url).unwrap_or_else(|| normalize_url(raw_url));
-        if !validate_url(&url) {
+        // note column); `target_in_text` finds it and falls back to
+        // plain normalization for a bare domain.
+        let Some(url) = target_in_text(raw_url) else {
             eprintln!("scrape-le: entry {index} is not an http(s) URL: {raw_url}");
             malformed += 1;
             continue;
-        }
+        };
         targets.push(Target { index, url });
     }
     if targets.is_empty() {

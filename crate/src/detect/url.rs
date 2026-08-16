@@ -50,6 +50,76 @@ pub(crate) fn normalize_url(url: &str) -> String {
     format!("https://{trimmed}")
 }
 
+/// The URL a run will actually check, or `None` when the input names
+/// none this tool can answer for.
+///
+/// **Composed from the three functions above rather than changing any of
+/// them.** `../fixtures/url.json` pins their answers — including the
+/// blind `https://` prefixing, which is one of the quirks it pins — and
+/// this is the surfaces' guard in front of them, not a new port.
+///
+/// The prefixing is what made `ftp://example.com` read as a *host*
+/// called `ftp`: it validated, and the run then died resolving it, so a
+/// question about a scheme was refused as a failure of the network.
+/// `javascript:` and `data:` carry no `://` and were already refused
+/// truthfully; these now say the same thing.
+///
+/// RFC 3986 §3.1 also makes a scheme case-insensitive, and the corpus
+/// pins `HTTPS://EXAMPLE.COM` valid — but `HTTP://host/x` did not start
+/// with a prefix this recognised, so it was prefixed into a host called
+/// `http` and refused as DNS too. The scheme is lower-cased and the rest
+/// of the input kept verbatim, so nothing else about the URL moves.
+pub(crate) fn target_url(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    let candidate = match scheme_of(trimmed) {
+        Some(scheme) if is_http(scheme) => {
+            format!("{}{}", scheme.to_lowercase(), &trimmed[scheme.len()..])
+        }
+        // A scheme this tool cannot answer for is a malformed question,
+        // not a host nobody typed.
+        Some(_) => return None,
+        None => normalize_url(trimmed),
+    };
+    validate_url(&candidate).then_some(candidate)
+}
+
+/// The same, for a batch entry — which may carry a URL amid other text,
+/// a log line or a CSV note column, where a command-line argument is
+/// the URL itself.
+///
+/// What an entry is written as decides which half answers, because
+/// neither half alone is right: `extract_url`'s regex spells `https?` in
+/// lower case, so an upper-case scheme misses it and falls through to
+/// the blind prefixing, while `target_url` would take
+/// `(https://example.com/x)` whole — `(https` is a legal host to the URL
+/// parser, so the prefixed string validates.
+pub(crate) fn target_in_text(raw: &str) -> Option<String> {
+    match scheme_of(raw.trim()) {
+        // A scheme this tool cannot answer for is refused, not searched
+        // for a better one inside itself.
+        Some(scheme) if !is_http(scheme) => None,
+        Some(_) => target_url(raw).or_else(|| extract_url(raw)),
+        None => extract_url(raw),
+    }
+}
+
+/// The scheme of an input written `<scheme>://…`, which is the only
+/// shape the blind prefixing can turn into a host. `localhost:3000`
+/// carries no authority marker and stays what it has always been: a bare
+/// host to prefix.
+fn scheme_of(url: &str) -> Option<&str> {
+    let (scheme, _) = url.split_once("://")?;
+    let mut characters = scheme.chars();
+    let first = characters.next()?;
+    (first.is_ascii_alphabetic()
+        && characters.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')))
+    .then_some(scheme)
+}
+
+fn is_http(scheme: &str) -> bool {
+    scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https")
+}
+
 /// Extracts the first valid URL from text, or normalizes the whole text
 /// when it validates as a bare domain.
 pub(crate) fn extract_url(text: &str) -> Option<String> {
@@ -92,6 +162,85 @@ mod tests {
             let input = case["input"].as_str().expect("input");
             let expected = case["expected"].as_str().expect("expected string");
             assert_eq!(normalize_url(input), expected, "normalize {input:?}");
+        }
+    }
+
+    /// **Regression.** The blind prefixing turned a scheme this tool
+    /// cannot answer for into a *host*: `ftp://example.com` became
+    /// `https://ftp://example.com`, which validates — host `ftp` — so
+    /// the run died resolving a name nobody typed and reported a DNS
+    /// failure for a question about the scheme. `javascript:` and
+    /// `data:` carry no `://`, were never prefixed into a host, and
+    /// always said what was actually wrong.
+    #[test]
+    fn a_scheme_this_tool_cannot_answer_for_is_refused_as_one() {
+        for raw in [
+            "ftp://example.com",
+            "file:///etc/hosts",
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "ws://example.com/socket",
+        ] {
+            assert_eq!(target_url(raw), None, "{raw}");
+            assert_eq!(target_in_text(raw), None, "{raw}");
+        }
+    }
+
+    /// **Regression.** RFC 3986 §3.1: a scheme is case-insensitive, and
+    /// the `validate` corpus above pins `HTTPS://EXAMPLE.COM` valid.
+    /// `HTTP://host/path` matched neither prefix here, so it too was
+    /// prefixed into a host — called `http` — and refused as DNS.
+    #[test]
+    fn an_upper_case_scheme_is_the_scheme_it_names() {
+        assert_eq!(
+            target_url("HTTP://127.0.0.1:8731/plain").as_deref(),
+            Some("http://127.0.0.1:8731/plain")
+        );
+        assert_eq!(
+            target_url("HTTPS://EXAMPLE.COM").as_deref(),
+            Some("https://EXAMPLE.COM"),
+            "only the scheme is folded; the rest of the URL is the caller's"
+        );
+        assert_eq!(
+            target_url("HtTpS://example.com/a?b=C").as_deref(),
+            Some("https://example.com/a?b=C")
+        );
+    }
+
+    /// What the surfaces did before, unchanged: a bare domain is
+    /// prefixed, a `host:port` with no authority marker is a host, and
+    /// an unparseable argument is still refused.
+    #[test]
+    fn a_target_still_takes_what_it_always_took() {
+        assert_eq!(
+            target_url("example.com").as_deref(),
+            Some("https://example.com")
+        );
+        assert_eq!(
+            target_url("  https://example.com  ").as_deref(),
+            Some("https://example.com")
+        );
+        assert_eq!(
+            target_url("localhost:3000").as_deref(),
+            Some("https://localhost:3000")
+        );
+        assert_eq!(target_url("not a url at all"), None);
+        assert_eq!(target_url("https://"), None);
+        assert_eq!(target_url(""), None);
+    }
+
+    /// A batch entry may carry its URL amid other text, and that is the
+    /// only difference between the two.
+    #[test]
+    fn a_batch_entry_still_finds_a_url_amid_other_text() {
+        for case in cases("extract") {
+            let input = case["input"].as_str().expect("input");
+            let expected = case["expected"].as_str();
+            assert_eq!(
+                target_in_text(input).as_deref(),
+                expected,
+                "batch entry {input:?}"
+            );
         }
     }
 
