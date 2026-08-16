@@ -7,6 +7,66 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-16
+
+### Fixed
+
+- **`--ignore-crawl-delay` left no trace in the report it produced.** A
+  three-URL batch on one host declaring `Crawl-delay: 2` dropped from
+  4.03s to 0.02s and the reports were byte-identical apart from
+  `timing_ms` — so a run that skipped the wait could not be told from
+  one that waited, which README, SPEC.md and `--help` all promise it
+  can. Every report now carries `crawl_delay_ignored`, and the human
+  summary says the same for a single URL and for a batch.
+
+- **A page-probe finding named its source and not its signal.** Only
+  header matches carried `evidence.signal`; a script src, a DOM element
+  or a window global reported `{"source": "DOM element"}` and nothing
+  else, so *which* selector fired — the one thing that dismisses a false
+  positive — never left the browser. SPEC.md has always said each
+  finding names the signal that fired. The page probe now answers with
+  the matched signal per source rather than a boolean.
+
+- **A batch overwrote one screenshot and the reports pointed at the
+  wrong image.** The filename was the host plus the date, so three URLs
+  on one host wrote `scrape-le-127-0-0-1-2026-08-16.png` three times and
+  two of the three reports named a picture of a page they had not
+  checked. The name now carries a digest of the whole URL.
+
+- **A malformed batch entry did not decide the exit code.** SPEC.md says
+  a malformed entry is exit 2 naming the line; the line was named and
+  the code escalated only when every URL that ran came back `clear`, so
+  a malformed entry beside a `restricted`, `blocked` or `inconclusive`
+  one exited 1. The worst-outcome comparison ranked 2 below 1.
+
+- **A scheme this tool cannot answer for was refused as a DNS failure.**
+  `HTTP://host/path`, `ftp://` and `file://` all came back "DNS failure:
+  failed to lookup address information" — an error about the network for
+  a question about the scheme — because the blind `https://` prefixing
+  turned each into a *host* called `http`, `ftp` or `file`. RFC 3986
+  §3.1 makes a scheme case-insensitive and `fixtures/url.json` pins
+  `HTTPS://EXAMPLE.COM` valid, so the shared corpus already said an
+  upper-case scheme must be accepted. Both surfaces now check it, and
+  refuse the rest the way `javascript:` and `data:` were always refused.
+
+### Changed
+
+- **`evidence.source` is a machine token throughout** —
+  `response-header`, `script-src`, `dom-element`, `window-global`. It was
+  one slug beside three prose values, and SPEC.md documented a spelling
+  nothing emitted. The prose lives on in `detail`, which is the string
+  the extension prints and the parity corpus pins.
+
+- **The screenshot filename gained a digest of the URL**:
+  `scrape-le-<host>-<date>-<digest>.png`. A same-day re-check of the
+  same URL still overwrites its own image. That the PNG is written to
+  the working directory is now stated in `--help`, the README and
+  SPEC.md, where nothing said it before.
+
+- **The report always carries `crawl_delay_ignored`**, false on a polite
+  run. A field that disappeared when false would leave the two runs
+  identical again.
+
 ## [0.2.0] - 2026-08-15
 
 ### Fixed
@@ -199,6 +259,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.3.0]: https://crates.io/crates/scrape-le/0.3.0
 [0.2.0]: https://crates.io/crates/scrape-le/0.2.0
 [0.1.5]: https://crates.io/crates/scrape-le/0.1.5
 [0.1.4]: https://crates.io/crates/scrape-le/0.1.4
