@@ -1,6 +1,6 @@
 {
 	"name": "scrape-le-mcp",
-	"version": "2.2.5",
+	"version": "2.2.6",
 	"mcpName": "io.github.nolindnaidoo/scrape-le",
 	"description": "Analyse robots.txt content and report whether a path may be crawled.",
 	"keywords": [

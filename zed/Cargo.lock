@@ -762,7 +762,7 @@ dependencies = [
 
 [[package]]
 name = "zed_scrape_le"
-version = "2.2.5"
+version = "2.2.6"
 dependencies = [
  "zed_extension_api",
 ]
