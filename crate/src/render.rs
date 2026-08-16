@@ -234,6 +234,11 @@ fn probe_payload() -> Vec<serde_json::Value> {
 
 /// `pageProbeScan`: script src substrings, DOM selectors, window
 /// globals, per signature.
+///
+/// **Each source answers with the signal that matched, not a boolean.**
+/// `some()` was enough to decide and not enough to check: a finding
+/// could say a selector matched without saying which one, so the false
+/// positive the evidence exists to make diagnosable was not.
 fn run_page_probe(
     tab: &headless_chrome::Tab,
 ) -> Result<std::collections::HashMap<String, ProbeResult>, String> {
@@ -245,9 +250,9 @@ fn run_page_probe(
   const result = {{}};
   for (const probe of probes) {{
     result[probe.key] = {{
-      script: probe.scriptSubstrings.some(sub => scripts.some(src => src.includes(sub))),
-      selector: probe.selectors.some(sel => {{ try {{ return document.querySelector(sel) !== null; }} catch {{ return false; }} }}),
-      global: probe.globals.some(name => name in window),
+      script: probe.scriptSubstrings.find(sub => scripts.some(src => src.includes(sub))) ?? null,
+      selector: probe.selectors.find(sel => {{ try {{ return document.querySelector(sel) !== null; }} catch {{ return false; }} }}) ?? null,
+      global: probe.globals.find(name => name in window) ?? null,
     }};
   }}
   return JSON.stringify(result);
@@ -263,13 +268,20 @@ fn run_page_probe(
             (
                 key,
                 ProbeResult {
-                    script: v["script"].as_bool().unwrap_or(false),
-                    selector: v["selector"].as_bool().unwrap_or(false),
-                    global: v["global"].as_bool().unwrap_or(false),
+                    script: signal(&v, "script"),
+                    selector: signal(&v, "selector"),
+                    global: signal(&v, "global"),
                 },
             )
         })
         .collect())
+}
+
+/// The signal a source matched, or `None` when it matched nothing —
+/// which is `null` from the probe, and an absent key from an older or
+/// hand-rolled one.
+fn signal(probe: &serde_json::Value, source: &str) -> Option<String> {
+    probe[source].as_str().map(str::to_string)
 }
 
 /// The extension's login-form and keyword evaluates, combined into one

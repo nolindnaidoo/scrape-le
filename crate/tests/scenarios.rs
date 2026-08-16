@@ -149,4 +149,19 @@ fn a_script_written_vendor_global_is_detected() {
     // extension's evidence precedence.
     assert!(details.contains("DOM element"), "{details}");
     assert_eq!(report["title"], "Protected");
+
+    // **Regression.** A page-probe finding named its source and not the
+    // signal, so the selector that fired — the one thing that dismisses
+    // a false positive — never left the browser.
+    let antibot = report["findings"]
+        .as_array()
+        .expect("findings")
+        .iter()
+        .find(|finding| finding["kind"] == "antibot")
+        .expect("an antibot finding");
+    assert_eq!(antibot["evidence"]["source"], "dom-element", "{antibot}");
+    assert_eq!(
+        antibot["evidence"]["signal"], ".g-recaptcha",
+        "the finding does not say which selector fired: {antibot}"
+    );
 }

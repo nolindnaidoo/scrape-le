@@ -76,10 +76,17 @@ impl Evidence {
     }
 }
 
+/// What the page probe found for one vendor: **which** signal fired,
+/// per source, not merely that one did.
+///
+/// A boolean was enough to reach a verdict and not enough to check it.
+/// A finding said only that a selector matched, so the one thing a
+/// reader needs to dismiss a false positive — which of the vendor's
+/// selectors — was the thing the report did not carry.
 pub(crate) struct ProbeResult {
-    pub(crate) script: bool,
-    pub(crate) selector: bool,
-    pub(crate) global: bool,
+    pub(crate) script: Option<String>,
+    pub(crate) selector: Option<String>,
+    pub(crate) global: Option<String>,
 }
 
 pub(crate) struct AuthPageEvidence {
@@ -186,21 +193,22 @@ fn check_antibot(evidence: &Evidence, findings: &mut Vec<Finding>) {
             continue;
         };
         // First matching evidence wins, so the label names how it was
-        // found — same precedence as the extension.
-        let source = if probe.script {
-            "script src"
-        } else if probe.selector {
-            "DOM element"
-        } else if probe.global {
-            "window global"
-        } else {
-            continue;
+        // found — same precedence as the extension. The prose is the
+        // extension's `details` string and stays as it prints it; the
+        // token beside it is what the evidence carries, and reads like
+        // `response-header` because a machine field with one slug and
+        // three prose values is a field nobody can match on.
+        let (signal, how, source) = match (&probe.script, &probe.selector, &probe.global) {
+            (Some(signal), _, _) => (signal, "script src", "script-src"),
+            (_, Some(signal), _) => (signal, "DOM element", "dom-element"),
+            (_, _, Some(signal)) => (signal, "window global", "window-global"),
+            _ => continue,
         };
         findings.push(Finding {
             kind: "antibot".to_string(),
             severity: Severity::Warns,
-            detail: format!("{} ({source})", signature.label),
-            evidence: json!({ "source": source }),
+            detail: format!("{} ({how})", signature.label),
+            evidence: json!({ "signal": signal, "source": source }),
         });
     }
 }
@@ -433,9 +441,9 @@ mod tests {
         render.probes.insert(
             "recaptcha".to_string(),
             ProbeResult {
-                script: true,
-                selector: true,
-                global: true,
+                script: Some("recaptcha".to_string()),
+                selector: Some(".g-recaptcha".to_string()),
+                global: Some("grecaptcha".to_string()),
             },
         );
         e.render = Some(render);
@@ -443,6 +451,52 @@ mod tests {
         assert_eq!(report.verdict, Verdict::Restricted);
         let finding = &report.findings[0];
         assert_eq!(finding.detail, "reCAPTCHA (script src)");
+        // **Regression.** Only header findings carried `signal`, so a
+        // false positive from a selector or a global named no signal at
+        // all — the one thing a reader needs to dismiss it.
+        assert_eq!(finding.evidence["signal"], "recaptcha");
+        assert_eq!(finding.evidence["source"], "script-src");
+    }
+
+    /// **Regression.** Every source names the signal that fired, and the
+    /// `source` token is the machine one — `response-header` was a slug
+    /// while its three siblings were prose, and SPEC.md documented a
+    /// fourth spelling nothing emitted.
+    #[test]
+    fn every_probe_source_names_the_signal_that_fired() {
+        let cases = [
+            (
+                ProbeResult {
+                    script: None,
+                    selector: Some(".g-recaptcha".to_string()),
+                    global: Some("grecaptcha".to_string()),
+                },
+                "DOM element",
+                "dom-element",
+                ".g-recaptcha",
+            ),
+            (
+                ProbeResult {
+                    script: None,
+                    selector: None,
+                    global: Some("grecaptcha".to_string()),
+                },
+                "window global",
+                "window-global",
+                "grecaptcha",
+            ),
+        ];
+        for (probe, prose, source, signal) in cases {
+            let mut e = evidence(200, &[], None);
+            let mut render = clean_render();
+            render.probes.insert("recaptcha".to_string(), probe);
+            e.render = Some(render);
+            let report = check(&e, &CheckOptions::default());
+            let finding = &report.findings[0];
+            assert_eq!(finding.detail, format!("reCAPTCHA ({prose})"));
+            assert_eq!(finding.evidence["source"], source);
+            assert_eq!(finding.evidence["signal"], signal);
+        }
     }
 
     #[test]
@@ -452,9 +506,9 @@ mod tests {
         render.probes.insert(
             "cloudflare".to_string(),
             ProbeResult {
-                script: false,
-                selector: false,
-                global: true,
+                script: None,
+                selector: None,
+                global: Some("turnstile".to_string()),
             },
         );
         e.render = Some(render);
@@ -665,33 +719,45 @@ mod tests {
                 reached += 1;
             }
 
-            // The page probe, once per source the vendor declares.
-            for (source, declared) in [
-                ("script src", !signature.script_substrings.is_empty()),
-                ("DOM element", !signature.selectors.is_empty()),
-                ("window global", !signature.globals.is_empty()),
+            // The page probe, once per source the vendor declares — and
+            // with the vendor's own first signal for that source, so the
+            // matrix asserts the reported evidence is the corpus value
+            // rather than merely that something fired.
+            for (prose, token, declared) in [
+                (
+                    "script src",
+                    "script-src",
+                    signature.script_substrings.first(),
+                ),
+                ("DOM element", "dom-element", signature.selectors.first()),
+                ("window global", "window-global", signature.globals.first()),
             ] {
-                if !declared {
+                let Some(declared) = declared else {
                     continue;
-                }
+                };
                 let mut e = evidence(200, &[], None);
                 let mut render = clean_render();
                 render.probes.insert(
                     signature.key.clone(),
                     ProbeResult {
-                        script: source == "script src",
-                        selector: source == "DOM element",
-                        global: source == "window global",
+                        script: (prose == "script src").then(|| declared.clone()),
+                        selector: (prose == "DOM element").then(|| declared.clone()),
+                        global: (prose == "window global").then(|| declared.clone()),
                     },
                 );
                 e.render = Some(render);
                 let report = check(&e, &CheckOptions::default());
-                assert!(
-                    report
-                        .findings
-                        .iter()
-                        .any(|f| f.detail == format!("{} ({source})", signature.label)),
-                    "{}: a {source} signal names no vendor",
+                let finding = report
+                    .findings
+                    .iter()
+                    .find(|f| f.detail == format!("{} ({prose})", signature.label))
+                    .unwrap_or_else(|| {
+                        panic!("{}: a {prose} signal names no vendor", signature.key)
+                    });
+                assert_eq!(finding.evidence["source"], token);
+                assert_eq!(
+                    finding.evidence["signal"], *declared,
+                    "{}: a {prose} finding does not name the signal that fired",
                     signature.key
                 );
                 reached += 1;

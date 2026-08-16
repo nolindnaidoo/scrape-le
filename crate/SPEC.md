@@ -85,7 +85,13 @@ DataDome, PerimeterX.
 Signatures live in TOML rather than Rust: a vendor changing a script URL
 should be a data edit, reviewable by someone who does not write Rust.
 Each finding carries its source: which signal fired, and whether it came
-from a response header, a script src, a DOM element or a window global.
+from a response header, a script src, a DOM element or a window global —
+`signal` is the corpus value verbatim, and `source` is one of
+`response-header`, `script-src`, `dom-element`, `window-global`. The
+signal is the half that makes a false positive diagnosable: knowing a
+selector matched is not knowing which selector, and the finding's
+`detail` keeps the extension's wording while the evidence stays
+machine-readable.
 **Confidence is not yet a corpus field** — a `window.turnstile` global is
 near-certain while a `cf-ray` header only means Cloudflare fronts the
 site, and the report conveys that through the evidence rather than a
@@ -153,7 +159,7 @@ a second prose generator that could drift from it.
       "evidence": { "rule": "Disallow: /search", "agent": "*" } },
     { "kind": "antibot", "severity": "warns",
       "detail": "Cloudflare Turnstile widget present",
-      "evidence": { "signal": "window.turnstile", "source": "window-global" } }
+      "evidence": { "signal": "turnstile", "source": "window-global" } }
   ],
   "checks": { "antibot": "ran", "rate_limit": "ran",
               "robots": "ran", "auth": "ran" },
