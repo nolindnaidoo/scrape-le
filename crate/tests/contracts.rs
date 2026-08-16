@@ -373,6 +373,37 @@ fn a_failed_robots_txt_does_not_answer_for_the_rest_of_the_run() {
     std::fs::remove_dir_all(&directory).ok();
 }
 
+/// **Regression.** SPEC.md: "a malformed entry is exit 2 naming the
+/// line". The line was named and the code was not — the escalation to 2
+/// happened only when every URL that ran came back `clear`, so a
+/// malformed entry beside a `restricted` or `inconclusive` one exited 1.
+/// The worst-outcome comparison ranked 2 below 1, and a caller branching
+/// on the code learned nothing about input it had just been told was
+/// broken.
+#[test]
+fn a_malformed_entry_exits_2_whatever_the_urls_that_ran_answered() {
+    let port = start_server();
+    for (name, second, verdict) in [
+        ("malformed-restricted", "/forbidden", "restricted"),
+        ("malformed-inconclusive", "/open", "inconclusive"),
+    ] {
+        let urls = [
+            "not a url at all".to_string(),
+            format!("http://127.0.0.1:{port}{second}"),
+        ];
+        let (input, directory) = batch_input(port, name, &urls);
+        let run = run(&["--input", input.to_str().expect("path")]);
+
+        assert_eq!(run.code, 2, "{name}: {}", run.stdout);
+        // The malformed entry does not poison the rest of the batch,
+        // which still runs and still reports.
+        let verdicts: Vec<String> = run.stdout.lines().map(verdict_of).collect();
+        assert_eq!(verdicts, [verdict.to_string()], "{name}");
+
+        std::fs::remove_dir_all(&directory).ok();
+    }
+}
+
 /// **Regression.** `--ignore-crawl-delay` worked and left no trace: a
 /// three-URL batch on one host dropped from 4.02s to 0.00s, and the
 /// reports were byte-identical apart from `timing_ms`. README, SPEC and

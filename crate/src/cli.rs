@@ -240,9 +240,13 @@ fn run_batch(source: &str, options: &Options) -> ExitCode {
     }
 
     let code = run_targets(&targets, options);
-    if malformed > 0 && code == ExitCode::SUCCESS {
-        // Every URL that ran came back clear, but the input itself was
-        // malformed — that is a malformed question, not a yes.
+    if malformed > 0 {
+        // **2 is the worst outcome, not one between 0 and 1.** This
+        // escalated only when every URL that ran came back `clear`, so a
+        // malformed entry beside a `restricted` one exited 1 — the
+        // entry was named on stderr and the code said the question was
+        // fine. A caller branching on the code learned nothing about the
+        // input it had just been told was broken.
         return ExitCode::from(2);
     }
     code
