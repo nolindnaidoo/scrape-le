@@ -3,7 +3,11 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RobotsTxtChecker } from './robotstxt';
+import {
+	canonicalizeRobotsPath,
+	parseRobotsTxt,
+	RobotsTxtChecker,
+} from './robotstxt';
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -237,6 +241,117 @@ Sitemap: https://example.com/map2.xml
 
 			expect(result.exists).toBe(true);
 			expect(result.allowsCrawling).toBe(true); // Safe default when parsing fails
+		});
+	});
+
+	describe('percent-encoding before comparison', () => {
+		/**
+		 * Regression. RFC 9309 §2.2.2: octets outside ASCII "MUST be
+		 * percent-encoded ... prior to comparison". `Disallow: /café` and a
+		 * request for `/caf%C3%A9` name one resource, and only the unencoded
+		 * spelling was refused — the encoded one, which is what `URL.pathname`
+		 * hands over, came back allowed. Python's `RobotFileParser` refuses
+		 * both.
+		 */
+		it('compares a rule and a path in their encoded form', () => {
+			const robotsTxt = 'User-agent: *\nDisallow: /café\n';
+			for (const path of ['/café', '/caf%C3%A9', '/caf%c3%a9']) {
+				expect(
+					parseRobotsTxt(robotsTxt, path).allowsCrawling,
+					`path ${path} names the same resource the rule forbids`,
+				).toBe(false);
+			}
+		});
+
+		/** The other spelling of the same file: rule encoded, path not. */
+		it('matches an already-encoded rule against an unencoded path', () => {
+			const robotsTxt = 'User-agent: *\nDisallow: /caf%C3%A9\n';
+			for (const path of ['/café', '/caf%C3%A9', '/caf%c3%a9']) {
+				expect(parseRobotsTxt(robotsTxt, path).allowsCrawling, path).toBe(
+					false,
+				);
+			}
+		});
+
+		/**
+		 * A pattern's `*` and `$` are the RFC's special characters and survive
+		 * encoding — only octets outside ASCII move, which is what Google's
+		 * reference parser escapes and no more.
+		 */
+		it('leaves the special characters alone', () => {
+			const robotsTxt = 'User-agent: *\nDisallow: /café/*.json$\n';
+			expect(
+				parseRobotsTxt(robotsTxt, '/caf%C3%A9/a.json').allowsCrawling,
+			).toBe(false);
+			expect(
+				parseRobotsTxt(robotsTxt, '/caf%C3%A9/a.json?x=1').allowsCrawling,
+			).toBe(true);
+		});
+
+		/**
+		 * Regression. Longest-match-wins compares pattern lengths, and the two
+		 * runtimes counted the raw pattern in different units. Encoding first
+		 * settles it: RFC 9309 §2.2.2 measures "the most octets" of the encoded
+		 * form, which is pure ASCII, so octets, characters and UTF-16 code
+		 * units are one number.
+		 */
+		it('measures a pattern after it is encoded', () => {
+			const robotsTxt = 'User-agent: *\nDisallow: /café\nAllow: /ca*e\n';
+			expect(
+				parseRobotsTxt(robotsTxt, '/café/page').allowsCrawling,
+				'/caf%C3%A9 is ten octets and /ca*e is five',
+			).toBe(false);
+
+			const tied = 'User-agent: *\nDisallow: /café\nAllow: /ca*%C3%A9\n';
+			expect(parseRobotsTxt(tied, '/café/page').allowsCrawling).toBe(true);
+		});
+
+		/** The reported patterns quote the file, not our canonical form. */
+		it('reports the pattern the file actually carries', () => {
+			const robotsTxt = 'User-agent: *\nDisallow: /café\n';
+			expect(parseRobotsTxt(robotsTxt, '/café').disallowedPaths).toEqual([
+				'/café',
+			]);
+		});
+
+		/**
+		 * Idempotence is what lets one function serve both entry points:
+		 * `URL.pathname` hands over an encoded path and an MCP caller hands
+		 * over whatever it typed, and encoding blindly would turn
+		 * `/caf%C3%A9` into `/caf%25C3%25A9` and match nothing.
+		 */
+		it('canonicalizes to ASCII, and twice changes nothing', () => {
+			for (const value of [
+				'/café',
+				'/caf%C3%A9',
+				'/caf%c3%a9',
+				'/*.json$',
+				'/a%2Fb',
+				'/100%',
+				'/%zz',
+				'/%',
+				'/😀',
+				'/',
+			]) {
+				const once = canonicalizeRobotsPath(value);
+				expect(canonicalizeRobotsPath(once), value).toBe(once);
+				// biome-ignore lint/suspicious/noControlCharactersInRegex: the assertion is that none survive
+				expect(/^[\x00-\x7f]*$/.test(once), value).toBe(true);
+			}
+		});
+
+		/** The examples RFC 9309 §2.2.2 and Google's parser print. */
+		it('matches the reference examples', () => {
+			expect(canonicalizeRobotsPath('/foo/bar/ツ')).toBe('/foo/bar/%E3%83%84');
+			expect(canonicalizeRobotsPath('/foo/bar/%E3%83%84')).toBe(
+				'/foo/bar/%E3%83%84',
+			);
+			expect(canonicalizeRobotsPath('/SanJoséSellers')).toBe(
+				'/SanJos%C3%A9Sellers',
+			);
+			expect(canonicalizeRobotsPath('%aa')).toBe('%AA');
+			// A truncated escape is not one, and is left as the literal it is.
+			expect(canonicalizeRobotsPath('/a%2')).toBe('/a%2');
 		});
 	});
 });

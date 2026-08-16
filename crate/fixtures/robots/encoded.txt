@@ -1,0 +1,9 @@
+# RFC 9309 §2.2.2 — both sides percent-encoded before comparison.
+# A rule and a path that name one resource must answer the same
+# however either of them is spelled.
+User-agent: *
+Disallow: /café/
+Disallow: /caf%c3%a9-lower/
+Allow: /café/public/
+Disallow: /*.json$
+Sitemap: https://example.com/café.xml

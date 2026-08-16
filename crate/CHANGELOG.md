@@ -7,6 +7,46 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-08-16
+
+### Fixed
+
+- **A non-ASCII robots.txt rule did not match the path a URL parser
+  hands over.** RFC 9309 §2.2.2 is explicit: octets outside ASCII "MUST
+  be percent-encoded … prior to comparison". Neither frontend did it, so
+  `Disallow: /café` refused `/café` and allowed `/caf%C3%A9` — the same
+  resource, two answers, and the *allowed* one is the spelling real
+  traffic actually carries, because `Url::path()` and `URL.pathname`
+  both encode. Python's `RobotFileParser` refuses both. Rules and paths
+  are now canonicalised before they are compared, on both sides and in
+  both frontends: octets outside ASCII are percent-encoded and an
+  existing `%xx` is upper-cased, which is the scope of Google's
+  reference parser and no wider — a pattern's `*` and `$` are §2.2.3's
+  special characters and survive untouched. The step is idempotent, so
+  an already-encoded path is not encoded twice.
+
+  `crate/fixtures/robots/encoded.txt` and its six cases run in both
+  frontends, and `scripts/check-differential.ts` now generates encoded
+  patterns and paths — it was already generating `/café` against
+  `/café/page`, which is why the two servers agreed while both were
+  wrong.
+
+### Changed
+
+- **Longest-match-wins is measured on the encoded pattern**, which is
+  what §2.2.2 means by "the most octets". The rule was UTF-16 code
+  units, chosen so the crate matched the extension's `pattern.length`;
+  measuring one representation while comparing another was incoherent,
+  and encoding first dissolves the question rather than picking a side —
+  the canonical form is pure ASCII, where octets, characters and UTF-16
+  code units are one number. This changes answers: `/café` is ten octets
+  encoded, so a five-unit `/ca*e` beside it no longer ties with it and
+  no longer wins. SPEC.md's "Numbers and lengths" carries the reasoning.
+
+  §2.2.2's other half — decoding a percent-encoded *unreserved* octet,
+  so `/foo/%62%61%7A` matches `/foo/baz` — is deliberately not
+  implemented, because Google's parser does not implement it either.
+
 ## [0.3.0] - 2026-08-16
 
 ### Fixed

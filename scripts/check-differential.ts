@@ -100,11 +100,18 @@ const DELAYS = [
 
 /**
  * Patterns whose byte length and UTF-16 length differ, mixed with plain
- * ones. Longest-match-wins compares pattern lengths, and the two
- * runtimes measure length in different units.
+ * ones and with the same paths spelled percent-encoded.
+ *
+ * Two things ride on these. RFC 9309 §2.2.2 has both sides of the
+ * comparison percent-encoded first, so a rule and a path that name one
+ * resource must answer the same however either is spelled — and the
+ * length that longest-match-wins compares is the encoded form's octets,
+ * which is why the raw pattern's byte-versus-UTF-16 count stopped being
+ * part of the answer. A frontend that encodes one side, or measures the
+ * wrong form, diverges here.
  */
 function pattern(seeded: Seeded): string {
-	switch (seeded.below(10)) {
+	switch (seeded.below(13)) {
 		case 0:
 			return '/';
 		case 1:
@@ -114,9 +121,6 @@ function pattern(seeded: Seeded): string {
 		case 3:
 			return `/assets-${seeded.below(50)}.json$`;
 		case 4:
-			// Non-ASCII on purpose: longest-match-wins compares pattern
-			// lengths, and the two runtimes counted them in different
-			// units — bytes on one side, UTF-16 code units on the other.
 			return '/café';
 		case 5:
 			return '/ca*e';
@@ -126,6 +130,19 @@ function pattern(seeded: Seeded): string {
 			return '$';
 		case 8:
 			return `/search?q=${seeded.below(50)}`;
+		case 9:
+			// The same path as case 4, already encoded — the rule and the
+			// path must agree whichever spelling each one uses.
+			return '/caf%C3%A9';
+		case 10:
+			// Lower-case hex: the canonical form upper-cases it, so a
+			// frontend that skips that step matches nothing here.
+			return '/caf%c3%a9';
+		case 11:
+			// A literal asterisk written the way §2.2.3 says to write it.
+			// Encoding must not touch it, and must not encode the real
+			// wildcards either.
+			return '/wild-%2A-card';
 		default:
 			return `/path-${seeded.below(50)}`;
 	}
@@ -182,7 +199,7 @@ function body(seeded: Seeded): string {
  * validator is reached without a network.
  */
 function target(seeded: Seeded): string {
-	switch (seeded.below(10)) {
+	switch (seeded.below(13)) {
 		case 0:
 			return '/';
 		case 1:
@@ -201,6 +218,17 @@ function target(seeded: Seeded): string {
 			return '/café/page';
 		case 8:
 			return `/assets-${seeded.below(50)}.json`;
+		case 9:
+			// The same resource as case 7, spelled the way a URL parser
+			// hands it over. Before the encoding fix these two answered
+			// differently on both servers alike.
+			return '/caf%C3%A9/page';
+		case 10:
+			return '/caf%c3%a9/page';
+		case 11:
+			// A whole URL carrying non-ASCII: `URL.pathname` and
+			// `Url::path()` must reduce it to the same encoded path.
+			return 'https://example.com/café/page';
 		default:
 			return `/path-${seeded.below(50)}`;
 	}

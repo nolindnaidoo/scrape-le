@@ -34,14 +34,16 @@ struct RobotsRule {
     /// `None` is a pattern the engine refused, which matches nothing —
     /// the same answer the per-call version gave.
     matcher: Option<Regex>,
-    /// The pattern's length **in UTF-16 code units**, which is what the
-    /// extension's `pattern.length` counts.
+    /// The **encoded** pattern's length — RFC 9309 §2.2.2's "most
+    /// octets".
     ///
-    /// Longest-match-wins compares these, so the unit is part of the
-    /// answer rather than an implementation detail: `/café` is six bytes
-    /// and five units, so a rule beside it could win the tie here and
-    /// lose it there — one server saying a path is disallowed and the
-    /// other saying it is fine, for the same file.
+    /// Longest-match-wins compares these. Measuring the raw pattern made
+    /// the unit part of the answer: `/café` is six bytes and five UTF-16
+    /// code units, so a rule beside it won the tie on one server and
+    /// lost it on the other. Encoding first dissolves that rather than
+    /// picking a side — the canonical form is pure ASCII, where octets,
+    /// characters and UTF-16 code units are one number, so both
+    /// frontends count the same thing whatever their string type is.
     length: i64,
 }
 
@@ -127,13 +129,19 @@ impl RobotsDocument {
         };
 
         let rules: Vec<&RobotsRule> = selected.iter().flat_map(|g| g.rules.iter()).collect();
+        // RFC 9309 §2.2.2: the comparison happens on the encoded form,
+        // on both sides of it. The path arrives encoded from
+        // `Url::path()` and raw from an MCP caller that typed it, and
+        // `canonicalize` is idempotent so either spelling lands here as
+        // one string.
+        let path = canonicalize(pathname);
         // **The last one wins**, across groups as well as within one.
         // The extension keeps assigning to a single `crawlDelay` as it
         // walks the file, so a document with two applicable groups
         // reports the second; taking the first here had the two servers
         // answer the same file differently.
         let crawl_delay = selected.iter().rev().find_map(|group| group.crawl_delay);
-        let decision = decide_path(pathname, &rules);
+        let decision = decide_path(&path, &rules);
 
         RobotsTxtInfo {
             // Never claim a file the origin did not serve.
@@ -237,10 +245,14 @@ fn parse_groups(content: &str) -> (Vec<Group>, Vec<String>) {
         };
 
         if (directive == "disallow" || directive == "allow") && !value.is_empty() {
+            // Matched and measured encoded; reported raw, so the finding
+            // quotes the line the file actually carries rather than a
+            // canonical form the reader would not find in it.
+            let encoded = canonicalize(value);
             group.rules.push(RobotsRule {
                 allow: directive == "allow",
-                matcher: compile_robots_pattern(value),
-                length: i64::try_from(value.encode_utf16().count()).unwrap_or(i64::MAX),
+                matcher: compile_robots_pattern(&encoded),
+                length: i64::try_from(encoded.len()).unwrap_or(i64::MAX),
                 pattern: value.to_string(),
             });
             continue;
@@ -259,24 +271,89 @@ fn parse_groups(content: &str) -> (Vec<Group>, Vec<String>) {
     (groups, sitemaps)
 }
 
+/// RFC 9309 §2.2.2's canonical form for comparison: every octet outside
+/// ASCII percent-encoded, and a well-formed `%XX` already present left
+/// where it is with its hex digits upper-cased.
+///
+/// **The scope is Google's reference parser's `MaybeEscapePattern`,
+/// exactly** — high-bit octets and hex casing, nothing else. Reserved
+/// ASCII is deliberately untouched: a pattern's `*` and `$` are the
+/// RFC's own special characters (§2.2.3) and `/` is the path separator,
+/// so encoding them would turn every wildcard into a literal. A
+/// robots.txt that means a literal asterisk writes `%2A` itself.
+///
+/// Recognising an existing escape is what makes this idempotent, and
+/// that is load-bearing rather than tidy: the two entry points disagree
+/// about what they hand over. `Url::path()` and `URL.pathname` give an
+/// already-encoded path, while an MCP caller gives whatever it typed.
+/// Encoding blindly would turn `/caf%C3%A9` into `/caf%25C3%25A9` and
+/// match nothing.
+///
+/// **Not implemented, on purpose:** §2.2.2's second paragraph also has a
+/// percent-encoded *unreserved* octet decoded before comparison, so
+/// `/foo/%62%61%7A` matches `/foo/baz`. Google's parser does not do it
+/// and neither do we — following the reference implementation keeps the
+/// two frontends answering what the crawler ecosystem answers, and
+/// guessing wider than the reference here would move paths toward
+/// "allowed" on nobody else's authority.
+fn canonicalize(value: &str) -> String {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+
+    let bytes = value.as_bytes();
+    let mut out = String::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if let Some((high, low)) = existing_escape(bytes, index) {
+            out.push('%');
+            out.push(high);
+            out.push(low);
+            index += 3;
+            continue;
+        }
+        let byte = bytes[index];
+        index += 1;
+        if byte.is_ascii() {
+            out.push(char::from(byte));
+            continue;
+        }
+        out.push('%');
+        out.push(char::from(HEX[usize::from(byte >> 4)]));
+        out.push(char::from(HEX[usize::from(byte & 0x0f)]));
+    }
+    out
+}
+
+/// The upper-cased hex digits of a well-formed `%XX` at `index`.
+fn existing_escape(bytes: &[u8], index: usize) -> Option<(char, char)> {
+    if bytes[index] != b'%' {
+        return None;
+    }
+    let high = *bytes.get(index + 1)?;
+    let low = *bytes.get(index + 2)?;
+    (high.is_ascii_hexdigit() && low.is_ascii_hexdigit()).then(|| {
+        (
+            char::from(high.to_ascii_uppercase()),
+            char::from(low.to_ascii_uppercase()),
+        )
+    })
+}
+
 struct Decision {
     allowed: bool,
     matched: Option<String>,
 }
 
 /// RFC 9309 matching: longest matching pattern wins, Allow wins ties;
-/// no matching rule means allowed.
-fn decide_path(pathname: &str, rules: &[&RobotsRule]) -> Decision {
+/// no matching rule means allowed. Both `path` and every rule's matcher
+/// are already in the canonical encoded form — §2.2.2 compares there,
+/// and "longest" counts that form's octets.
+fn decide_path(path: &str, rules: &[&RobotsRule]) -> Decision {
     let mut best_length: i64 = -1;
     let mut best_allow = true;
     let mut best_pattern: Option<String> = None;
 
     for rule in rules {
-        if !rule
-            .matcher
-            .as_ref()
-            .is_some_and(|re| re.is_match(pathname))
-        {
+        if !rule.matcher.as_ref().is_some_and(|re| re.is_match(path)) {
             continue;
         }
         let length = rule.length;
@@ -294,10 +371,10 @@ fn decide_path(pathname: &str, rules: &[&RobotsRule]) -> Decision {
     }
 }
 
-/// Builds the matcher for one robots.txt pattern: anchored at the start,
-/// `*` matches any character sequence, a trailing `$` anchors the end.
-/// Built the same way the extension builds it, so the two cannot
-/// disagree about an edge.
+/// Builds the matcher for one robots.txt pattern, already canonicalized:
+/// anchored at the start, `*` matches any character sequence, a trailing
+/// `$` anchors the end. Built the same way the extension builds it, so
+/// the two cannot disagree about an edge.
 ///
 /// A pattern the engine refuses — one past its size limit, say —
 /// becomes `None` and matches nothing.
@@ -361,6 +438,7 @@ mod tests {
             "wildcards.txt" => include_str!("../../fixtures/robots/wildcards.txt"),
             "multi-group.txt" => include_str!("../../fixtures/robots/multi-group.txt"),
             "agent-specific.txt" => include_str!("../../fixtures/robots/agent-specific.txt"),
+            "encoded.txt" => include_str!("../../fixtures/robots/encoded.txt"),
             other => panic!("fixture body {other} not embedded — add it here"),
         }
     }
@@ -425,6 +503,7 @@ mod tests {
             "wildcards.txt",
             "multi-group.txt",
             "agent-specific.txt",
+            "encoded.txt",
         ] {
             let body = fixture_body(file);
             let kept = RobotsDocument::parse(body);
@@ -508,24 +587,110 @@ mod tests {
         assert_eq!(info.matched_rule, None);
     }
 
-    /// The pattern matcher, reached the way `decide_path` reaches it.
+    /// The pattern matcher, reached the way `decide_path` reaches it —
+    /// through the canonical form on both sides.
     fn matches_robots_pattern(pattern: &str, pathname: &str) -> bool {
-        compile_robots_pattern(pattern).is_some_and(|re| re.is_match(pathname))
+        compile_robots_pattern(&canonicalize(pattern))
+            .is_some_and(|re| re.is_match(&canonicalize(pathname)))
+    }
+
+    /// Idempotence is what lets one function serve both entry points:
+    /// `Url::path()` hands over an encoded path and an MCP caller hands
+    /// over whatever it typed, and encoding blindly would turn
+    /// `/caf%C3%A9` into `/caf%25C3%25A9` and match nothing.
+    #[test]
+    fn canonicalizing_twice_changes_nothing() {
+        for value in [
+            "/caf\u{e9}",
+            "/caf%C3%A9",
+            "/caf%c3%a9",
+            "/*.json$",
+            "/a%2Fb",
+            "/100%",
+            "/%zz",
+            "/%",
+            "/\u{1f600}",
+            "/",
+        ] {
+            let once = canonicalize(value);
+            assert_eq!(canonicalize(&once), once, "{value:?}");
+            assert!(once.is_ascii(), "{value:?} canonicalizes to ASCII");
+        }
+    }
+
+    /// The examples RFC 9309 §2.2.2 prints, and Google's own doc
+    /// comment on `MaybeEscapePattern`.
+    #[test]
+    fn canonicalizing_matches_the_reference_examples() {
+        assert_eq!(canonicalize("/foo/bar/\u{30c4}"), "/foo/bar/%E3%83%84");
+        assert_eq!(canonicalize("/foo/bar/%E3%83%84"), "/foo/bar/%E3%83%84");
+        assert_eq!(canonicalize("/SanJos\u{e9}Sellers"), "/SanJos%C3%A9Sellers");
+        assert_eq!(canonicalize("%aa"), "%AA");
+        // A truncated escape is not one, and is left as the literal it is.
+        assert_eq!(canonicalize("/a%2"), "/a%2");
+    }
+
+    /// **Regression.** RFC 9309 §2.2.2: octets outside ASCII "MUST be
+    /// percent-encoded ... prior to comparison". `Disallow: /café` and a
+    /// request for `/caf%C3%A9` name one resource, and only the
+    /// unencoded spelling was refused — the encoded one, which is what
+    /// every URL parser hands over, came back allowed. Python's
+    /// `RobotFileParser` refuses both.
+    #[test]
+    fn a_rule_and_a_path_are_compared_percent_encoded() {
+        let body = "User-agent: *\nDisallow: /caf\u{e9}\n";
+        for path in ["/caf\u{e9}", "/caf%C3%A9", "/caf%c3%a9"] {
+            assert!(
+                !parse_robots_txt(body, path, None).allows_crawling,
+                "path {path:?} names the same resource the rule forbids"
+            );
+        }
+    }
+
+    /// The other spelling of the same file: the rule already encoded,
+    /// the path not. Encoding one side alone would leave this half
+    /// broken.
+    #[test]
+    fn an_encoded_rule_matches_the_unencoded_path() {
+        let body = "User-agent: *\nDisallow: /caf%C3%A9\n";
+        for path in ["/caf\u{e9}", "/caf%C3%A9", "/caf%c3%a9"] {
+            assert!(
+                !parse_robots_txt(body, path, None).allows_crawling,
+                "path {path:?}"
+            );
+        }
+    }
+
+    /// A pattern's `*` and `$` are the RFC's special characters and
+    /// survive encoding — only octets outside ASCII move, which is what
+    /// Google's reference parser escapes and no more. Encoding `*` would
+    /// turn every wildcard into a literal.
+    #[test]
+    fn encoding_leaves_the_special_characters_alone() {
+        let body = "User-agent: *\nDisallow: /caf\u{e9}/*.json$\n";
+        assert!(!parse_robots_txt(body, "/caf%C3%A9/a.json", None).allows_crawling);
+        assert!(parse_robots_txt(body, "/caf%C3%A9/a.json?x=1", None).allows_crawling);
     }
 
     /// **Regression.** Longest-match-wins compares pattern lengths, and
-    /// the extension counts UTF-16 code units while `str::len` counts
-    /// bytes. `/café` is five units and six, so the rule beside it won
-    /// the tie on one server and lost it on the other — one saying the
-    /// path is disallowed and the other saying it is fine.
+    /// the two runtimes counted the raw pattern in different units —
+    /// UTF-16 code units in the extension, bytes in `str::len`. Encoding
+    /// first settles it: RFC 9309 §2.2.2 measures "the most octets" of
+    /// the encoded form, which is pure ASCII, so octets, characters and
+    /// UTF-16 code units are one number. `/café` is ten of each once
+    /// encoded, and the five-unit `/ca*e` beside it no longer ties.
     #[test]
-    fn a_pattern_is_measured_in_the_units_the_extension_measures() {
+    fn a_pattern_is_measured_after_it_is_encoded() {
         let body = "User-agent: *\nDisallow: /caf\u{e9}\nAllow: /ca*e\n";
         let info = parse_robots_txt(body, "/caf\u{e9}/page", None);
         assert!(
-            info.allows_crawling,
-            "the two patterns are the same length in UTF-16, and Allow wins a tie"
+            !info.allows_crawling,
+            "/caf%C3%A9 is ten octets and /ca*e is five, so the longer Disallow wins"
         );
+
+        // And Allow still wins a genuine tie, now measured encoded.
+        let tied = "User-agent: *\nDisallow: /caf\u{e9}\nAllow: /ca*%C3%A9\n";
+        assert!(parse_robots_txt(tied, "/caf\u{e9}/page", None).allows_crawling);
     }
 
     /// **Regression.** The extension assigns to one `crawlDelay` as it

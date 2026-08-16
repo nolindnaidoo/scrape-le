@@ -166,6 +166,72 @@
 		}
 	},
 	{
+		"name": "encoded: a non-ASCII rule blocks the path as written",
+		"file": "encoded.txt",
+		"path": "/café/page",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+			"sitemaps": ["https://example.com/café.xml"]
+		}
+	},
+	{
+		"name": "encoded: the same rule blocks the percent-encoded path a URL parser hands over",
+		"file": "encoded.txt",
+		"path": "/caf%C3%A9/page",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+			"sitemaps": ["https://example.com/café.xml"]
+		}
+	},
+	{
+		"name": "encoded: hex casing does not decide the answer",
+		"file": "encoded.txt",
+		"path": "/caf%c3%a9/page",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+			"sitemaps": ["https://example.com/café.xml"]
+		}
+	},
+	{
+		"name": "encoded: an already-encoded rule blocks the unencoded path",
+		"file": "encoded.txt",
+		"path": "/café-lower/x",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+			"sitemaps": ["https://example.com/café.xml"]
+		}
+	},
+	{
+		"name": "encoded: longest-match is measured on the encoded form, so the longer Allow wins",
+		"file": "encoded.txt",
+		"path": "/café/public/page",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": true,
+			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+			"sitemaps": ["https://example.com/café.xml"]
+		}
+	},
+	{
+		"name": "encoded: a wildcard survives encoding and still anchors on $",
+		"file": "encoded.txt",
+		"path": "/data.json",
+		"expected": {
+			"exists": true,
+			"allowsCrawling": false,
+			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+			"sitemaps": ["https://example.com/café.xml"]
+		}
+	},
+	{
 		"name": "agent-specific: generic rules allow what a named group forbids",
 		"file": "agent-specific.txt",
 		"path": "/members/area",

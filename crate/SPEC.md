@@ -107,6 +107,32 @@ Fetches `<origin>/robots.txt` and evaluates the **`User-agent: *`** rules
 against the URL with RFC 9309 semantics: grouped agents, `Allow`/`Disallow`
 longest-match, `*` wildcards, `$` anchors, crawl-delay, sitemaps.
 
+**Both sides are percent-encoded before they are compared** — §2.2.2:
+"Octets in the URI and robots.txt paths outside the range of the ASCII
+coded character set … MUST be percent-encoded … prior to comparison."
+`Disallow: /café` therefore refuses `/café` and `/caf%C3%A9` alike; they
+name one resource. Encoding covers octets outside ASCII and normalises an
+existing `%xx` to upper case, which is the scope of Google's reference
+parser's `MaybeEscapePattern` and no wider: reserved ASCII stays as
+written, because a pattern's `*` and `$` are §2.2.3's special characters
+and `/` is the path separator. A robots.txt meaning a literal asterisk
+writes `%2A` itself.
+
+The step is idempotent, and that is load-bearing rather than tidy: the
+path arrives already encoded from `Url::path()` and raw from an MCP
+caller that typed it, so both spellings have to land on one string.
+
+**Not implemented, on purpose:** §2.2.2 also has a percent-encoded
+*unreserved* octet decoded before comparison, so `/foo/%62%61%7A` would
+match `/foo/baz`. Google's parser does not do it, and following the
+reference keeps both frontends answering what the crawler ecosystem
+answers; guessing wider here would move paths toward "allowed" on nobody
+else's authority.
+
+Findings quote the pattern **as the file spells it**, not the canonical
+form — a reader should find the line this tool named when they open their
+own robots.txt.
+
 **Flagless, agent-specific groups are ignored, exactly as the extension
 ignores them** — so every default invocation stays byte-identical to the
 reference implementation, and the parity corpus tests both sides.
@@ -458,15 +484,25 @@ What may **never** differ:
   `src/utils/url.ts` are the reference implementation, and
   `signatures/` + `fixtures/` are the contract.
 
-### Numbers and lengths are JavaScript's
+### Numbers and lengths
 
-Two units are part of the answer rather than implementation details, and
-both were found by the two servers disagreeing about a real file:
+Units are part of the answer rather than implementation details, and each
+of these was found by the two servers disagreeing about a real file:
 
-- **A pattern's length is counted in UTF-16 code units**, because
-  longest-match-wins compares lengths and the extension compares
-  `pattern.length`. `/café` is five units and six bytes, so counting
-  bytes let a neighbouring rule win a tie here and lose it there.
+- **A pattern's length is counted on its percent-encoded form**, which
+  RFC 9309 §2.2.2 calls "the most octets". The rule used to be "UTF-16
+  code units, because the extension compares `pattern.length`" — a
+  choice between two wrong units. `/café` is five UTF-16 code units and
+  six bytes, so a neighbouring rule won a tie on one server and lost it
+  on the other. Encoding first dissolves the question instead of picking
+  a side: the canonical form is pure ASCII, where octets, characters and
+  UTF-16 code units are one number, so `.length` in TypeScript and
+  `str::len` in Rust count the same thing. Measuring one representation
+  while comparing another was the incoherence underneath the divergence.
+
+  The consequence is a real behaviour change, not a wash: `/café`
+  encodes to ten octets, so a five-unit `/ca*e` beside it no longer ties
+  with it and no longer wins.
 - **`Crawl-delay` parses the way `Number.parseFloat` parses**, which
   reads only `Infinity` spelled exactly that way and never a NaN
   literal; Rust's own parser reads `inf`, `infinity` and `nan` in any

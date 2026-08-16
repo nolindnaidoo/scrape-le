@@ -5,6 +5,31 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A non-ASCII robots.txt rule did not match the path the browser
+  actually requests.** RFC 9309 §2.2.2 is explicit: octets outside ASCII
+  "MUST be percent-encoded … prior to comparison". `Disallow: /café`
+  refused `/café` and allowed `/caf%C3%A9` — the same resource, two
+  answers, and the *allowed* one is the spelling that reaches the
+  matcher on every real check, because `URL.pathname` encodes. Python's
+  `RobotFileParser` refuses both. Rules and paths are now canonicalised
+  before comparison: octets outside ASCII percent-encoded, an existing
+  `%xx` upper-cased, and nothing else touched — a pattern's `*` and `$`
+  are §2.2.3's special characters and survive. Findings still quote the
+  pattern the file spells, not the canonical form.
+
+### Changed
+
+- **Longest-match-wins is measured on the encoded pattern**, §2.2.2's
+  "most octets", rather than on `pattern.length`. This changes answers:
+  `/café` is ten octets encoded, so a five-unit `/ca*e` beside it no
+  longer ties with it and no longer wins. The Rust CLI in `crate/` made
+  the same change in the same commit — the shared `analyze_robots_txt`
+  tool must answer identically from either server.
+
 ## [2.2.5] - 2026-08-14
 
 ### Fixed

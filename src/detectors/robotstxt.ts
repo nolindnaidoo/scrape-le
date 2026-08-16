@@ -9,6 +9,8 @@
  * - Allow and Disallow both participate; the longest matching pattern
  *   wins, Allow winning ties
  * - patterns support '*' (any characters) and a trailing '$' anchor
+ * - §2.2.2: octets outside ASCII are percent-encoded on both sides
+ *   before comparison, and "longest" counts the encoded form's octets
  *
  * Honest limitations: agent-specific groups are ignored entirely (we
  * only report the generic rules — a site may treat your specific
@@ -58,7 +60,78 @@ export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
 	}
 }
 
-type RobotsRule = Readonly<{ allow: boolean; pattern: string }>;
+type RobotsRule = Readonly<{
+	allow: boolean;
+	/** As the file spells it — what a finding quotes back to the reader. */
+	pattern: string;
+	/** What the comparison and the length actually use. */
+	encoded: string;
+}>;
+
+const UTF8 = new TextEncoder();
+const HEX_DIGITS = '0123456789ABCDEF';
+
+function isHexDigit(byte: number | undefined): boolean {
+	if (byte === undefined) {
+		return false;
+	}
+	// 0-9, A-F, a-f
+	return (
+		(byte >= 0x30 && byte <= 0x39) ||
+		(byte >= 0x41 && byte <= 0x46) ||
+		(byte >= 0x61 && byte <= 0x66)
+	);
+}
+
+/**
+ * RFC 9309 §2.2.2's canonical form for comparison: every octet outside
+ * ASCII percent-encoded, and a well-formed `%XX` already present left where
+ * it is with its hex digits upper-cased.
+ *
+ * **The scope is Google's reference parser's `MaybeEscapePattern`, exactly**
+ * — high-bit octets and hex casing, nothing else. Reserved ASCII is
+ * deliberately untouched: a pattern's `*` and `$` are the RFC's own special
+ * characters (§2.2.3) and `/` is the path separator, so encoding them would
+ * turn every wildcard into a literal. A robots.txt that means a literal
+ * asterisk writes `%2A` itself.
+ *
+ * Recognising an existing escape is what makes this idempotent, and that is
+ * load-bearing rather than tidy: the two entry points disagree about what
+ * they hand over. `URL.pathname` gives an already-encoded path, while an MCP
+ * caller gives whatever it typed. Encoding blindly would turn `/caf%C3%A9`
+ * into `/caf%25C3%25A9` and match nothing.
+ *
+ * **Not implemented, on purpose:** §2.2.2's second paragraph also has a
+ * percent-encoded *unreserved* octet decoded before comparison, so
+ * `/foo/%62%61%7A` matches `/foo/baz`. Google's parser does not do it and
+ * neither do we — following the reference implementation keeps the two
+ * frontends answering what the crawler ecosystem answers, and guessing wider
+ * than the reference here would move paths toward "allowed" on nobody else's
+ * authority.
+ */
+export function canonicalizeRobotsPath(value: string): string {
+	const bytes = UTF8.encode(value);
+	let out = '';
+
+	for (let index = 0; index < bytes.length; index++) {
+		const byte = bytes[index] as number;
+		const high = bytes[index + 1];
+		const low = bytes[index + 2];
+
+		if (byte === 0x25 && isHexDigit(high) && isHexDigit(low)) {
+			out += `%${String.fromCharCode(high as number, low as number).toUpperCase()}`;
+			index += 2;
+			continue;
+		}
+		if (byte < 0x80) {
+			out += String.fromCharCode(byte);
+			continue;
+		}
+		out += `%${HEX_DIGITS[byte >> 4]}${HEX_DIGITS[byte & 0x0f]}`;
+	}
+
+	return out;
+}
 
 /**
  * Parses robots.txt content against the generic (User-agent: *) rules.
@@ -125,8 +198,15 @@ export function parseRobotsTxt(
 			}
 
 			if ((directive === 'disallow' || directive === 'allow') && value) {
+				// Matched and measured encoded; reported raw, so the finding
+				// quotes the line the file actually carries rather than a
+				// canonical form the reader would not find in it.
 				rules.push(
-					Object.freeze({ allow: directive === 'allow', pattern: value }),
+					Object.freeze({
+						allow: directive === 'allow',
+						pattern: value,
+						encoded: canonicalizeRobotsPath(value),
+					}),
 				);
 				continue;
 			}
@@ -141,7 +221,12 @@ export function parseRobotsTxt(
 
 		return Object.freeze({
 			exists: true,
-			allowsCrawling: isPathAllowed(pathname, rules),
+			// RFC 9309 §2.2.2: the comparison happens on the encoded form, on
+			// both sides of it. The path arrives encoded from `URL.pathname`
+			// and raw from an MCP caller that typed it, and
+			// `canonicalizeRobotsPath` is idempotent so either spelling lands
+			// here as one string.
+			allowsCrawling: isPathAllowed(canonicalizeRobotsPath(pathname), rules),
 			crawlDelay,
 			disallowedPaths: Object.freeze(
 				rules.filter((r) => !r.allow).map((r) => r.pattern),
@@ -158,23 +243,26 @@ export function parseRobotsTxt(
 /**
  * RFC 9309 matching: longest matching pattern wins, Allow wins ties;
  * no matching rule means allowed.
+ *
+ * `path` and every rule's `encoded` are already in the canonical form —
+ * §2.2.2 compares there, and "longest" counts that form's octets. Because
+ * the canonical form is pure ASCII, `.length` counts octets here and
+ * `str::len` counts them in the crate: the two frontends measure one number
+ * rather than UTF-16 code units against bytes.
  */
-function isPathAllowed(
-	pathname: string,
-	rules: readonly RobotsRule[],
-): boolean {
+function isPathAllowed(path: string, rules: readonly RobotsRule[]): boolean {
 	let bestLength = -1;
 	let bestAllow = true;
 
 	for (const rule of rules) {
-		if (!matchesRobotsPattern(rule.pattern, pathname)) {
+		if (!matchesRobotsPattern(rule.encoded, path)) {
 			continue;
 		}
 		if (
-			rule.pattern.length > bestLength ||
-			(rule.pattern.length === bestLength && rule.allow && !bestAllow)
+			rule.encoded.length > bestLength ||
+			(rule.encoded.length === bestLength && rule.allow && !bestAllow)
 		) {
-			bestLength = rule.pattern.length;
+			bestLength = rule.encoded.length;
 			bestAllow = rule.allow;
 		}
 	}
@@ -183,8 +271,9 @@ function isPathAllowed(
 }
 
 /**
- * Matches a robots.txt pattern against a path: anchored at the start,
- * '*' matches any character sequence, a trailing '$' anchors the end.
+ * Matches a robots.txt pattern against a path, both already canonicalized:
+ * anchored at the start, '*' matches any character sequence, a trailing '$'
+ * anchors the end.
  */
 export function matchesRobotsPattern(
 	pattern: string,

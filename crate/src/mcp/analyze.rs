@@ -258,6 +258,7 @@ mod tests {
             "wildcards.txt" => include_str!("../../fixtures/robots/wildcards.txt"),
             "multi-group.txt" => include_str!("../../fixtures/robots/multi-group.txt"),
             "agent-specific.txt" => include_str!("../../fixtures/robots/agent-specific.txt"),
+            "encoded.txt" => include_str!("../../fixtures/robots/encoded.txt"),
             other => panic!("fixture body {other} not embedded — add it here"),
         }
     }

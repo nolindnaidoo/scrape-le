@@ -129,6 +129,54 @@
 		}
 	},
 	{
+		"name": "encoded: a percent-encoded path is refused by the non-ASCII rule that names it",
+		"file": "encoded.txt",
+		"arguments": { "path": "/caf%C3%A9/page" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/caf%C3%A9/page",
+				"allowsCrawling": false,
+				"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+				"sitemaps": ["https://example.com/café.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 3, "truncated": false }
+		}
+	},
+	{
+		"name": "encoded: a full URL with non-ASCII reduces to the same encoded path on both servers",
+		"file": "encoded.txt",
+		"arguments": { "path": "https://example.com/café/page" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/caf%C3%A9/page",
+				"allowsCrawling": false,
+				"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+				"sitemaps": ["https://example.com/café.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 3, "truncated": false }
+		}
+	},
+	{
+		"name": "encoded: the longer Allow wins once both sides are encoded",
+		"file": "encoded.txt",
+		"arguments": { "path": "/café/public/page" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/café/public/page",
+				"allowsCrawling": true,
+				"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
+				"sitemaps": ["https://example.com/café.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 3, "truncated": false }
+		}
+	},
+	{
 		"name": "the cap truncates and says so",
 		"file": "multi-group.txt",
 		"arguments": { "path": "/everyone/x", "maxResults": 2 },

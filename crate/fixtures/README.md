@@ -13,7 +13,10 @@ in its tests.
   key to the reported detail string or `null`.
 - `robots/cases.json` — `parseRobotsTxt` results for the bodies in
   `robots/*.txt`, evaluated against the generic (`User-agent: *`)
-  rules. `path` is a URL pathname.
+  rules. `path` is a URL pathname, and `robots/encoded.txt` carries the
+  RFC 9309 §2.2.2 cases: a rule and a path naming one resource must
+  answer the same however either is spelled, and longest-match is
+  measured on the encoded form.
 - `url.json` — `validateUrl` / `normalizeUrl` / `extractUrl` cases from
   `src/utils/url.ts`, including deliberately pinned quirks (regex
   boundary artifacts, blind protocol prefixing). A port reproduces
