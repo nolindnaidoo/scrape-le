@@ -301,6 +301,6 @@
 		"vitest": "^4.1.11"
 	},
 	"dependencies": {
-		"playwright-core": "^1.62.1"
+		"playwright-core": "^1.63.0"
 	}
 }
