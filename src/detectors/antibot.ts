@@ -16,59 +16,55 @@ import {
 
 /**
  * Detects anti-bot measures on a page
+ *
+ * Errors propagate rather than collapsing into a default result: returning
+ * the all-clear on error made a crashed check indistinguishable from a clean
+ * one. runDetections records the failure and the report shows it.
  */
 export async function detectAntiBot(
 	page: Page,
 	response: Response | null,
 ): Promise<AntiBotDetection> {
-	try {
-		const details: string[] = [];
-		const detected: Record<string, boolean> = {};
+	const details: string[] = [];
+	const detected: Record<string, boolean> = {};
 
-		const headers = readHeaders(response);
-		for (const signature of ANTI_BOT_SIGNATURES) {
-			const headerDetail = matchHeaders(headers, signature);
-			if (headerDetail !== null) {
-				detected[signature.key] = true;
-				details.push(headerDetail);
-			}
+	const headers = readHeaders(response);
+	for (const signature of ANTI_BOT_SIGNATURES) {
+		const headerDetail = matchHeaders(headers, signature);
+		if (headerDetail !== null) {
+			detected[signature.key] = true;
+			details.push(headerDetail);
 		}
-
-		const probeResult = await runPageProbe(page);
-		for (const signature of ANTI_BOT_SIGNATURES) {
-			const probe = probeResult?.[signature.key];
-			if (!probe || detected[signature.key]) {
-				continue;
-			}
-			// First matching evidence wins, so the label names how it was found.
-			const evidence = probe.script
-				? 'script src'
-				: probe.selector
-					? 'DOM element'
-					: probe.global
-						? 'window global'
-						: null;
-			if (evidence) {
-				detected[signature.key] = true;
-				details.push(`${signature.label} (${evidence})`);
-			}
-		}
-
-		return Object.freeze({
-			cloudflare: detected.cloudflare === true,
-			recaptcha: detected.recaptcha === true,
-			hcaptcha: detected.hcaptcha === true,
-			datadome: detected.datadome === true,
-			perimeterx: detected.perimeterx === true,
-			details: Object.freeze(details),
-		});
-	} catch (error) {
-		// Rethrown rather than swallowed into a default result. Returning the
-		// all-clear on error made a crashed check indistinguishable from a clean
-		// one — the report stated "Not detected" for a detection that never ran.
-		// runDetections records the failure and the report shows it.
-		throw error;
 	}
+
+	const probeResult = await runPageProbe(page);
+	for (const signature of ANTI_BOT_SIGNATURES) {
+		const probe = probeResult?.[signature.key];
+		if (!probe || detected[signature.key]) {
+			continue;
+		}
+		// First matching evidence wins, so the label names how it was found.
+		const evidence = probe.script
+			? 'script src'
+			: probe.selector
+				? 'DOM element'
+				: probe.global
+					? 'window global'
+					: null;
+		if (evidence) {
+			detected[signature.key] = true;
+			details.push(`${signature.label} (${evidence})`);
+		}
+	}
+
+	return Object.freeze({
+		cloudflare: detected.cloudflare === true,
+		recaptcha: detected.recaptcha === true,
+		hcaptcha: detected.hcaptcha === true,
+		datadome: detected.datadome === true,
+		perimeterx: detected.perimeterx === true,
+		details: Object.freeze(details),
+	});
 }
 
 function readHeaders(response: Response | null): Record<string, string> {

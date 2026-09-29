@@ -7,50 +7,46 @@ import type { AuthenticationInfo } from '../types';
 
 /**
  * Detects if page requires authentication
+ *
+ * Errors propagate rather than collapsing into a default result: returning
+ * the all-clear on error made a crashed check indistinguishable from a clean
+ * one. runDetections records the failure and the report shows it.
  */
 export async function detectAuthentication(
 	page: Page,
 	statusCode: number | null,
 ): Promise<AuthenticationInfo> {
-	try {
-		const indicators: string[] = [];
+	const indicators: string[] = [];
 
-		// Check HTTP status codes
-		const hasAuthStatus = checkAuthStatusCode(statusCode, indicators);
+	// Check HTTP status codes
+	const hasAuthStatus = checkAuthStatusCode(statusCode, indicators);
 
-		// Check for login forms
-		const loginForm = await detectLoginForm(page, indicators);
+	// Check for login forms
+	const loginForm = await detectLoginForm(page, indicators);
 
-		// Check for auth keywords in content
-		const hasAuthKeywords = await detectAuthKeywords(page, indicators);
+	// Check for auth keywords in content
+	const hasAuthKeywords = await detectAuthKeywords(page, indicators);
 
-		// Check URL for auth indicators
-		const hasUrlIndicator = await checkUrlForAuth(page, indicators);
+	// Check URL for auth indicators
+	const hasUrlIndicator = await checkUrlForAuth(page, indicators);
 
-		// Require at least 2 indicators for high confidence
-		// Or 1 strong indicator (401/403 status or login form)
-		const isRequired =
-			hasAuthStatus ||
-			loginForm.detected ||
-			(indicators.length >= 2 && (hasAuthKeywords || hasUrlIndicator));
+	// Require at least 2 indicators for high confidence
+	// Or 1 strong indicator (401/403 status or login form)
+	const isRequired =
+		hasAuthStatus ||
+		loginForm.detected ||
+		(indicators.length >= 2 && (hasAuthKeywords || hasUrlIndicator));
 
-		if (!isRequired) {
-			return createDefaultAuthInfo();
-		}
-
-		return Object.freeze({
-			required: true,
-			type: loginForm.type,
-			loginUrl: loginForm.loginUrl,
-			indicators: Object.freeze(indicators),
-		});
-	} catch (error) {
-		// Rethrown rather than swallowed into a default result. Returning the
-		// all-clear on error made a crashed check indistinguishable from a clean
-		// one — the report stated "Not detected" for a detection that never ran.
-		// runDetections records the failure and the report shows it.
-		throw error;
+	if (!isRequired) {
+		return createDefaultAuthInfo();
 	}
+
+	return Object.freeze({
+		required: true,
+		type: loginForm.type,
+		loginUrl: loginForm.loginUrl,
+		indicators: Object.freeze(indicators),
+	});
 }
 
 /**
