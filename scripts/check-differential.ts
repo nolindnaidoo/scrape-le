@@ -77,6 +77,23 @@ class Seeded {
 const AGENTS = ['*', '*', 'googlebot', 'MyBot', '  *  ', 'Bot/1.0'] as const;
 
 /**
+ * What a caller asks to be evaluated as: names the files use, in other
+ * cases and with versions, names they do not, and the empty token.
+ */
+const CALLER_AGENTS = [
+	'googlebot',
+	'Googlebot/2.1',
+	'mybot',
+	'MYBOT/9',
+	'bot',
+	'OtherBot',
+	'*',
+	'',
+	'/1.0',
+	'  googlebot  ',
+] as const;
+
+/**
  * Crawl-delay values chosen to separate `Number.parseFloat` from Rust's
  * `str::parse`: `Infinity` parses in both, `infinity` in only one, and a
  * trailing unit parses as its numeric prefix.
@@ -319,7 +336,11 @@ let checked = 0;
 for (let index = 0; index < CASES; index++) {
 	const content = body(seeded);
 	const path = target(seeded);
-	const args = { content, path };
+	// Half the calls name an agent, so group selection is compared as
+	// well as the generic rules.
+	const agent =
+		seeded.below(2) === 0 ? undefined : seeded.pick(CALLER_AGENTS);
+	const args = agent === undefined ? { content, path } : { content, path, agent };
 
 	const fromExtension = await tool.handler({ ...args });
 	const response = (await server.call(args)) as {

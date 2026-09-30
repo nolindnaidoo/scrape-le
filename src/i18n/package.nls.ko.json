@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "VS Code에서 Scrape-LE 상태 표시줄 항목을 표시하기",
 	"manifest.settings.detections.antibot.desc": "봇 방지 시스템 탐지 (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
 	"manifest.settings.detections.ratelimit.desc": "HTTP 속도 제한 헤더(X-RateLimit-*, RateLimit-*, Retry-After)를 감지하고 구문 분석합니다.",
+	"manifest.settings.robotstxt.agent.desc": "robots.txt를 평가할 크롤러입니다(예: Googlebot, MyBot/1.0). 해당 크롤러를 지정한 그룹의 규칙이 적용되며, 비어 있거나 지정한 그룹이 없으면 모든 크롤러에 대한 규칙(User-agent: *)이 적용됩니다.",
 	"manifest.settings.detections.robotstxt.desc": "robots.txt 파일을 가져와 분석하여 크롤링 권한 및 정책을 확인합니다.",
 	"manifest.settings.detections.authentication.desc": "인증 장벽 및 로그인 요구 사항 감지 (401/403 상태 코드, 로그인 양식, 인증 관련 키워드)",
 	"manifest.capability.untrusted-workspaces.desc": "보안을 위해 신뢰할 수 없는 작업 공간에서는 기능이 제한됩니다",

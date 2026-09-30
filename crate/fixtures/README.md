@@ -12,8 +12,9 @@ in its tests.
   lowercase, as the browser delivers them; `expected` maps every vendor
   key to the reported detail string or `null`.
 - `robots/cases.json` — `parseRobotsTxt` results for the bodies in
-  `robots/*.txt`, evaluated against the generic (`User-agent: *`)
-  rules. `path` is a URL pathname, and `robots/encoded.txt` carries the
+  `robots/*.txt`, evaluated as the case's `agent`, or against the
+  generic (`User-agent: *`) rules when it has none; `expected.agent`
+  names the group that answered. `path` is a URL pathname, and `robots/encoded.txt` carries the
   RFC 9309 §2.2.2 cases: a rule and a path naming one resource must
   answer the same however either is spelled, and longest-match is
   measured on the encoded form.
@@ -23,10 +24,7 @@ in its tests.
   them; changing one is a behaviour change for both frontends and needs
   a CHANGELOG entry.
 
-A case with a `divergence` field is a **written-down parity gap**:
-`expected` is the extension's answer, and `divergence.cli` records what
-the CLI answers instead and why — today that is agent-specific
-robots.txt groups, which the extension ignores and the CLI honours via
-`--agent`. The extension's dropped `scrape-le.retry.userAgents` setting
-is the other deliberate gap; it has no fixture because the CLI never
-retries with alternate User-Agents at all.
+The extension's dropped `scrape-le.retry.userAgents` setting is a
+written-down parity gap; it has no fixture because the CLI never
+retries with alternate User-Agents at all. Agent-specific robots.txt
+groups used to be one, and are now answered the same by both sides.

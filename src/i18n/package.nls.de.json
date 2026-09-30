@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "Eintrag zur Scrape-LE-Statusleiste in VS Code anzeigen",
 	"manifest.settings.detections.antibot.desc": "Anti-Bot-Schutzsysteme erkennen (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
 	"manifest.settings.detections.ratelimit.desc": "HTTP-Header zur Ratenbegrenzung erkennen und auswerten (X-RateLimit-*, RateLimit-*, Retry-After)",
+	"manifest.settings.robotstxt.agent.desc": "Der Crawler, für den robots.txt ausgewertet wird, z. B. Googlebot oder MyBot/1.0. Es gelten die Regeln einer Gruppe, die ihn nennt; ist das Feld leer oder nennt ihn keine Gruppe, gelten die Regeln für alle Crawler (User-agent: *).",
 	"manifest.settings.detections.robotstxt.desc": "Die Datei „robots.txt“ abrufen und analysieren, um die Crawling-Berechtigungen und -Richtlinien zu überprüfen",
 	"manifest.settings.detections.authentication.desc": "Authentifizierungsbarrieren und Anmeldeanforderungen erkennen (401/403-Statuscodes, Anmeldeformulare, Authentifizierungs-Schlüsselwörter)",
 	"manifest.capability.untrusted-workspaces.desc": "Aus Sicherheitsgründen eingeschränkte Funktionalität in nicht vertrauenswürdigen Arbeitsbereichen",

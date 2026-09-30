@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "VS Code に Scrape-LE のステータスバー項目を表示する",
 	"manifest.settings.detections.antibot.desc": "ボット対策システム（Cloudflare、reCAPTCHA、hCaptcha、DataDome、Perimeter81）を検出する",
 	"manifest.settings.detections.ratelimit.desc": "HTTPのレート制限ヘッダー（X-RateLimit-*、RateLimit-*、Retry-After）を検出し、解析する",
+	"manifest.settings.robotstxt.agent.desc": "robots.txt を評価するクローラー（例: Googlebot、MyBot/1.0）。そのクローラーを指定したグループのルールが適用されます。空の場合、またはどのグループにも指定がない場合は、すべてのクローラー向けのルール（User-agent: *）が適用されます。",
 	"manifest.settings.detections.robotstxt.desc": "robots.txt ファイルを取得して解析し、クロールに関する権限やポリシーを確認する",
 	"manifest.settings.detections.authentication.desc": "認証の障壁やログイン要件を検出する（401/403ステータス、ログインフォーム、認証関連キーワード）",
 	"manifest.capability.untrusted-workspaces.desc": "セキュリティ上の理由から、信頼できないワークスペースでは機能が制限されます",

@@ -1,21 +1,19 @@
 /**
  * robots.txt fetching and parsing.
  *
- * Follows RFC 9309 group and matching semantics for the rules that
- * apply to all crawlers (User-agent: *):
+ * Follows RFC 9309 group and matching semantics:
  * - consecutive User-agent lines form one group header; any other
- *   directive closes the header, and the group's rules apply when any
- *   of its agents is '*'
+ *   directive closes the header
+ * - with an agent, the groups naming its product token (`MyBot/1.0` →
+ *   `mybot`, case-insensitive) apply; with no agent, or none naming it,
+ *   the `*` groups do. The answer says which (`agent`)
  * - Allow and Disallow both participate; the longest matching pattern
  *   wins, Allow winning ties
  * - patterns support '*' (any characters) and a trailing '$' anchor
  * - §2.2.2: octets outside ASCII are percent-encoded on both sides
  *   before comparison, and "longest" counts the encoded form's octets
  *
- * Honest limitations: agent-specific groups are ignored entirely (we
- * only report the generic rules — a site may treat your specific
- * scraper differently), and crawl-delay is a de-facto extension, not
- * part of the RFC.
+ * Crawl-delay is a de-facto extension, not part of the RFC.
  */
 
 import type { RobotsTxtInfo } from '../types';
@@ -23,7 +21,10 @@ import type { RobotsTxtInfo } from '../types';
 /**
  * Fetches and parses robots.txt for a given URL
  */
-export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
+export async function fetchRobotsTxt(
+	url: string,
+	agent?: string,
+): Promise<RobotsTxtInfo> {
 	try {
 		// Extract origin from URL
 		const urlObj = new URL(url);
@@ -48,7 +49,7 @@ export async function fetchRobotsTxt(url: string): Promise<RobotsTxtInfo> {
 		}
 
 		const content = await response.text();
-		return parseRobotsTxt(content, urlObj.pathname);
+		return parseRobotsTxt(content, urlObj.pathname, agent);
 	} catch (error) {
 		// Rethrown rather than swallowed into a default result. Returning the
 		// all-clear on error made a crashed check indistinguishable from a clean
@@ -133,8 +134,21 @@ export function canonicalizeRobotsPath(value: string): string {
 	return out;
 }
 
+type RobotsGroup = {
+	agents: string[];
+	rules: RobotsRule[];
+	crawlDelay?: number | undefined;
+};
+
+/** `MyBot/1.0` → `mybot`: RFC 9309 matches the product token, any case. */
+function productToken(agent: string): string {
+	return (agent.split('/')[0] ?? agent).trim().toLowerCase();
+}
+
 /**
- * Parses robots.txt content against the generic (User-agent: *) rules.
+ * Parses robots.txt content and evaluates `pathname` against the group
+ * that applies to `agent`, or the generic (User-agent: *) rules when no
+ * agent is given or no group names it.
  *
  * Exported for the MCP server, which analyses robots.txt content the caller
  * already has rather than fetching it. Reaching the network from inside an
@@ -145,13 +159,11 @@ export function canonicalizeRobotsPath(value: string): string {
 export function parseRobotsTxt(
 	content: string,
 	pathname: string,
+	agent?: string,
 ): RobotsTxtInfo {
 	try {
-		const rules: RobotsRule[] = [];
+		const groups: RobotsGroup[] = [];
 		const sitemaps: string[] = [];
-		let crawlDelay: number | undefined;
-
-		let groupAgents: string[] = [];
 		let inGroupHeader = false;
 
 		for (const rawLine of content.split('\n')) {
@@ -174,16 +186,15 @@ export function parseRobotsTxt(
 
 			if (directive === 'user-agent') {
 				if (!inGroupHeader) {
-					groupAgents = [];
+					groups.push({ agents: [], rules: [] });
 					inGroupHeader = true;
 				}
-				groupAgents.push(value.toLowerCase());
+				groups[groups.length - 1]?.agents.push(value.toLowerCase());
 				continue;
 			}
 
 			// any non-user-agent directive closes the group header
 			inGroupHeader = false;
-			const groupAppliesToAll = groupAgents.includes('*');
 
 			if (directive === 'sitemap') {
 				// sitemap is not group-scoped
@@ -193,7 +204,8 @@ export function parseRobotsTxt(
 				continue;
 			}
 
-			if (!groupAppliesToAll) {
+			const group = groups[groups.length - 1];
+			if (!group) {
 				continue;
 			}
 
@@ -201,7 +213,7 @@ export function parseRobotsTxt(
 				// Matched and measured encoded; reported raw, so the finding
 				// quotes the line the file actually carries rather than a
 				// canonical form the reader would not find in it.
-				rules.push(
+				group.rules.push(
 					Object.freeze({
 						allow: directive === 'allow',
 						pattern: value,
@@ -214,13 +226,26 @@ export function parseRobotsTxt(
 			if (directive === 'crawl-delay') {
 				const delay = Number.parseFloat(value);
 				if (!Number.isNaN(delay) && delay >= 0) {
-					crawlDelay = delay;
+					group.crawlDelay = delay;
 				}
 			}
 		}
 
+		// An empty token is no agent: `User-agent:` with nothing after it is
+		// not a group anyone should be answered by.
+		const token = agent === undefined ? '' : productToken(agent);
+		const named = token !== '' && groups.some((g) => g.agents.includes(token));
+		const answering = named ? token : '*';
+		const selected = groups.filter((g) => g.agents.includes(answering));
+		const rules = selected.flatMap((g) => g.rules);
+		// The last applicable group with a delay wins, as the crate's does.
+		const crawlDelay = [...selected]
+			.reverse()
+			.find((g) => g.crawlDelay !== undefined)?.crawlDelay;
+
 		return Object.freeze({
 			exists: true,
+			agent: answering,
 			// RFC 9309 §2.2.2: the comparison happens on the encoded form, on
 			// both sides of it. The path arrives encoded from `URL.pathname`
 			// and raw from an MCP caller that typed it, and
@@ -297,6 +322,7 @@ export function matchesRobotsPattern(
 function createDefaultRobotsTxtInfo(exists: boolean): RobotsTxtInfo {
 	return Object.freeze({
 		exists,
+		agent: '*',
 		allowsCrawling: true, // Default to allowing if uncertain
 		disallowedPaths: Object.freeze([]),
 		sitemaps: Object.freeze([]),

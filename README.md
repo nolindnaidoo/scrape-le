@@ -64,10 +64,10 @@ The same engine runs as an [MCP](https://modelcontextprotocol.io) server, so an 
 | **Cursor, Windsurf, anything else** | point it at `npx scrape-le-mcp` |
 
 ```
-analyze_robots_txt(content, path, maxResults?)
+analyze_robots_txt(content, path, agent?, maxResults?)
 ```
 
-Given robots.txt contents and a path, reports whether the generic (`User-agent: *`) rules permit crawling it, plus the crawl delay, disallowed patterns and any sitemaps.
+Given robots.txt contents and a path, reports whether the rules permit crawling it: the group naming `agent` when one does, otherwise the generic (`User-agent: *`) rules, with `agent` in the answer saying which. Plus the crawl delay, disallowed patterns and any sitemaps.
 
 The server takes content and returns data — it reads no files and makes no network requests of its own. Published as [`scrape-le-mcp`](https://www.npmjs.com/package/scrape-le-mcp) on npm and as `io.github.nolindnaidoo/scrape-le` in the [MCP registry](https://registry.modelcontextprotocol.io).
 
@@ -129,7 +129,7 @@ The exit code is the answer: **0 clear · 1 a real no · 2 the question was malf
 |---|---|
 | Anti-bot vendors | Response headers, script sources, DOM elements, and window globals fingerprint Cloudflare (incl. Turnstile challenges), reCAPTCHA, hCaptcha, DataDome, and PerimeterX |
 | Rate limiting | `X-RateLimit-*` / `RateLimit-*` / `Retry-After` response headers, plus HTTP 429 |
-| robots.txt | Fetches `<origin>/robots.txt` and evaluates the `User-agent: *` rules against your URL with RFC 9309 semantics — grouped agents, `Allow`/`Disallow` longest-match, `*` wildcards, `$` anchors, crawl-delay, sitemaps |
+| robots.txt | Fetches `<origin>/robots.txt` and evaluates it against your URL with RFC 9309 semantics — the group naming `scrape-le.robotsTxt.agent` when set and named, otherwise `User-agent: *`, and the report says which answered; grouped agents, `Allow`/`Disallow` longest-match, `*` wildcards, `$` anchors, crawl-delay, sitemaps |
 | Authentication | HTTP 401/403, login forms (password + username fields), auth keywords in page text, auth path segments in the final URL |
 
 Honest limitations: signatures are best-effort fingerprints of public integration patterns — a detected widget means the page *can* challenge you, not that it will, and a clean result is not proof a site allows scraping. Agent-specific robots.txt groups are ignored (only the `*` rules are reported). Pages get up to 5 seconds to go network-idle after load, so content rendered later than that can be missed by the page-level detections.
@@ -217,12 +217,12 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 93.13% |
-| Branches | 84.44% |
-| Functions | 95.20% |
-| Lines | 94.54% |
+| Statements | 92.98% |
+| Branches | 83.23% |
+| Functions | 94.03% |
+| Lines | 94.47% |
 
-379 test cases across 29 files, plus an integration suite that runs
+380 test cases across 29 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
 built `.vsix` into a clean profile.
 

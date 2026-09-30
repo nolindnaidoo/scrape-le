@@ -36,6 +36,7 @@ describe('config defaults parity with package.json', () => {
 		'scrape-le.detections.antiBot': DEFAULT_CONFIG.detections.antiBot,
 		'scrape-le.detections.rateLimit': DEFAULT_CONFIG.detections.rateLimit,
 		'scrape-le.detections.robotsTxt': DEFAULT_CONFIG.detections.robotsTxt,
+		'scrape-le.robotsTxt.agent': DEFAULT_CONFIG.robotsAgent,
 		'scrape-le.detections.authentication':
 			DEFAULT_CONFIG.detections.authentication,
 	};

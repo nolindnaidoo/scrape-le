@@ -350,8 +350,6 @@ Order matters beyond this repo: npm must be published *before* any Zed registry 
   integration patterns; vendors change them, and first-party proxied
   setups can evade them. Detection means "can challenge you", not
   "will"; absence is not permission to scrape.
-- robots.txt: agent-specific groups are ignored — only the
-  `User-agent: *` rules are evaluated and reported.
 - Detections run after `load` + a ≤5s network-idle settle; content
   rendered later can be missed by page-level probes.
 - The in-page probe (`pageProbeScan`) executes in the browser; unit

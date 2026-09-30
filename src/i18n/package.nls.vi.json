@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "Hiển thị mục “Scrape-LE” trên thanh trạng thái trong VS Code",
 	"manifest.settings.detections.antibot.desc": "Phát hiện các hệ thống bảo vệ chống bot (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
 	"manifest.settings.detections.ratelimit.desc": "Phát hiện và phân tích các tiêu đề giới hạn tốc độ HTTP (X-RateLimit-*, RateLimit-*, Retry-After)",
+	"manifest.settings.robotstxt.agent.desc": "Trình thu thập dùng để đánh giá robots.txt, ví dụ Googlebot hoặc MyBot/1.0. Áp dụng quy tắc của nhóm nêu tên nó; nếu để trống hoặc không nhóm nào nêu tên nó, áp dụng quy tắc cho mọi trình thu thập (User-agent: *).",
 	"manifest.settings.detections.robotstxt.desc": "Tải về và phân tích tệp robots.txt để kiểm tra quyền truy cập và chính sách thu thập dữ liệu",
 	"manifest.settings.detections.authentication.desc": "Phát hiện các rào cản xác thực và yêu cầu đăng nhập (trạng thái 401/403, biểu mẫu đăng nhập, từ khóa xác thực)",
 	"manifest.capability.untrusted-workspaces.desc": "Chức năng bị hạn chế trong các không gian làm việc không đáng tin cậy vì lý do bảo mật",

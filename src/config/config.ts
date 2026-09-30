@@ -31,6 +31,7 @@ export const DEFAULT_CONFIG: Config = Object.freeze({
 		quality: 90,
 	}),
 	checkConsoleErrors: true,
+	robotsAgent: '',
 	notificationsLevel: 'important' as NotificationLevel,
 	statusBar: Object.freeze({
 		enabled: true,
@@ -85,6 +86,9 @@ export function getConfiguration(): Config {
 		checkConsoleErrors:
 			config.get<boolean>('checkConsoleErrors') ??
 			DEFAULT_CONFIG.checkConsoleErrors,
+		robotsAgent:
+			config.get<string>('robotsTxt.agent')?.trim() ??
+			DEFAULT_CONFIG.robotsAgent,
 		notificationsLevel:
 			config.get<NotificationLevel>('notificationsLevel') ??
 			DEFAULT_CONFIG.notificationsLevel,

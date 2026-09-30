@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "Tampilkan entri bilah status Scrape-LE di VS Code",
 	"manifest.settings.detections.antibot.desc": "Mendeteksi sistem perlindungan anti-bot (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
 	"manifest.settings.detections.ratelimit.desc": "Mendeteksi dan mengurai header pembatasan laju HTTP (X-RateLimit-*, RateLimit-*, Retry-After)",
+	"manifest.settings.robotstxt.agent.desc": "Crawler yang digunakan untuk mengevaluasi robots.txt, mis. Googlebot atau MyBot/1.0. Aturan dalam grup yang menyebutkannya berlaku; jika kosong, atau tidak ada grup yang menyebutkannya, aturan untuk semua crawler (User-agent: *) berlaku.",
 	"manifest.settings.detections.robotstxt.desc": "Mengunduh dan mengurai berkas robots.txt untuk memeriksa izin dan kebijakan perayapan",
 	"manifest.settings.detections.authentication.desc": "Mendeteksi hambatan otentikasi dan persyaratan login (status 401/403, formulir login, kata kunci otentikasi)",
 	"manifest.capability.untrusted-workspaces.desc": "Fungsionalitas terbatas di ruang kerja yang tidak tepercaya demi alasan keamanan",

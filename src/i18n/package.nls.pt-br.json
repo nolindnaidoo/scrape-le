@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "Mostrar a entrada da barra de status do Scrape-LE no VS Code",
 	"manifest.settings.detections.antibot.desc": "Detectar sistemas de proteção contra bots (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
 	"manifest.settings.detections.ratelimit.desc": "Detectar e analisar cabeçalhos de limitação de taxa HTTP (X-RateLimit-*, RateLimit-*, Retry-After)",
+	"manifest.settings.robotstxt.agent.desc": "O rastreador para o qual o robots.txt é avaliado, por ex. Googlebot ou MyBot/1.0. Aplicam-se as regras do grupo que o nomeia; se estiver vazio ou nenhum grupo o nomear, aplicam-se as regras para todos os rastreadores (User-agent: *).",
 	"manifest.settings.detections.robotstxt.desc": "Buscar e analisar o arquivo robots.txt para verificar as permissões e políticas de rastreamento",
 	"manifest.settings.detections.authentication.desc": "Detectar barreiras de autenticação e requisitos de login (códigos de status 401/403, formulários de login, palavras-chave de autenticação)",
 	"manifest.capability.untrusted-workspaces.desc": "Funcionalidade limitada em espaços de trabalho não confiáveis por motivos de segurança",
