@@ -7,7 +7,7 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.0] - 2026-09-30
 
 ### Changed
 
@@ -343,6 +343,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.4.0]: https://crates.io/crates/scrape-le/0.4.0
 [0.3.2]: https://crates.io/crates/scrape-le/0.3.2
 [0.3.0]: https://crates.io/crates/scrape-le/0.3.0
 [0.2.0]: https://crates.io/crates/scrape-le/0.2.0
