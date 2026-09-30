@@ -240,6 +240,7 @@ exports[`rate-limit characterization > null response 1`] = `
 
 exports[`robots.txt characterization > missing robots.txt (404) 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": true,
   "disallowedPaths": [],
   "exists": false,
@@ -249,6 +250,7 @@ exports[`robots.txt characterization > missing robots.txt (404) 1`] = `
 
 exports[`robots.txt characterization > robots-disallow-all.txt for path / 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -261,6 +263,7 @@ exports[`robots.txt characterization > robots-disallow-all.txt for path / 1`] = 
 
 exports[`robots.txt characterization > robots-disallow-all.txt for path /anything 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -273,6 +276,7 @@ exports[`robots.txt characterization > robots-disallow-all.txt for path /anythin
 
 exports[`robots.txt characterization > robots-multi-group.txt for path /everyone/x 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -287,6 +291,7 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /everyone
 
 exports[`robots.txt characterization > robots-multi-group.txt for path /google-only/x 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": true,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -301,6 +306,7 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /google-o
 
 exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-star-first/x 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -315,6 +321,7 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-
 
 exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-star-last/x 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -329,6 +336,7 @@ exports[`robots.txt characterization > robots-multi-group.txt for path /grouped-
 
 exports[`robots.txt characterization > robots-simple.txt for path / 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": true,
   "crawlDelay": 10,
   "disallowedPaths": [
@@ -344,6 +352,7 @@ exports[`robots.txt characterization > robots-simple.txt for path / 1`] = `
 
 exports[`robots.txt characterization > robots-simple.txt for path /admin/panel 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": 10,
   "disallowedPaths": [
@@ -359,6 +368,7 @@ exports[`robots.txt characterization > robots-simple.txt for path /admin/panel 1
 
 exports[`robots.txt characterization > robots-simple.txt for path /api/internal/x 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": 10,
   "disallowedPaths": [
@@ -374,6 +384,7 @@ exports[`robots.txt characterization > robots-simple.txt for path /api/internal/
 
 exports[`robots.txt characterization > robots-simple.txt for path /apiary 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": true,
   "crawlDelay": 10,
   "disallowedPaths": [
@@ -389,6 +400,7 @@ exports[`robots.txt characterization > robots-simple.txt for path /apiary 1`] = 
 
 exports[`robots.txt characterization > robots-wildcards.txt for path /data.json 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -405,6 +417,7 @@ exports[`robots.txt characterization > robots-wildcards.txt for path /data.json 
 
 exports[`robots.txt characterization > robots-wildcards.txt for path /private/data 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": false,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -421,6 +434,7 @@ exports[`robots.txt characterization > robots-wildcards.txt for path /private/da
 
 exports[`robots.txt characterization > robots-wildcards.txt for path /public/page 1`] = `
 {
+  "agent": "*",
   "allowsCrawling": true,
   "crawlDelay": undefined,
   "disallowedPaths": [
@@ -455,6 +469,7 @@ exports[`runDetections aggregation characterization > all detections enabled on 
     "detected": false,
   },
   "robotsTxt": {
+    "agent": "*",
     "allowsCrawling": true,
     "crawlDelay": 10,
     "disallowedPaths": [

@@ -227,6 +227,11 @@
 					"default": true,
 					"description": "%manifest.settings.detections.ratelimit.desc%"
 				},
+				"scrape-le.robotsTxt.agent": {
+					"type": "string",
+					"default": "",
+					"description": "%manifest.settings.robotstxt.agent.desc%"
+				},
 				"scrape-le.detections.robotsTxt": {
 					"type": "boolean",
 					"default": true,

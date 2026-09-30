@@ -6,8 +6,7 @@
  *   every vendor in code has a file, every file matches the code.
  * - fixtures/ cases must reproduce under the extension's own functions
  *   (matchHeaders, parseRobotsTxt, validateUrl/normalizeUrl/extractUrl).
- *   A case's `divergence` field documents the CLI's differing answer and
- *   is deliberately not evaluated here.
+ *   A case's `agent` is the crawler it is evaluated as.
  *
  * Run: bun scripts/check-signature-parity.ts
  */
@@ -112,7 +111,7 @@ function checkRobotsFixtures(): void {
 	const cases = JSON.parse(readFileSync(join(dir, 'cases.json'), 'utf8'));
 	for (const testCase of cases) {
 		const body = readFileSync(join(dir, testCase.file), 'utf8');
-		const actual = asJson(parseRobotsTxt(body, testCase.path));
+		const actual = asJson(parseRobotsTxt(body, testCase.path, testCase.agent));
 		if (!deepEqual(actual, testCase.expected)) {
 			fail(
 				`robots "${testCase.name}": expected ${JSON.stringify(testCase.expected)}, got ${JSON.stringify(actual)}`,

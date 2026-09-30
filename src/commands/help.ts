@@ -49,6 +49,7 @@ All settings live under "scrape-le." in VS Code settings:
 - **screenshot.format / quality**: png or jpeg, jpeg quality 0-100
 - **checkConsoleErrors**: Capture console/page errors (default on)
 - **detections.antiBot / rateLimit / robotsTxt / authentication**: Toggle individual detections
+- **robotsTxt.agent**: The crawler robots.txt is evaluated as (e.g. Googlebot); empty uses the \`User-agent: *\` rules
 - **notificationsLevel**: all, important, or silent
 - **statusBar.enabled**: Show the status bar item
 

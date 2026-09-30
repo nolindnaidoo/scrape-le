@@ -47,6 +47,8 @@ export type CheckOptions = Readonly<{
 	screenshotFormat: 'png' | 'jpeg';
 	screenshotQuality: number;
 	checkConsoleErrors: boolean;
+	/** The crawler robots.txt is evaluated as; generic rules when absent. */
+	robotsAgent?: string | undefined;
 	detections: Readonly<{
 		antiBot: boolean;
 		rateLimit: boolean;
@@ -77,6 +79,7 @@ export type Config = Readonly<{
 		quality: number;
 	}>;
 	checkConsoleErrors: boolean;
+	robotsAgent: string;
 	notificationsLevel: NotificationLevel;
 	statusBar: Readonly<{
 		enabled: boolean;
@@ -175,6 +178,8 @@ export type RateLimitInfo = Readonly<{
  */
 export type RobotsTxtInfo = Readonly<{
 	exists: boolean;
+	/** Which group answered: `*`, or the agent's product token. */
+	agent: string;
 	allowsCrawling: boolean;
 	crawlDelay?: number | undefined;
 	disallowedPaths: readonly string[];

@@ -37,6 +37,7 @@ pub(super) struct Diagnostic {
 #[serde(rename_all = "camelCase")]
 struct AnalyzeData {
     path: String,
+    agent: String,
     allows_crawling: bool,
     #[serde(skip_serializing_if = "JsNumber::is_none")]
     crawl_delay: JsNumber,
@@ -94,6 +95,15 @@ pub(super) fn analyze(arguments: &Value) -> Result<Value, String> {
     let content = read_string(arguments, "content")?;
     let target = read_string(arguments, "path")?;
     let max_results = read_max_results(arguments)?;
+    let agent = match arguments.get("agent") {
+        None => None,
+        Some(value) => Some(
+            value
+                .as_str()
+                .ok_or_else(|| "agent must be a string".to_string())?
+                .to_string(),
+        ),
+    };
 
     let (pathname, path_note) = to_pathname(&target);
     let diagnostics: Vec<Diagnostic> = path_note
@@ -106,7 +116,7 @@ pub(super) fn analyze(arguments: &Value) -> Result<Value, String> {
         })
         .unwrap_or_default();
 
-    let info = parse_robots_txt(&content, &pathname, None);
+    let info = parse_robots_txt(&content, &pathname, agent.as_deref());
     let total = info.disallowed_paths.len();
     let truncated = total > max_results;
     let disallowed: Vec<String> = info
@@ -126,6 +136,7 @@ pub(super) fn analyze(arguments: &Value) -> Result<Value, String> {
         },
         data: AnalyzeData {
             path: pathname,
+            agent: info.agent,
             allows_crawling: info.allows_crawling,
             crawl_delay: JsNumber(info.crawl_delay),
             disallowed_paths: disallowed,
@@ -210,8 +221,10 @@ pub(super) fn definition() -> Value {
     json!({
         "name": "analyze_robots_txt",
         "description":
-            "Given the contents of a robots.txt file and a path, report whether the generic \
-             (User-agent: *) rules permit crawling it, along with the crawl delay, the \
+            "Given the contents of a robots.txt file and a path, report whether the rules \
+             permit crawling it — the group naming `agent` when one does, otherwise the \
+             generic (User-agent: *) rules, and `agent` in the answer says which — along \
+             with the crawl delay, the \
              disallowed patterns and any sitemaps. Takes the file contents directly and makes \
              no network request of its own — fetch robots.txt with your own HTTP tool and pass \
              what it returned.",
@@ -227,6 +240,12 @@ pub(super) fn definition() -> Value {
                     "description":
                         "The path to check, e.g. \"/admin\". A full URL is accepted and reduced \
                          to its path.",
+                },
+                "agent": {
+                    "type": "string",
+                    "description":
+                        "The crawler to evaluate as, e.g. \"Googlebot\" or \"MyBot/1.0\"; matched on \
+                         its product token, case-insensitively. Omitted, the generic rules answer.",
                 },
                 "maxResults": {
                     "type": "integer",

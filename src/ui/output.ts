@@ -115,6 +115,9 @@ function appendRobotsTxt(channel: Channel, rt: Detections['robotsTxt']): void {
 
 	channel.appendLine('   🤖 robots.txt: Found');
 	channel.appendLine(
+		`      - Rules for: ${rt.agent === '*' ? 'all crawlers (User-agent: *)' : `User-agent: ${rt.agent}`}`,
+	);
+	channel.appendLine(
 		`      - Allows Crawling: ${rt.allowsCrawling ? 'Yes' : 'No'}`,
 	);
 	if (rt.crawlDelay) {

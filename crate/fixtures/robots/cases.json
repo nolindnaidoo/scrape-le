@@ -5,6 +5,7 @@
 		"path": "/admin/settings",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"crawlDelay": 10,
 			"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -17,6 +18,7 @@
 		"path": "/public/page",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"crawlDelay": 10,
 			"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -29,6 +31,7 @@
 		"path": "/admin",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"crawlDelay": 10,
 			"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -41,6 +44,7 @@
 		"path": "/",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/"],
 			"sitemaps": []
@@ -52,6 +56,7 @@
 		"path": "/anything/at/all",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/"],
 			"sitemaps": []
@@ -63,6 +68,7 @@
 		"path": "/data.json",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/*.json$", "/private*"],
 			"sitemaps": [
@@ -77,6 +83,7 @@
 		"path": "/public/data.json",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"disallowedPaths": ["/*.json$", "/private*"],
 			"sitemaps": [
@@ -91,6 +98,7 @@
 		"path": "/private/file",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/*.json$", "/private*"],
 			"sitemaps": [
@@ -105,6 +113,7 @@
 		"path": "/public/index.html",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"disallowedPaths": ["/*.json$", "/private*"],
 			"sitemaps": [
@@ -119,6 +128,7 @@
 		"path": "/everyone/x",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": [
 				"/everyone/",
@@ -134,6 +144,7 @@
 		"path": "/grouped-star-first/x",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": [
 				"/everyone/",
@@ -149,6 +160,7 @@
 		"path": "/google-only/page",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"disallowedPaths": [
 				"/everyone/",
@@ -156,13 +168,49 @@
 				"/grouped-star-first/"
 			],
 			"sitemaps": []
-		},
-		"divergence": {
-			"reason": "The extension evaluates only User-agent: * groups; the CLI honours agent-specific groups via --agent (RFC 9309 group selection).",
-			"cli": {
-				"agent": "Googlebot",
-				"allowsCrawling": false
-			}
+		}
+	},
+	{
+		"name": "multi-group: the group naming Googlebot answers for it",
+		"file": "multi-group.txt",
+		"path": "/google-only/page",
+		"agent": "Googlebot",
+		"expected": {
+			"exists": true,
+			"agent": "googlebot",
+			"allowsCrawling": false,
+			"disallowedPaths": ["/google-only/"],
+			"sitemaps": []
+		}
+	},
+	{
+		"name": "multi-group: an agent no group names gets the generic rules, version and case ignored",
+		"file": "multi-group.txt",
+		"path": "/everyone/x",
+		"agent": "OtherBot/2.1",
+		"expected": {
+			"exists": true,
+			"agent": "*",
+			"allowsCrawling": false,
+			"disallowedPaths": [
+				"/everyone/",
+				"/grouped-star-last/",
+				"/grouped-star-first/"
+			],
+			"sitemaps": []
+		}
+	},
+	{
+		"name": "multi-group: an agent sharing a group with * gets that group alone",
+		"file": "multi-group.txt",
+		"path": "/everyone/x",
+		"agent": "FOOBOT/1.0",
+		"expected": {
+			"exists": true,
+			"agent": "foobot",
+			"allowsCrawling": true,
+			"disallowedPaths": ["/grouped-star-last/"],
+			"sitemaps": []
 		}
 	},
 	{
@@ -171,6 +219,7 @@
 		"path": "/café/page",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 			"sitemaps": ["https://example.com/café.xml"]
@@ -182,6 +231,7 @@
 		"path": "/caf%C3%A9/page",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 			"sitemaps": ["https://example.com/café.xml"]
@@ -193,6 +243,7 @@
 		"path": "/caf%c3%a9/page",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 			"sitemaps": ["https://example.com/café.xml"]
@@ -204,6 +255,7 @@
 		"path": "/café-lower/x",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 			"sitemaps": ["https://example.com/café.xml"]
@@ -215,6 +267,7 @@
 		"path": "/café/public/page",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 			"sitemaps": ["https://example.com/café.xml"]
@@ -226,6 +279,7 @@
 		"path": "/data.json",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": false,
 			"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 			"sitemaps": ["https://example.com/café.xml"]
@@ -237,16 +291,23 @@
 		"path": "/members/area",
 		"expected": {
 			"exists": true,
+			"agent": "*",
 			"allowsCrawling": true,
 			"disallowedPaths": [],
 			"sitemaps": ["https://example.com/global.xml"]
-		},
-		"divergence": {
-			"reason": "The extension evaluates only User-agent: * groups; the CLI honours agent-specific groups via --agent (RFC 9309 group selection).",
-			"cli": {
-				"agent": "SpecialBot",
-				"allowsCrawling": false
-			}
+		}
+	},
+	{
+		"name": "agent-specific: the group naming SpecialBot answers for it",
+		"file": "agent-specific.txt",
+		"path": "/members/area",
+		"agent": "SpecialBot",
+		"expected": {
+			"exists": true,
+			"agent": "specialbot",
+			"allowsCrawling": false,
+			"disallowedPaths": ["/"],
+			"sitemaps": ["https://example.com/global.xml"]
 		}
 	}
 ]

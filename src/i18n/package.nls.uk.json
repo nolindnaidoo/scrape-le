@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "Відобразити запис у рядку стану Scrape-LE у VS Code",
 	"manifest.settings.detections.antibot.desc": "Виявлення систем захисту від ботів (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
 	"manifest.settings.detections.ratelimit.desc": "Виявлення та аналіз заголовків, що визначають обмеження швидкості HTTP (X-RateLimit-*, RateLimit-*, Retry-After)",
+	"manifest.settings.robotstxt.agent.desc": "Краулер, для якого оцінюється robots.txt, наприклад Googlebot або MyBot/1.0. Застосовуються правила групи, у якій його вказано; якщо поле порожнє або жодна група його не вказує, застосовуються правила для всіх краулерів (User-agent: *).",
 	"manifest.settings.detections.robotstxt.desc": "Завантажити та проаналізувати файл robots.txt для перевірки дозволів та правил сканування",
 	"manifest.settings.detections.authentication.desc": "Виявлення бар'єрів аутентифікації та вимог щодо входу (статуси 401/403, форми входу, ключові слова, пов'язані з аутентифікацією)",
 	"manifest.capability.untrusted-workspaces.desc": "Обмежена функціональність у ненадійних робочих середовищах з міркувань безпеки",

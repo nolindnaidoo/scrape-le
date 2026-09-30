@@ -99,6 +99,7 @@ export async function executeCheck(
 		screenshotFormat: config.screenshot.format,
 		screenshotQuality: config.screenshot.quality,
 		checkConsoleErrors: config.checkConsoleErrors,
+		robotsAgent: config.robotsAgent || undefined,
 		detections: config.detections,
 	});
 

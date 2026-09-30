@@ -76,11 +76,9 @@ crate/src/
 - **`scrape-le.retry.userAgents` is dropped**, deliberately. It
   contradicts the spec's non-goals and the generic-User-Agent rule. A
   written-down parity gap, not an oversight.
-- **robots.txt agent-specific groups are fixed here, not ported
-  broken.** `--agent` does RFC 9309 group selection; flagless runs stay
-  byte-identical to the extension. Corpus cases that diverge carry a
-  `divergence` annotation in `../fixtures/`, and a test asserts the CLI
-  actually answers what the annotation claims.
+- **robots.txt group selection is shared.** `--agent` and the
+  extension's `scrape-le.robotsTxt.agent` both do RFC 9309 group
+  selection, and `../fixtures/robots/cases.json` holds them equal.
 - **robots.txt is held per origin, and only when an origin served it.**
   The cache key is scheme + host + port — what decides the URL fetched —
   while `batch.rs` groups on the host alone; politeness is owed to a

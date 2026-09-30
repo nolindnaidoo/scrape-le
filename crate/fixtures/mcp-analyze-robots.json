@@ -7,6 +7,7 @@
 			"ok": true,
 			"data": {
 				"path": "/admin/settings",
+				"agent": "*",
 				"allowsCrawling": false,
 				"crawlDelay": 10,
 				"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -24,6 +25,7 @@
 			"ok": true,
 			"data": {
 				"path": "/public/page",
+				"agent": "*",
 				"allowsCrawling": true,
 				"crawlDelay": 10,
 				"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -41,6 +43,7 @@
 			"ok": true,
 			"data": {
 				"path": "/admin/settings",
+				"agent": "*",
 				"allowsCrawling": false,
 				"crawlDelay": 10,
 				"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -58,6 +61,7 @@
 			"ok": true,
 			"data": {
 				"path": "/admin/settings",
+				"agent": "*",
 				"allowsCrawling": false,
 				"crawlDelay": 10,
 				"disallowedPaths": ["/admin/", "/api/internal/"],
@@ -81,6 +85,7 @@
 			"ok": true,
 			"data": {
 				"path": "/anything",
+				"agent": "*",
 				"allowsCrawling": false,
 				"disallowedPaths": ["/"],
 				"sitemaps": []
@@ -97,6 +102,7 @@
 			"ok": true,
 			"data": {
 				"path": "/public/data.json",
+				"agent": "*",
 				"allowsCrawling": true,
 				"disallowedPaths": ["/*.json$", "/private*"],
 				"sitemaps": [
@@ -116,6 +122,7 @@
 			"ok": true,
 			"data": {
 				"path": "/google-only/page",
+				"agent": "*",
 				"allowsCrawling": true,
 				"disallowedPaths": [
 					"/everyone/",
@@ -136,6 +143,7 @@
 			"ok": true,
 			"data": {
 				"path": "/caf%C3%A9/page",
+				"agent": "*",
 				"allowsCrawling": false,
 				"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 				"sitemaps": ["https://example.com/café.xml"]
@@ -152,6 +160,7 @@
 			"ok": true,
 			"data": {
 				"path": "/caf%C3%A9/page",
+				"agent": "*",
 				"allowsCrawling": false,
 				"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 				"sitemaps": ["https://example.com/café.xml"]
@@ -168,6 +177,7 @@
 			"ok": true,
 			"data": {
 				"path": "/café/public/page",
+				"agent": "*",
 				"allowsCrawling": true,
 				"disallowedPaths": ["/café/", "/caf%c3%a9-lower/", "/*.json$"],
 				"sitemaps": ["https://example.com/café.xml"]
@@ -184,6 +194,7 @@
 			"ok": true,
 			"data": {
 				"path": "/everyone/x",
+				"agent": "*",
 				"allowsCrawling": false,
 				"disallowedPaths": ["/everyone/", "/grouped-star-last/"],
 				"sitemaps": []
@@ -207,5 +218,48 @@
 		"file": "simple.txt",
 		"arguments": { "path": "/admin", "maxResults": 0 },
 		"expectedError": "maxResults must be a positive integer"
+	},
+	{
+		"name": "an agent a group names is answered by that group",
+		"file": "multi-group.txt",
+		"arguments": { "path": "/google-only/page", "agent": "Googlebot/2.1" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/google-only/page",
+				"agent": "googlebot",
+				"allowsCrawling": false,
+				"disallowedPaths": ["/google-only/"],
+				"sitemaps": []
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 1, "truncated": false }
+		}
+	},
+	{
+		"name": "an agent no group names falls back to the generic rules",
+		"file": "agent-specific.txt",
+		"arguments": { "path": "/members/area", "agent": "NobodyBot" },
+		"expected": {
+			"ok": true,
+			"data": {
+				"path": "/members/area",
+				"agent": "*",
+				"allowsCrawling": true,
+				"disallowedPaths": [],
+				"sitemaps": ["https://example.com/global.xml"]
+			},
+			"diagnostics": [],
+			"meta": { "tool": "analyze_robots_txt", "count": 0, "truncated": false }
+		}
+	},
+	{
+		"name": "an agent that is not a string is refused",
+		"arguments": {
+			"content": "User-agent: *\nDisallow: /\n",
+			"path": "/",
+			"agent": 7
+		},
+		"expectedError": "agent must be a string"
 	}
 ]

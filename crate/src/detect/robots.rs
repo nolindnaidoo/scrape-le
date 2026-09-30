@@ -1,11 +1,11 @@
 //! robots.txt parsing and matching — the port of the extension's
 //! `src/detectors/robotstxt.ts`.
 //!
-//! Flagless behaviour is the extension's, exactly: only the generic
-//! (`User-agent: *`) groups are evaluated, and `fixtures/robots/cases.json`
-//! pins the results. Passing an agent selects that agent's groups per
-//! RFC 9309 instead — the documented divergence, opt-in, recorded in
-//! the report so a reader knows which rules answered.
+//! Behaviour is the extension's, exactly, and `fixtures/robots/cases.json`
+//! pins it: with no agent the generic (`User-agent: *`) groups answer,
+//! and with one the groups naming its product token do, per RFC 9309,
+//! falling back to the generic groups when none names it. The report
+//! records which group answered.
 
 use regex::Regex;
 
@@ -111,7 +111,9 @@ impl RobotsDocument {
     /// caller's product token (`MyBot/1.0` → `mybot`); `None` evaluates
     /// the generic rules only, as the extension does.
     pub(crate) fn evaluate(&self, pathname: &str, agent: Option<&str>) -> RobotsTxtInfo {
-        let token = agent.map(product_token);
+        // An empty token is no agent: `User-agent:` with nothing after it
+        // is not a group anyone should be answered by.
+        let token = agent.map(product_token).filter(|token| !token.is_empty());
 
         // An agent-specific group wins; with no match — or no agent —
         // the generic groups answer, which is RFC 9309 and also the
@@ -452,8 +454,13 @@ mod tests {
             let path = case["path"].as_str().expect("path");
             let expected = &case["expected"];
 
-            let actual = parse_robots_txt(body, path, None);
+            let actual = parse_robots_txt(body, path, case["agent"].as_str());
 
+            assert_eq!(
+                actual.agent,
+                expected["agent"].as_str().expect("agent"),
+                "case {name:?}: agent"
+            );
             assert_eq!(
                 actual.exists,
                 expected["exists"].as_bool().expect("exists"),
@@ -523,36 +530,6 @@ mod tests {
             }
         }
         assert!(checked > 0, "expected paths to check");
-    }
-
-    /// The divergence annotations are a contract too: where a fixture
-    /// records what the CLI answers with `--agent`, the CLI must
-    /// actually answer that.
-    #[test]
-    fn every_divergence_annotation_holds() {
-        let cases: serde_json::Value = serde_json::from_str(CASES).expect("fixture JSON");
-        let mut checked = 0;
-        for case in cases.as_array().expect("array of cases") {
-            let Some(divergence) = case.get("divergence") else {
-                continue;
-            };
-            let name = case["name"].as_str().expect("name");
-            let body = fixture_body(case["file"].as_str().expect("file"));
-            let path = case["path"].as_str().expect("path");
-            let agent = divergence["cli"]["agent"].as_str().expect("cli agent");
-            let expected = divergence["cli"]["allowsCrawling"]
-                .as_bool()
-                .expect("cli allowsCrawling");
-
-            let actual = parse_robots_txt(body, path, Some(agent));
-            assert_eq!(
-                actual.allows_crawling, expected,
-                "divergence {name:?} with --agent {agent}"
-            );
-            assert_eq!(actual.agent, agent.to_lowercase());
-            checked += 1;
-        }
-        assert!(checked >= 2, "expected divergence cases to exist");
     }
 
     #[test]

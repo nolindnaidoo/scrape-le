@@ -94,7 +94,7 @@ export async function runDetections(
 	// robots.txt detection (network request - run separately)
 	if (options.detections.robotsTxt) {
 		promises.push(
-			RobotsTxtChecker.fetchRobotsTxt(url)
+			RobotsTxtChecker.fetchRobotsTxt(url, options.robotsAgent)
 				.then((result) => {
 					detections.robotsTxt = result;
 				})

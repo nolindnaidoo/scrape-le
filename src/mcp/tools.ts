@@ -80,11 +80,15 @@ function analyze(args: Record<string, unknown>): Promise<unknown> {
 	const content = readString(args, 'content');
 	const target = readString(args, 'path');
 	const maxResults = readMaxResults(args);
+	const agent = args.agent;
+	if (agent !== undefined && typeof agent !== 'string') {
+		throw new Error('agent must be a string');
+	}
 
 	const { pathname, note: pathNote } = toPathname(target);
 	const diagnostics: Diagnostic[] = pathNote ? [note(pathNote)] : [];
 
-	const info = parseRobotsTxt(content, pathname);
+	const info = parseRobotsTxt(content, pathname, agent);
 	const disallowed = capped(info.disallowedPaths, maxResults);
 
 	return Promise.resolve(
@@ -92,6 +96,7 @@ function analyze(args: Record<string, unknown>): Promise<unknown> {
 			'analyze_robots_txt',
 			{
 				path: pathname,
+				agent: info.agent,
 				allowsCrawling: info.allowsCrawling,
 				crawlDelay: info.crawlDelay,
 				disallowedPaths: disallowed.items,
@@ -108,7 +113,7 @@ export const TOOLS: readonly ToolDefinition[] = Object.freeze([
 	Object.freeze({
 		name: 'analyze_robots_txt',
 		description:
-			'Given the contents of a robots.txt file and a path, report whether the generic (User-agent: *) rules permit crawling it, along with the crawl delay, the disallowed patterns and any sitemaps. Takes the file contents directly and makes no network request of its own — fetch robots.txt with your own HTTP tool and pass what it returned.',
+			'Given the contents of a robots.txt file and a path, report whether the rules permit crawling it — the group naming `agent` when one does, otherwise the generic (User-agent: *) rules, and `agent` in the answer says which — along with the crawl delay, the disallowed patterns and any sitemaps. Takes the file contents directly and makes no network request of its own — fetch robots.txt with your own HTTP tool and pass what it returned.',
 		inputSchema: {
 			type: 'object',
 			properties: {
@@ -120,6 +125,11 @@ export const TOOLS: readonly ToolDefinition[] = Object.freeze([
 					type: 'string',
 					description:
 						'The path to check, e.g. "/admin". A full URL is accepted and reduced to its path.',
+				},
+				agent: {
+					type: 'string',
+					description:
+						'The crawler to evaluate as, e.g. "Googlebot" or "MyBot/1.0"; matched on its product token, case-insensitively. Omitted, the generic rules answer.',
 				},
 				maxResults: MAX_RESULTS_SCHEMA,
 			},

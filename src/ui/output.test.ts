@@ -39,6 +39,7 @@ describe('output channel', () => {
 						details: ['Cloudflare (cf-ray header)', 'PerimeterX (script src)'],
 					},
 					robotsTxt: {
+						agent: '*',
 						exists: true,
 						allowsCrawling: false,
 						crawlDelay: 2,
@@ -97,6 +98,7 @@ describe('output channel', () => {
 						details: [],
 					},
 					robotsTxt: {
+						agent: '*',
 						exists: false,
 						allowsCrawling: true,
 						disallowedPaths: [],

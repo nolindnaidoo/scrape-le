@@ -24,6 +24,7 @@
 	"manifest.settings.statusbar.enabled.desc": "在 VS Code 中显示 Scrape-LE 状态栏条目",
 	"manifest.settings.detections.antibot.desc": "检测反机器人防护系统（Cloudflare、reCAPTCHA、hCaptcha、DataDome、Perimeter81）",
 	"manifest.settings.detections.ratelimit.desc": "检测并解析 HTTP 速率限制标头（X-RateLimit-*、RateLimit-*、Retry-After）",
+	"manifest.settings.robotstxt.agent.desc": "用于评估 robots.txt 的爬虫，例如 Googlebot 或 MyBot/1.0。适用指定该爬虫的组中的规则；若为空或没有组指定它，则适用所有爬虫的规则（User-agent: *）。",
 	"manifest.settings.detections.robotstxt.desc": "获取并解析 robots.txt 文件，以检查抓取权限和策略",
 	"manifest.settings.detections.authentication.desc": "检测身份验证屏障和登录要求（401/403状态码、登录表单、身份验证关键词）",
 	"manifest.capability.untrusted-workspaces.desc": "出于安全考虑，在不受信任的工作区中功能受限",

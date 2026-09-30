@@ -103,7 +103,8 @@ weight. Per-signal claims are listed under enhancements.
 
 ### 3. robots.txt
 
-Fetches `<origin>/robots.txt` and evaluates the **`User-agent: *`** rules
+Fetches `<origin>/robots.txt` and evaluates the **`User-agent: *`** rules,
+or with `--agent` the group naming that agent,
 against the URL with RFC 9309 semantics: grouped agents, `Allow`/`Disallow`
 longest-match, `*` wildcards, `$` anchors, crawl-delay, sitemaps.
 
@@ -133,17 +134,15 @@ Findings quote the pattern **as the file spells it**, not the canonical
 form — a reader should find the line this tool named when they open their
 own robots.txt.
 
-**Flagless, agent-specific groups are ignored, exactly as the extension
-ignores them** — so every default invocation stays byte-identical to the
-reference implementation, and the parity corpus tests both sides.
-
-**`--agent MyBot/1.0` opts into RFC 9309 group selection**, evaluating
-that agent's group instead. The divergence is deliberate and recorded:
-the answering group is named in the report (`robots.agent`) and in the
-finding's evidence, and the fixture cases that diverge carry a
-`divergence` annotation that is itself asserted by a test. Reporting
-"robots allows you" while ignoring the group that names the caller is
-the same over-optimism as defaulting to `--no-render`.
+**Flagless, the generic groups answer; `--agent MyBot/1.0` selects the
+group naming that agent's product token**, per RFC 9309, falling back to
+the generic groups when none names it. The extension does the same with
+its `scrape-le.robotsTxt.agent` setting, and the shared
+`analyze_robots_txt` tool takes `agent` on both servers. The answering
+group is named in the report (`robots.agent`) and in the finding's
+evidence. Reporting "robots allows you" while ignoring the group that
+names the caller is the same over-optimism as defaulting to
+`--no-render`.
 
 Sitemaps are reported, never fetched — they come out of a file already
 retrieved, so listing them is free, while following one has no natural
@@ -476,11 +475,6 @@ below is design rather than drift.
 
 - **Batching** — `--input`, host grouping, bounded concurrency,
   streaming and the crawl-delay wait are terminal-side only.
-- **`--agent`** opts into RFC 9309 per-agent group selection. Flagless
-  runs stay byte-identical to the extension, which evaluates only the
-  generic `User-agent: *` group; the answering group is named in the
-  report, and the fixture cases that diverge carry a `divergence`
-  annotation a test asserts.
 - **`--no-render`, `--signatures`, `doctor`** and the exit codes have no
   editor equivalent.
 - **Raw-HTML `<title>` extraction** exists here and not there: the
