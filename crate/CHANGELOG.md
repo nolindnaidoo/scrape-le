@@ -7,6 +7,21 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-09-29
+
+### Security
+
+- **`rustls` moves to 0.23.45** (RUSTSEC-2026-0285, medium). 0.23.43
+  accepted TLS 1.3 handshake messages across encryption-level boundaries.
+  The lockfile shipped with 0.3.1 carried it, so `cargo install --locked
+  scrape-le` built the vulnerable version. The yanked `chacha20` 0.10.1
+  moves to 0.10.2 with it.
+
+### Changed
+
+- `toml` 1.1 replaces 0.9 for reading the embedded signatures. The
+  signature files, and what they parse to, are unchanged.
+
 ## [0.3.1] - 2026-08-16
 
 ### Fixed
@@ -317,6 +332,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.3.2]: https://crates.io/crates/scrape-le/0.3.2
 [0.3.0]: https://crates.io/crates/scrape-le/0.3.0
 [0.2.0]: https://crates.io/crates/scrape-le/0.2.0
 [0.1.5]: https://crates.io/crates/scrape-le/0.1.5
