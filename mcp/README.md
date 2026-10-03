@@ -15,8 +15,8 @@
   </a>
 </p>
 
-An [MCP](https://modelcontextprotocol.io) server that extracts URLs from
-documentation, configuration and code — the extraction engine behind the
+An [MCP](https://modelcontextprotocol.io) server that reads a robots.txt file and says
+whether a path may be crawled — the robots.txt engine behind the
 [Scrape-LE](https://letools.dev/tools/scrape-le)
 editor extension, exposed as a tool an agent can call.
 
@@ -52,6 +52,16 @@ carries this server and registers it for you:
 · [Open VSX](https://open-vsx.org/extension/OffensiveEdge/scrape-le)
 · [Zed](https://zed.dev/docs/ai/mcp) *(no listing yet — add it by hand)*
 
+**No Node?** The same `analyze_robots_txt` tool ships in a static Rust
+binary: `cargo install scrape-le`, then `scrape-le mcp`
+([crates.io](https://crates.io/crates/scrape-le)). The two servers answer
+it identically — one fixture corpus runs against both and CI fails if they
+diverge. The binary additionally offers `scrape_le_check`, which checks
+whether a page can be scraped — robots.txt, anti-bot vendors, rate limits
+and authentication walls — and `scrape_le_doctor`, which reports whether a
+browser is available for it. Those reach the network; **this server makes
+no network request and reads no files**.
+
 Prefer a global install to `npx` on every launch:
 
 ```bash
@@ -81,24 +91,35 @@ If that prints the tool name, the server works.
 
 | argument | type | |
 |---|---|---|
-| `content` | string | **required.** The text to scan. |
-| `format` | string | The language: `markdown`, `yaml`, `json`, `typescript`… Required unless `filename` is given. |
-| `filename` | string | Used to infer `format` when it is absent — `README.md` resolves to `markdown`. |
-| `dedupe` | boolean | Collapse repeats. Default `false`. |
+| `content` | string | **required.** The contents of the robots.txt file. |
+| `path` | string | **required.** The path to check, e.g. `/admin`. A full URL is accepted and reduced to its path. |
+| `agent` | string | The crawler to evaluate as, e.g. `Googlebot` or `MyBot/1.0`, matched on its product token, case-insensitively. Omitted, the generic (`User-agent: *`) rules answer. |
 | `maxResults` | number | Default `500`, ceiling `5000`. |
 
-Returns each URL with its protocol and 1-based line and column, plus
-`meta.truncated` so a capped result is never mistaken for a complete one.
+Returns whether the rules permit crawling the path, which group answered
+(`agent` is `*` when the generic rules did), the crawl delay, the disallowed
+patterns and any sitemaps. `maxResults` caps the disallowed patterns
+returned, and `meta.truncated` says whether any were dropped. Fetch
+robots.txt with your own HTTP tool and pass what it returned — this server
+makes no request of its own.
 
 ```json
 {
   "ok": true,
   "data": {
-    "rules": [
-      { "value": "https://example.com/guide", "protocol": "https", "line": 2, "column": 15 }
-    ]
+    "path": "/admin/users",
+    "agent": "*",
+    "allowsCrawling": false,
+    "crawlDelay": 5,
+    "disallowedPaths": ["/admin"],
+    "sitemaps": ["https://example.com/sitemap.xml"]
   },
-  "meta": { "count": 1, "truncated": false }
+  "diagnostics": [],
+  "meta": {
+    "tool": "analyze_robots_txt",
+    "count": 1,
+    "truncated": false
+  }
 }
 ```
 
@@ -142,7 +163,7 @@ Architecture. [nolindnaidoo.com](https://nolindnaidoo.com) ·
 
 Twelve Rust tools built the same way: small, single-purpose, and driven by a
 machine rather than a person. pixelcoords and pixelactions make up one loop —
-pixelcoords answers *where*, pixelactions *acts* there. The nine LE crates are
+pixelcoords answers *where*, pixelactions *acts* there. The ten LE crates are
 the terminal half of the extensions they sit in: the same detection, held to
 the extension's own corpus, and an exit code instead of a results editor.
 
@@ -158,6 +179,7 @@ the extension's own corpus, and an exit code instead of a results editor.
 | **[numbers-le](https://github.com/nolindnaidoo/numbers-le/tree/main/crate)** | Find every hardcoded number in a codebase so a person can check them | [crates.io](https://crates.io/crates/numbers-le) |
 | **[envsync-le](https://github.com/nolindnaidoo/envsync-le/tree/main/crate)** | Compare the dotenv files in a tree and say which keys are missing from which | [crates.io](https://crates.io/crates/envsync-le) |
 | **[colors-le](https://github.com/nolindnaidoo/colors-le/tree/main/crate)** | Find every colour in a codebase, and say which are not in your palette | [crates.io](https://crates.io/crates/colors-le) |
+| **[dates-le](https://github.com/nolindnaidoo/dates-le/tree/main/crate)** | Extract every date and timestamp, and the exact instant each one resolves to | [crates.io](https://crates.io/crates/dates-le) |
 | **[scrape-le](https://github.com/nolindnaidoo/scrape-le/tree/main/crate)** | Check whether a page is scrapeable before the scraper is written | [crates.io](https://crates.io/crates/scrape-le) |
 
 ## Licence
