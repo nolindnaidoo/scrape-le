@@ -5,6 +5,16 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `scripts/check-mcp-definition.ts`, run in CI after the differential: it fails
+  when the two servers define the shared MCP tool differently — its
+  description or any part of its schema. Six of the ten had drifted.
+- The npm README test also checks that every value an argument offers is
+  named in that argument's row.
+
 ## [2.3.1] - 2026-10-03
 
 ### Fixed
