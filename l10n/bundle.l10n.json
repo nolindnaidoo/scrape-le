@@ -1,5 +1,9 @@
 {
   "Install Chromium": "Install Chromium",
+  "Enjoying {0}? A rating helps other developers find it.": "Enjoying {0}? A rating helps other developers find it.",
+  "Rate": "Rate",
+  "Later": "Later",
+  "Don't Ask Again": "Don't Ask Again",
   "Cancel": "Cancel",
   "Learn More": "Learn More",
   "Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)": "Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)",

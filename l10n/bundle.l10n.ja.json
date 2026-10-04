@@ -1,5 +1,9 @@
 {
 	"Automatic installation (~130MB download)": "自動インストール（ダウンロードサイズ：約130MB）",
+	"Enjoying {0}? A rating helps other developers find it.": "{0} を気に入っていただけましたか？評価は、他の開発者がこの拡張機能を見つける助けになります。",
+	"Rate": "評価する",
+	"Later": "後で",
+	"Don't Ask Again": "今後表示しない",
 	"Show command to run manually": "手動で実行するコマンドを表示する",
 	"Check if Chromium is already installed": "Chromiumがすでにインストールされているか確認してください",
 	"Choose a setup option": "セットアップオプションを選択してください",

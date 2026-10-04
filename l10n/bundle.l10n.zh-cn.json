@@ -1,5 +1,9 @@
 {
 	"Automatic installation (~130MB download)": "自动安装（下载大小约130MB）",
+	"Enjoying {0}? A rating helps other developers find it.": "喜欢 {0} 吗？评分可以帮助其他开发者发现它。",
+	"Rate": "评分",
+	"Later": "稍后",
+	"Don't Ask Again": "不再询问",
 	"Show command to run manually": "显示需手动执行的命令",
 	"Check if Chromium is already installed": "检查Chromium是否已安装",
 	"Choose a setup option": "选择一个设置选项",

@@ -3,6 +3,7 @@
  */
 import * as vscode from 'vscode';
 import type { Notifier, StatusBar } from '../types';
+import type { RatingPrompt } from '../ui/ratingPrompt';
 import { extractUrl } from '../utils/url';
 import { executeCheck } from './check';
 
@@ -14,6 +15,7 @@ export function registerCheckSelectionCommand(
 	deps: Readonly<{
 		notifier: Notifier;
 		statusBar: StatusBar;
+		ratingPrompt: RatingPrompt;
 	}>,
 ): void {
 	const command = vscode.commands.registerCommand(

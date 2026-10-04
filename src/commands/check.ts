@@ -11,6 +11,7 @@ import { ensureBrowserInstalled } from '../scraper/install';
 import { retryWithUserAgents, shouldRetry } from '../scraper/retry';
 import type { CheckOptions, CheckResult, Notifier, StatusBar } from '../types';
 import { logCheckResult, showOutput } from '../ui/output';
+import type { RatingPrompt } from '../ui/ratingPrompt';
 import { formatErrorForUser } from '../utils/errorHandling';
 import { normalizeUrl, validateUrl } from '../utils/url';
 
@@ -22,6 +23,7 @@ export function registerCheckUrlCommand(
 	deps: Readonly<{
 		notifier: Notifier;
 		statusBar: StatusBar;
+		ratingPrompt: RatingPrompt;
 	}>,
 ): void {
 	const command = vscode.commands.registerCommand(
@@ -69,6 +71,7 @@ export async function executeCheck(
 	deps: Readonly<{
 		notifier: Notifier;
 		statusBar: StatusBar;
+		ratingPrompt: RatingPrompt;
 	}>,
 	_context: vscode.ExtensionContext,
 ): Promise<void> {
@@ -189,6 +192,14 @@ export async function executeCheck(
 
 				// Show output channel
 				showOutput();
+
+				// A check that could not reach the page still produced a report,
+				// but it is not the moment to ask anyone how they like the tool.
+				if (result.success) {
+					// Not awaited: it resolves when the toast is answered, and a command that
+					// waited on that would stay pending for as long as the toast is ignored.
+					void deps.ratingPrompt.recordSuccess();
+				}
 			} catch (error) {
 				const errorMessage = formatErrorForUser(error);
 				deps.statusBar.show('$(x) Error', errorMessage);

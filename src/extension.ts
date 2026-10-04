@@ -6,6 +6,8 @@ import { registerCommands } from './commands';
 import { registerOpenSettingsCommand } from './config/settings';
 import { registerMcpProvider } from './mcp/provider';
 import { createNotifier } from './ui/notifier';
+import { logLine } from './ui/output';
+import { createRatingPromptFor } from './ui/ratingPrompt';
 import { createStatusBar } from './ui/statusBar';
 
 /**
@@ -18,6 +20,9 @@ export function activate(context: vscode.ExtensionContext): void {
 	registerCommands(context, {
 		notifier,
 		statusBar,
+		ratingPrompt: createRatingPromptFor(context, (event, properties) =>
+			logLine(properties ? `${event}: ${properties.message}` : event),
+		),
 	});
 
 	registerOpenSettingsCommand(context);
