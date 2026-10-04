@@ -5,7 +5,7 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.3.2] - 2026-10-04
 
 ### Added
 
@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description or any part of its schema. Six of the ten had drifted.
 - The npm README test also checks that every value an argument offers is
   named in that argument's row.
+
+### Fixed
+
+- The Open VSX links and the Open VSX downloads badge in the README, the npm
+  README and the Help command pointed at a namespace the listing has left, so
+  they led nowhere. The listing is under `nolindnaidoo` now, and so are they.
 
 ## [2.3.1] - 2026-10-03
 
