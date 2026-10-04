@@ -11,8 +11,8 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le">
     <img src="https://img.shields.io/badge/Install%20from-VS%20Code-blue?style=for-the-badge&logo=visualstudiocode" alt="Install from VS Code Marketplace" />
   </a>
-  <a href="https://open-vsx.org/extension/OffensiveEdge/scrape-le">
-    <img src="https://img.shields.io/open-vsx/dt/OffensiveEdge/scrape-le?style=for-the-badge&label=Open%20VSX&color=blue" alt="Open VSX downloads" />
+  <a href="https://open-vsx.org/extension/nolindnaidoo/scrape-le">
+    <img src="https://img.shields.io/open-vsx/dt/nolindnaidoo/scrape-le?style=for-the-badge&label=Open%20VSX&color=blue" alt="Open VSX downloads" />
   </a>
   <a href="https://www.npmjs.com/package/scrape-le-mcp">
     <img src="https://img.shields.io/npm/v/scrape-le-mcp?style=for-the-badge&label=MCP%20server&color=blue&logo=npm" alt="scrape-le-mcp on npm" />
@@ -33,7 +33,7 @@
 
 > **Useful?** A star or rating is how other developers find it —
 > [★ GitHub](https://github.com/nolindnaidoo/scrape-le) ·
-> [★ Open VSX](https://open-vsx.org/extension/OffensiveEdge/scrape-le/reviews) ·
+> [★ Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le/reviews) ·
 > [★ Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le&ssr=false#review-details)
 
 ## What it does
@@ -47,7 +47,7 @@ One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into
 | Where | What you get | Install |
 |---|---|---|
 | **VS Code** | The same check, in your editor, on a keystroke | [Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le) |
-| **Cursor, VSCodium, Windsurf** | The same extension | [Open VSX](https://open-vsx.org/extension/OffensiveEdge/scrape-le) |
+| **Cursor, VSCodium, Windsurf** | The same extension | [Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le) |
 | **A terminal or a CI step** | The same run over a whole tree, with exit codes | `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
 | **Any MCP agent, via Node** | `analyze_robots_txt` over stdio | `npx scrape-le-mcp` · [npm](https://www.npmjs.com/package/scrape-le-mcp) |
 | **Zed** | The MCP server as a context server | [add it by hand](https://zed.dev/docs/ai/mcp) *(no listing yet)* |
