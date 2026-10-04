@@ -1,5 +1,9 @@
 {
 	"Automatic installation (~130MB download)": "Автоматическая установка (размер загрузки ~130 МБ)",
+	"Enjoying {0}? A rating helps other developers find it.": "Нравится {0}? Оценка помогает другим разработчикам найти это расширение.",
+	"Rate": "Оценить",
+	"Later": "Позже",
+	"Don't Ask Again": "Больше не спрашивать",
 	"Show command to run manually": "Показать команду для запуска вручную",
 	"Check if Chromium is already installed": "Проверьте, установлен ли Chromium",
 	"Choose a setup option": "Выберите вариант настройки",

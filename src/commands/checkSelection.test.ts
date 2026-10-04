@@ -38,6 +38,7 @@ async function runCheckSelection(): Promise<void> {
 	registerCheckSelectionCommand(context, {
 		notifier: createNotifier(),
 		statusBar: createStatusBar(context),
+		ratingPrompt: { recordSuccess: async () => {} },
 	});
 	await _registeredCommands().get('scrape-le.checkSelection')?.();
 }

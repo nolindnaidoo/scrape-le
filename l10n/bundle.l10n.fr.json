@@ -1,5 +1,9 @@
 {
 	"Automatic installation (~130MB download)": "Installation automatique (téléchargement d'environ 130 Mo)",
+	"Enjoying {0}? A rating helps other developers find it.": "Vous appréciez {0} ? Une note aide d’autres développeurs à le trouver.",
+	"Rate": "Noter",
+	"Later": "Plus tard",
+	"Don't Ask Again": "Ne plus demander",
 	"Show command to run manually": "Afficher la commande à exécuter manuellement",
 	"Check if Chromium is already installed": "Vérifiez si Chromium est déjà installé",
 	"Choose a setup option": "Choisissez une option de configuration",

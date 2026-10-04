@@ -269,6 +269,14 @@ export function logCheckResult(result: CheckResult): void {
 }
 
 /**
+ * Writes one line to the output channel. The extension has no telemetry
+ * sink, so this is where a diagnostic that is not a check result goes.
+ */
+export function logLine(line: string): void {
+	getOutputChannel().appendLine(line);
+}
+
+/**
  * Shows the output channel
  */
 export function showOutput(): void {

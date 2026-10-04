@@ -185,6 +185,7 @@ setting of its own.
 - **The MCP server makes no network request at all** — unlike the extension, deliberately. `fetchRobotsTxt` builds a URL from an arbitrary origin, which inside an agent loop is an SSRF primitive: the caller supplying the URL is the model, not you. The server analyses robots.txt content you already fetched, and a test asserts no tool accepts a `url` argument.
 - Error notifications redact home directories and credential-shaped fragments.
 - Respect the sites you check: a scrapeability report is information, not permission.
+- **One rating prompt, at most twice.** After 10 successful uses across 3 separate days the extension asks once whether you would rate it, and once more 30 uses later if you chose *Later* or dismissed it. *Don't Ask Again* ends it. Setting `notificationsLevel` to `important` or `silent` yourself turns it off. The counts are kept in VS Code's extension storage and nothing is sent anywhere; *Rate* opens the listing you installed from — the VS Code Marketplace or Open VSX — in your browser.
 
 ## Documentation
 
@@ -217,12 +218,12 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 92.98% |
-| Branches | 83.23% |
-| Functions | 94.03% |
-| Lines | 94.47% |
+| Statements | 93.28% |
+| Branches | 83.78% |
+| Functions | 93.49% |
+| Lines | 94.61% |
 
-386 test cases across 30 files, plus an integration suite that runs
+419 test cases across 33 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
 built `.vsix` into a clean profile.
 

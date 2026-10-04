@@ -1,5 +1,9 @@
 {
 	"Automatic installation (~130MB download)": "Cài đặt tự động (tải xuống khoảng 130MB)",
+	"Enjoying {0}? A rating helps other developers find it.": "Bạn thích {0}? Một lượt đánh giá giúp các nhà phát triển khác tìm thấy tiện ích này.",
+	"Rate": "Đánh giá",
+	"Later": "Để sau",
+	"Don't Ask Again": "Không hỏi lại",
 	"Show command to run manually": "Hiển thị lệnh để thực thi thủ công",
 	"Check if Chromium is already installed": "Kiểm tra xem Chromium đã được cài đặt chưa",
 	"Choose a setup option": "Chọn một tùy chọn cấu hình",

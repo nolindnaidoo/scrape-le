@@ -1,5 +1,9 @@
 {
 	"Automatic installation (~130MB download)": "자동 설치 (~130MB 다운로드)",
+	"Enjoying {0}? A rating helps other developers find it.": "{0}이(가) 마음에 드시나요? 평점을 남기면 다른 개발자가 찾는 데 도움이 됩니다.",
+	"Rate": "평가하기",
+	"Later": "나중에",
+	"Don't Ask Again": "다시 묻지 않기",
 	"Show command to run manually": "수동으로 실행할 명령어 표시",
 	"Check if Chromium is already installed": "Chromium이 이미 설치되어 있는지 확인하세요",
 	"Choose a setup option": "설정 옵션을 선택하세요",

@@ -54,6 +54,7 @@ async function runCheckUrl(): Promise<void> {
 	registerCheckUrlCommand(context, {
 		notifier: createNotifier(),
 		statusBar: createStatusBar(context),
+		ratingPrompt: { recordSuccess: async () => {} },
 	});
 	await _registeredCommands().get('scrape-le.checkUrl')?.();
 }
