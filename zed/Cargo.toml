@@ -1,6 +1,6 @@
 [package]
 name = "zed_scrape_le"
-version = "2.3.1"
+version = "2.3.2"
 edition = "2021"
 publish = false
 license = "MIT"
