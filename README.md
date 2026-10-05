@@ -50,7 +50,6 @@ One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into
 | **Cursor, VSCodium, Windsurf** | The same extension | [Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le) |
 | **A terminal or a CI step** | The same run over a whole tree, with exit codes | `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
 | **Any MCP agent, via Node** | `analyze_robots_txt` over stdio | `npx scrape-le-mcp` · [npm](https://www.npmjs.com/package/scrape-le-mcp) |
-| **Zed** | The MCP server as a context server | [add it by hand](https://zed.dev/docs/ai/mcp) *(no listing yet)* |
 
 ## Use it from an AI agent
 
@@ -59,7 +58,6 @@ The same engine runs as an [MCP](https://modelcontextprotocol.io) server, so an 
 | Editor | How |
 |---|---|
 | **VS Code** 1.101+ | Nothing to install — the extension registers `analyze_robots_txt` with agent mode |
-| **Zed** | No listing yet — [add the MCP server by hand](https://zed.dev/docs/ai/mcp) |
 | **Claude Code** | `claude mcp add scrape-le -- npx -y scrape-le-mcp` |
 | **Cursor, Windsurf, anything else** | point it at `npx scrape-le-mcp` |
 
