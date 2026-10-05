@@ -38,7 +38,7 @@
 
 ## What it does
 
-Run `Scrape-LE: Check URL Scrapeability` (`Ctrl+Alt+S` / `Cmd+Alt+S`), enter a URL, and the page loads in a real headless Chromium. The report lands in the output channel: HTTP status, page title, load time, console errors, a full-page screenshot, and four detections. Works in VS Code and VS Code–based editors like Cursor and VSCodium (installable from Open VSX).
+Run `Scrape-LE: Check URL Scrapeability`, enter a URL, and the page loads in a real headless Chromium. The report lands in the output channel: HTTP status, page title, load time, console errors, a full-page screenshot, and four detections. Works in VS Code and VS Code–based editors like Cursor and VSCodium (installable from Open VSX).
 
 One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into Playwright's browser cache).
 
@@ -136,11 +136,13 @@ Honest limitations: signatures are best-effort fingerprints of public integratio
 
 | Command | Description |
 |---|---|
-| `Scrape-LE: Check URL Scrapeability` (`Ctrl+Alt+S` / `Cmd+Alt+S`) | Prompt for a URL and run the full check |
+| `Scrape-LE: Check URL Scrapeability` | Prompt for a URL and run the full check |
 | `Scrape-LE: Check Selected URL` | Run the check on the URL in the current selection (also in the right-click menu) |
 | `Scrape-LE: Setup Browser` | Install or verify the Chromium browser |
 | `Scrape-LE: Open Settings` | Open Scrape-LE settings |
 | `Scrape-LE: Help & Troubleshooting` | Built-in documentation |
+
+No command is bound to a key by default. Give any of them one under **Keyboard Shortcuts** in the editor.
 
 ## Settings
 

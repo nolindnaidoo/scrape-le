@@ -35,7 +35,7 @@ status bar and a notification.
 
 ## Quick Start
 1. Run "Scrape-LE: Setup Browser" once to install Chromium
-2. Run "Scrape-LE: Check URL Scrapeability" (or press Ctrl+Alt+S / Cmd+Alt+S)
+2. Run "Scrape-LE: Check URL Scrapeability"
 3. Enter the URL you plan to scrape
 4. Read the report in the output channel
 

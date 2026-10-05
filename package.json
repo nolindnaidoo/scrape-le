@@ -99,14 +99,6 @@
 				"category": "%manifest.command.category%"
 			}
 		],
-		"keybindings": [
-			{
-				"command": "scrape-le.checkUrl",
-				"key": "ctrl+alt+s",
-				"mac": "cmd+alt+s",
-				"when": "editorTextFocus"
-			}
-		],
 		"menus": {
 			"editor/context": [
 				{
