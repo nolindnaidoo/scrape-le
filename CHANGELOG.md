@@ -5,6 +5,15 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- No command is bound to a key by default any more. The one default this
+  extension shipped sat on a key the editor, the system or another LE
+  extension already used. Every command can still be given a key under
+  Keyboard Shortcuts.
+
 ## [2.3.2] - 2026-10-04
 
 ### Added
