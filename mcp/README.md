@@ -46,11 +46,10 @@ claude mcp add scrape-le -- npx -y scrape-le-mcp
 }
 ```
 
-**VS Code and Zed** need nothing here. Install the extension instead — it
+**VS Code** needs nothing here. Install the extension instead — it
 carries this server and registers it for you:
 [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le)
 · [Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le)
-· [Zed](https://zed.dev/docs/ai/mcp) *(no listing yet — add it by hand)*
 
 **No Node?** The same `analyze_robots_txt` tool ships in a static Rust
 binary: `cargo install scrape-le`, then `scrape-le mcp`
