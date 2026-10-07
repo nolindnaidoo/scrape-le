@@ -5,7 +5,7 @@ All notable changes to Scrape-LE will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.4.0] - 2026-10-07
 
 ### Added
 
@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   after a failed run, and it is never shown if you have set
   `notificationsLevel` to `important` or `silent` yourself. The answer
   follows you through Settings Sync. Translated into all 12 locales.
+
 ### Changed
 
 - No command is bound to a key by default any more. The one default this
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description or any part of its schema. Six of the ten had drifted.
 - The npm README test also checks that every value an argument offers is
   named in that argument's row.
+
 ### Fixed
 
 - The Open VSX links and the Open VSX downloads badge in the README, the npm
