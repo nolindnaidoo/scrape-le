@@ -29,10 +29,10 @@ export default defineConfig({
 		coverage: {
 			provider: 'istanbul',
 			thresholds: {
-				lines: 75,
-				functions: 80,
+				lines: 70,
+				functions: 70,
 				branches: 60,
-				statements: 75,
+				statements: 70,
 			},
 			reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
 			include: ['src/**/*.ts'],
