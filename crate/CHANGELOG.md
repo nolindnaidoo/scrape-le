@@ -7,6 +7,16 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-10-11
+
+### Fixed
+
+- **The README's Open VSX link led nowhere.** It pointed at a namespace the
+  extension's listing has left, and points at `nolindnaidoo` now. The Zed
+  row is gone with the Zed extension, which was never listed.
+- The family list's String-LE line no longer promises a position for every
+  string.
+
 ## [0.4.0] - 2026-09-30
 
 ### Changed
@@ -343,6 +353,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.4.1]: https://crates.io/crates/scrape-le/0.4.1
 [0.4.0]: https://crates.io/crates/scrape-le/0.4.0
 [0.3.2]: https://crates.io/crates/scrape-le/0.3.2
 [0.3.0]: https://crates.io/crates/scrape-le/0.3.0
