@@ -15,6 +15,8 @@
   </a>
 </p>
 
+![An agent in Claude Code calling the scrape-le MCP server](https://raw.githubusercontent.com/nolindnaidoo/scrape-le/main/assets/demos/mcp.gif)
+
 An [MCP](https://modelcontextprotocol.io) server that reads a robots.txt file and says
 whether a path may be crawled — the robots.txt engine behind the
 [Scrape-LE](https://letools.dev/tools/scrape-le)

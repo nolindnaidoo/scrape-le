@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /cart
+Crawl-delay: 2
+
+User-agent: ExampleBot
+Disallow: /
+
+Sitemap: https://shop.example/sitemap.xml

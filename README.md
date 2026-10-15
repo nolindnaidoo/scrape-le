@@ -28,7 +28,7 @@
 ---
 
 <p align="center">
-  <img src="src/assets/images/demo.gif" alt="Scrapeability Check Demo" style="max-width: 100%; height: auto;" />
+  <img src="assets/demos/editor.gif" alt="Scrape-LE in VS Code" style="max-width: 100%; height: auto;" />
 </p>
 
 > **Useful?** A star or rating is how other developers find it —
@@ -60,6 +60,10 @@ The same engine runs as an [MCP](https://modelcontextprotocol.io) server, so an 
 | **VS Code** 1.101+ | Nothing to install — the extension registers `analyze_robots_txt` with agent mode |
 | **Claude Code** | `claude mcp add scrape-le -- npx -y scrape-le-mcp` |
 | **Cursor, Windsurf, anything else** | point it at `npx scrape-le-mcp` |
+
+<p align="center">
+  <img src="assets/demos/mcp.gif" alt="An agent in Claude Code calling the scrape-le MCP server" style="max-width: 100%; height: auto;" />
+</p>
 
 ```
 analyze_robots_txt(content, path, agent?, maxResults?)
@@ -120,6 +124,10 @@ scrape-le https://example.com/search   # JSON on stdout, summary on stderr
 scrape-le --input urls.txt             # a batch, streamed as it completes
 scrape-le mcp                          # the same check over MCP on stdio
 ```
+
+<p align="center">
+  <img src="assets/demos/cli.gif" alt="scrape-le in a terminal" style="max-width: 100%; height: auto;" />
+</p>
 
 The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** ## Detections
 

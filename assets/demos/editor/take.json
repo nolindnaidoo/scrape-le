@@ -1,0 +1,55 @@
+{
+  "files": [
+    "urls.txt"
+  ],
+  "steps": [
+    {
+      "wait": 1500
+    },
+    {
+      "command": "Scrape-LE: Check URL Scrapeability"
+    },
+    {
+      "wait": 800
+    },
+    {
+      "type": "https://example.com"
+    },
+    {
+      "wait": 400
+    },
+    {
+      "key": "Enter"
+    },
+    {
+      "wait": 9000
+    },
+    {
+      "command": "View: Toggle Maximized Panel"
+    },
+    {
+      "wait": 800
+    },
+    {
+      "click": ".part.panel .monaco-editor .view-lines"
+    },
+    {
+      "key": "Meta+ArrowUp"
+    },
+    {
+      "wait": 3500
+    },
+    {
+      "key": "PageDown"
+    },
+    {
+      "wait": 3000
+    },
+    {
+      "key": "PageDown"
+    },
+    {
+      "wait": 3000
+    }
+  ]
+}
