@@ -90,6 +90,9 @@ crate/src/
   (`RobotsCache`), passed rather than global, because a run is a batch on
   one surface and a single tool call on the other.
 - **stdout is protocol, stderr is human. There is no `--json` flag.**
+  stdout stays silent when it is a terminal, because the stderr summary
+  already covers a person reading it, so a batch lists every URL on
+  stderr and not only a tally. Anything that can parse gets every report.
   One mode, nothing to misremember, and the human summary is a
   projection of the same report so the two cannot drift.
 - **Parity scope is detection results only** — the extension's

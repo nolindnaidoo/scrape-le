@@ -172,9 +172,11 @@ checked, so the name identifies the URL, not the site.
 ## Output
 
 One JSON report per URL on stdout, a human summary on stderr, and an exit
-code. **There is no `--json` flag**: stdout is always protocol and stderr
-is always for the human, so piping works bare and there is no mode to
-misremember. The human summary is a projection of the same report, never
+code. **There is no `--json` flag**: stdout is protocol and stderr is
+always for the human, so piping works bare and there is no mode to
+misremember. stdout carries the reports when it is piped or redirected
+and stays silent when it is a terminal, where the stderr summary already
+says the same thing. A rendered check also names its screenshot there. The human summary is a projection of the same report, never
 a second prose generator that could drift from it.
 
 ```json
@@ -385,8 +387,10 @@ whole batch held in memory. Streaming is memory-flat, gives results as
 they arrive, and restoring input order is a sort on `index` for whoever
 wants it.
 
-One URL failing never stops the batch. A final summary goes to stderr,
-stdout stays protocol:
+One URL failing never stops the batch. Each report is also listed on
+stderr as it completes, with its input position, so a terminal, where
+stdout is silent, still shows what every URL came to. A final summary
+goes to stderr, stdout stays protocol:
 
 ```
 40 clear · 12 restricted · 3 blocked · 1 inconclusive
