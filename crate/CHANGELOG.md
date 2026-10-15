@@ -7,6 +7,14 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- `rustls` 0.23.45 to 0.23.46, through `ureq`, for RUSTSEC-2026-0347,
+  RUSTSEC-2026-0348 and the two other advisories `cargo audit` reported
+  against 0.23.45.
+
 ## [0.4.1] - 2026-10-11
 
 ### Fixed
