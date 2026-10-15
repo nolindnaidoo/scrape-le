@@ -7,7 +7,22 @@ Code extension in the same repository keeps its own
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4.2] - 2026-10-15
+
+### Changed
+
+- **stdout is silent at a terminal.** The JSON reports printed on the same
+  screen as the stderr summary and said the same thing again. Piped or
+  redirected, stdout carries every report exactly as before.
+- **A batch lists every URL on stderr.** Its human half was a tally of
+  verdicts, since the per-URL verdicts lived only in the JSON, which a
+  terminal no longer shows. Each report now lists as it completes, with its
+  input position. A declared `Crawl-delay` that was not waited for is said
+  once in the closing lines rather than under every URL, and `--no-render`
+  says once that no verdict can be `clear`.
+- **A rendered check names its screenshot on stderr.** The report held the
+  file name and the summary did not, so a person at a terminal could not
+  tell that a PNG had been written to the working directory.
 
 ### Security
 
@@ -361,6 +376,7 @@ from the VS Code extension against a signature corpus both share.
   `retry.userAgents` setting is not ported, and `--agent` fixes a
   limitation the extension states.
 
+[0.4.2]: https://crates.io/crates/scrape-le/0.4.2
 [0.4.1]: https://crates.io/crates/scrape-le/0.4.1
 [0.4.0]: https://crates.io/crates/scrape-le/0.4.0
 [0.3.2]: https://crates.io/crates/scrape-le/0.3.2
