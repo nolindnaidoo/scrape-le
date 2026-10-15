@@ -1,9 +1,10 @@
-//! The terminal surface. stdout is always protocol (JSON reports, one
-//! per URL), stderr is always for the human — a projection of the same
-//! report, never parallel prose. Exit codes are the API: 0 `clear`,
-//! 1 not a yes, 2 the question was malformed.
+//! The terminal surface. stdout is protocol (JSON reports, one per URL)
+//! whenever something is reading it, and silent when it is a terminal.
+//! stderr is always for the human — a projection of the same report,
+//! never parallel prose. Exit codes are the API: 0 `clear`, 1 not a yes,
+//! 2 the question was malformed.
 
-use std::io::Read;
+use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::Mutex;
@@ -22,7 +23,8 @@ const USAGE: &str = "usage: scrape-le [options] <url>
 
 Checks whether a page is scrapeable and reports what would block a
 scraper: robots.txt, anti-bot vendors, rate limits, auth walls.
-JSON reports on stdout, human summary on stderr.
+JSON reports on stdout when it is piped or redirected, human summary on
+stderr. At a terminal stdout stays silent.
 
 Options:
   --no-render            skip the browser; the verdict can then never be
@@ -188,8 +190,8 @@ fn run_single(raw: &str, options: &Options) -> ExitCode {
             ExitCode::from(2)
         }
         CheckOutcome::Report(report) => {
-            emit(&report);
-            render_human(&report);
+            emit(&report, std::io::stdout().is_terminal());
+            show(&report);
             match report.verdict {
                 Verdict::Clear => ExitCode::SUCCESS,
                 _ => ExitCode::from(1),
@@ -256,6 +258,7 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
         ignore_crawl_delay: options.ignore_crawl_delay,
     };
     let started = std::time::Instant::now();
+    let terminal = std::io::stdout().is_terminal();
     let hosts = crate::batch::group_by_host(targets).len();
     let malformed = Mutex::new(0usize);
     // One robots.txt per origin for the whole batch, shared across the
@@ -282,7 +285,13 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
                 )
             }
         },
-        &emit,
+        // Each report is listed on stderr as it completes, not only
+        // counted: stdout is silent at a terminal, and a batch whose
+        // human half held nothing but a tally would hide every verdict.
+        &|report| {
+            emit(report, terminal);
+            show(report);
+        },
     );
 
     eprintln!(
@@ -299,6 +308,9 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
     // reports carry is said here rather than only in the JSON.
     if options.ignore_crawl_delay {
         eprintln!("declared Crawl-delay not waited for (--ignore-crawl-delay)");
+    }
+    if options.no_render {
+        eprintln!("verdicts cannot be `clear` until every check runs fully (--no-render)");
     }
 
     if malformed.into_inner().unwrap_or(0) > 0 {
@@ -354,42 +366,77 @@ fn doctor() -> ExitCode {
     }
 }
 
-fn emit(report: &Report) {
-    println!(
-        "{}",
-        serde_json::to_string(report).expect("report serializes")
-    );
+fn emit(report: &Report, terminal: bool) {
+    write_report(&mut std::io::stdout().lock(), report, terminal).expect("stdout is writable");
 }
 
-fn render_human(report: &Report) {
+/// A terminal gets nothing here. The stderr summary already says
+/// everything a person reads, and the JSON beside it on the same screen
+/// is the same answer a second time in a form nobody reads by eye.
+/// Anything that can parse — a pipe, a file, a subprocess — still gets
+/// every report, so no script sees a difference.
+fn write_report(out: &mut impl Write, report: &Report, terminal: bool) -> std::io::Result<()> {
+    if terminal {
+        return Ok(());
+    }
+    let line = serde_json::to_string(report).expect("report serializes");
+    writeln!(out, "{line}")
+}
+
+/// One report as a single write, so two workers finishing together
+/// cannot interleave their lines.
+fn show(report: &Report) {
+    let mut text = Vec::new();
+    write_human(&mut text, report).expect("a Vec accepts every write");
+    let _ = std::io::stderr().lock().write_all(&text);
+}
+
+fn write_human(out: &mut impl Write, report: &Report) -> std::io::Result<()> {
     let count = report.findings.len();
     let noun = if count == 1 { "finding" } else { "findings" };
     let verdict = verdict_word(report.verdict);
-    eprintln!(
-        "\n{verdict} — {count} {noun}  ({} · {}ms · exit {})",
+    // A batch names the input position, because two entries can be the
+    // same URL and the verdicts arrive in completion order.
+    let position = report
+        .index
+        .map(|index| format!("[{index}] "))
+        .unwrap_or_default();
+    writeln!(
+        out,
+        "\n{position}{verdict} — {count} {noun}  ({} · {}ms · exit {})",
         report.final_url,
         report.timing_ms.total,
         i32::from(report.verdict != Verdict::Clear),
-    );
+    )?;
     for finding in &report.findings {
         let severity = match finding.severity {
             Severity::Blocks => "blocks",
             Severity::Warns => "warns ",
         };
-        eprintln!("  {severity}  {:<10} {}", finding.kind, finding.detail);
+        writeln!(out, "  {severity}  {:<10} {}", finding.kind, finding.detail)?;
     }
     if let Some(robots) = &report.robots
         && let Some(delay) = robots.crawl_delay
     {
-        eprintln!(
+        writeln!(
+            out,
             "  robots  Crawl-delay: {delay}s (User-agent: {})",
             robots.agent
-        );
+        )?;
     }
     // The summary is a projection of the report, so what the report
-    // records about how it was obtained is said here too.
-    if report.crawl_delay_ignored {
-        eprintln!("  robots  declared Crawl-delay not waited for (--ignore-crawl-delay)");
+    // records about how it was obtained is said here too. A batch says
+    // it once in its closing lines instead of under every URL.
+    if report.crawl_delay_ignored && report.index.is_none() {
+        writeln!(
+            out,
+            "  robots  declared Crawl-delay not waited for (--ignore-crawl-delay)"
+        )?;
+    }
+    // The report names the file; a person at a terminal has no report,
+    // and a render writes into the working directory.
+    if let Some(screenshot) = &report.screenshot {
+        writeln!(out, "  shot    {screenshot}")?;
     }
     let checks = [
         ("antibot", report.checks.antibot),
@@ -408,10 +455,14 @@ fn render_human(report: &Report) {
             format!("{name} {mark}")
         })
         .collect();
-    eprintln!("  checks  {}", rendered.join("  ·  "));
-    if !report.checks_skipped.is_empty() {
-        eprintln!("  note    verdict cannot be `clear` until every check runs fully");
+    writeln!(out, "  checks  {}", rendered.join("  ·  "))?;
+    if !report.checks_skipped.is_empty() && report.index.is_none() {
+        writeln!(
+            out,
+            "  note    verdict cannot be `clear` until every check runs fully"
+        )?;
     }
+    Ok(())
 }
 
 fn verdict_word(verdict: Verdict) -> &'static str {
@@ -465,5 +516,70 @@ pub(crate) fn blocked_report(
             render: None,
             total: 0,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample(index: Option<usize>) -> Report {
+        blocked_report("https://example.com/a", "refused", index, false)
+    }
+
+    #[test]
+    fn a_pipe_gets_one_report_per_line() {
+        let mut out = Vec::new();
+        write_report(&mut out, &sample(None), false).expect("a write");
+        write_report(&mut out, &sample(Some(1)), false).expect("a write");
+        let text = String::from_utf8(out).expect("utf-8");
+        assert_eq!(text.lines().count(), 2);
+        assert!(text.starts_with('{'), "{text}");
+    }
+
+    /// The summary on stderr already covers a person at a terminal.
+    #[test]
+    fn a_terminal_gets_no_json() {
+        let mut out = Vec::new();
+        write_report(&mut out, &sample(None), true).expect("a write");
+        assert!(out.is_empty());
+    }
+
+    fn human(report: &Report) -> String {
+        let mut out = Vec::new();
+        write_human(&mut out, report).expect("a write");
+        String::from_utf8(out).expect("utf-8")
+    }
+
+    /// With stdout silent at a terminal, a batch's stderr must say what
+    /// each URL came to, not only how many of each verdict there were.
+    #[test]
+    fn a_batch_entry_is_listed_with_its_position_and_verdict() {
+        let text = human(&sample(Some(3)));
+        assert!(text.contains("[3] blocked — 1 finding"), "{text}");
+        assert!(text.contains("https://example.com/a"), "{text}");
+        assert!(text.contains("refused"), "{text}");
+    }
+
+    #[test]
+    fn a_single_check_has_no_position_prefix() {
+        assert!(!human(&sample(None)).contains('['));
+    }
+
+    #[test]
+    fn a_screenshot_is_named_on_stderr() {
+        let mut report = sample(None);
+        report.screenshot = Some("example.com-2026-10-15.png".to_string());
+        assert!(human(&report).contains("  shot    example.com-2026-10-15.png"));
+    }
+
+    /// A batch says these once in its closing lines.
+    #[test]
+    fn a_batch_entry_does_not_repeat_what_the_summary_says_once() {
+        let mut report = sample(Some(0));
+        report.crawl_delay_ignored = true;
+        let text = human(&report);
+        assert!(!text.contains("Crawl-delay"), "{text}");
+        assert!(!text.contains("note "), "{text}");
     }
 }

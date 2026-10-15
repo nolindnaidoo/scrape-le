@@ -40,8 +40,8 @@ Most scraper failures are discovered after the scraper is written: the
 page renders a challenge, robots.txt forbade the path all along, the
 third request hits a rate limit. scrape-le asks first — it loads the
 page the way a scraper would, gathers the evidence, and returns a
-verdict with the receipts, as JSON on stdout and an exit code a script
-can branch on.
+verdict with the receipts, as JSON on stdout when piped and an exit code a
+script can branch on.
 
 It is the second frontend of
 [Scrape-LE](https://github.com/nolindnaidoo/scrape-le#readme), the VS
@@ -67,7 +67,9 @@ restricted — 1 finding  (https://example.com/search · 1842ms · exit 1)
   checks  antibot ✓  ·  rate-limit ✓  ·  robots ✓  ·  auth ✓
 ```
 
-The report is JSON on stdout, the summary above is stderr, and the exit
+The summary above is stderr, and a batch lists every URL there as it
+completes. The report is JSON on stdout when it is piped or redirected and
+is left out at a terminal. The exit
 code is the answer: **0 clear · 1 a real no · 2 the question was
 malformed.** Every finding carries its evidence — not "Cloudflare
 detected" but which signal, from which source — so a false positive is
