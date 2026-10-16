@@ -48,7 +48,7 @@ One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into
 |---|---|---|
 | **VS Code** | The same check, in your editor, on a keystroke | [Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le) |
 | **Cursor, VSCodium, Windsurf** | The same extension | [Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le) |
-| **A terminal or a CI step** | The same run over a whole tree, with exit codes | `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
+| **A terminal or a CI step** | The same run over a whole tree, with exit codes | `npx scrape-le` · [npm](https://www.npmjs.com/package/scrape-le) or `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
 | **Any MCP agent, via Node** | `analyze_robots_txt` over stdio | `npx scrape-le-mcp` · [npm](https://www.npmjs.com/package/scrape-le-mcp) |
 
 ## Use it from an AI agent
@@ -226,12 +226,12 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 93.26% |
-| Branches | 83.60% |
-| Functions | 93.49% |
-| Lines | 94.61% |
+| Statements | 73.99% |
+| Branches | 65.37% |
+| Functions | 79.72% |
+| Lines | 77.22% |
 
-421 test cases across 33 files, plus an integration suite that runs
+455 test cases across 34 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
 built `.vsix` into a clean profile.
 

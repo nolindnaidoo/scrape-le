@@ -1,0 +1,46 @@
+{
+	"name": "scrape-le",
+	"version": "2.5.0",
+	"description": "Check whether a page is scrapeable before the scraper is written, and say when it cannot tell.",
+	"keywords": [
+		"scraping",
+		"web-scraping",
+		"robots-txt",
+		"crawler",
+		"anti-bot",
+		"cli",
+		"scrape-le",
+		"nolindnaidoo",
+		"letools"
+	],
+	"license": "MIT",
+	"author": {
+		"name": "Nolin Naidoo",
+		"url": "https://nolindnaidoo.com"
+	},
+	"homepage": "https://letools.dev/tools/scrape-le",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/nolindnaidoo/scrape-le.git",
+		"directory": "cli"
+	},
+	"bugs": {
+		"url": "https://github.com/nolindnaidoo/scrape-le/issues"
+	},
+	"type": "commonjs",
+	"bin": {
+		"scrape-le": "cli.js"
+	},
+	"files": [
+		"cli.js",
+		"README.md",
+		"LICENSE"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

@@ -109,6 +109,8 @@ benchmark-results.json
 
 mcp/server.js
 mcp/LICENSE
+cli/cli.js
+cli/LICENSE
 
 # Rust CLI build output (crate/Cargo.lock IS committed — it pins the binary build)
 crate/target/

@@ -58,6 +58,14 @@ artifact users actually install.
   `crate/fixtures/` are the contract. Run
   `bun scripts/check-detection-parity.ts` after any change to either, and
   update the corpus in the same commit.
+- **The npm command line is the crate's surface, not the extension's.**
+  `src/cli/` builds the npm package `scrape-le`, which installs the same
+  command the crate does, so it is held to the Rust CLI byte for byte by
+  `bun run check:cli-parity` (after `bun run build:cli` and a `cargo build`
+  in `crate/`), rendered cases included when a browser is present. A
+  change to the crate's flags, requests, rendering, batching, exit codes or
+  output changes `src/cli/` in the same commit. `--version` is compared
+  too, because every surface carries one version. See AGENTS.md, Release.
 - **What the contract holds equal is the shared `analyze_robots_txt` MCP
   tool**, which both servers offer and must answer identically; a difference
   there is a bug. **The surfaces are meant to differ.** This one is

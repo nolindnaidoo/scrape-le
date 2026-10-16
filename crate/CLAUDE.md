@@ -19,6 +19,14 @@ root is a separate product with its own `CLAUDE.md`.
 - New logic goes in `detect/` when it is pure (it must then be
   unit-tested, 70% module coverage floor), and in `fetch.rs` /
   `render.rs` only when it needs the network or the browser.
+- **The command line has a twin.** The npm package `scrape-le`, built
+  from the extension's `src/cli/`, mirrors `cli.rs`, `check_url.rs`,
+  `fetch.rs`, `render.rs`, `batch.rs`, `detect/` and `mcp/` byte for
+  byte, and `bun ../scripts/check-cli-parity.ts` fails on any
+  difference. A change to a flag, a message, a request, a report field or
+  an exit code changes `src/cli/` in the same commit. So does a
+  dependency bump that moves what the crate prints: serde_json's float
+  formatter and ureq's error wording both reach stdout.
 - `../signatures/` and `../fixtures/` are shared with the extension —
   changing them changes both frontends and needs a CHANGELOG entry.
   **What they hold equal is the shared `analyze_robots_txt` MCP tool**,
