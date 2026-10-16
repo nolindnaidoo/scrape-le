@@ -112,7 +112,7 @@ const MAIN_ROBOTS = [
 	'',
 ].join('\n');
 
-const ROUTES: Readonly<Record<string, Handler>> = {
+const ROUTE_TABLE: Readonly<Record<string, Handler>> = {
 	'/page': (_, res) => page(res, html('Page')),
 	'/notitle': (_, res) => page(res, html(undefined, '<p>no title</p>')),
 	'/emptytitle': (_, res) => page(res, html('   ')),
@@ -246,6 +246,9 @@ const ROUTES: Readonly<Record<string, Handler>> = {
 	'/tall': (_, res) => page(res, html('Tall', '<div style="height:3000px;width:2000px"></div>')),
 };
 
+/** A Map, so a request path can only ever name a route, never a prototype method. */
+const ROUTES: ReadonlyMap<string, Handler> = new Map(Object.entries(ROUTE_TABLE));
+
 function mainHandler(request: IncomingMessage, response: ServerResponse): void {
 	const path = (request.url ?? '/').split('?')[0] ?? '/';
 	if (path === '/robots.txt') {
@@ -253,7 +256,7 @@ function mainHandler(request: IncomingMessage, response: ServerResponse): void {
 		response.end(MAIN_ROBOTS);
 		return;
 	}
-	const route = ROUTES[path];
+	const route = ROUTES.get(path);
 	if (route) {
 		route(request, response);
 		return;
