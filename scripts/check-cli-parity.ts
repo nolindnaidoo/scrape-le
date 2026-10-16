@@ -246,8 +246,8 @@ const ROUTE_TABLE: Readonly<Record<string, Handler>> = {
 	'/tall': (_, res) => page(res, html('Tall', '<div style="height:3000px;width:2000px"></div>')),
 };
 
-/** A Map, so a request path can only ever name a route, never a prototype method. */
-const ROUTES: ReadonlyMap<string, Handler> = new Map(Object.entries(ROUTE_TABLE));
+/** Matched by comparison, so a request path is never a key that could reach a prototype method. */
+const ROUTES: readonly (readonly [string, Handler])[] = Object.entries(ROUTE_TABLE);
 
 function mainHandler(request: IncomingMessage, response: ServerResponse): void {
 	const path = (request.url ?? '/').split('?')[0] ?? '/';
@@ -256,9 +256,9 @@ function mainHandler(request: IncomingMessage, response: ServerResponse): void {
 		response.end(MAIN_ROBOTS);
 		return;
 	}
-	const route = ROUTES.get(path);
+	const route = ROUTES.find(([known]) => known === path);
 	if (route) {
-		route(request, response);
+		route[1](request, response);
 		return;
 	}
 	page(response, html('Not found'), {}, 404);
