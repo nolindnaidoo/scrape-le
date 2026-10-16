@@ -494,6 +494,19 @@ What may **never** differ:
   `src/utils/url.ts` are the reference implementation, and
   `signatures/` + `fixtures/` are the contract.
 
+**Held equal: this surface and the npm one.** The npm package
+`scrape-le` installs a command of the same name, built from the
+extension's `src/cli/` over the extension's vendor table, and nobody
+running `scrape-le` can tell which one they have. It is held to this
+surface byte for byte — arguments, the requests it sends and what it
+makes of the answers, rendered checks, batching, exit codes, stdout,
+stderr, screenshot names, and every reply `scrape-le mcp` gives — by
+`scripts/check-cli-parity.ts`. Only timings are masked, and the wording
+of a parse error the `toml` and serde_json crates render for a malformed
+`--signatures` or batch file. A change to this surface changes
+`src/cli/` in the same commit. That includes `--version`: every surface
+in the repository carries one version.
+
 ### Numbers and lengths
 
 Units are part of the answer rather than implementation details, and each

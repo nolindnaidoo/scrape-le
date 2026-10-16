@@ -85,6 +85,7 @@ overwrites its own image, and two URLs never overwrite each other's.
 | Route | Command | Worth knowing |
 |---|---|---|
 | **cargo** | `cargo install scrape-le` | Any platform, needs **Rust 1.88+**. |
+| **npm** | `npm install -g scrape-le` or `npx scrape-le` | Needs **Node 20+**. The same command, held to this one byte for byte. |
 | **From source** | `git clone https://github.com/nolindnaidoo/scrape-le`<br>`cd scrape-le/crate && cargo build --release` | The same build CI runs. |
 
 You also need a Chromium — Chrome, Chromium, Brave or Edge. It is never
