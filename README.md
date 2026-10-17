@@ -17,6 +17,9 @@
   <a href="https://www.npmjs.com/package/scrape-le-mcp">
     <img src="https://img.shields.io/npm/v/scrape-le-mcp?style=for-the-badge&label=MCP%20server&color=blue&logo=npm" alt="scrape-le-mcp on npm" />
   </a>
+  <a href="https://www.npmjs.com/package/scrape-le">
+    <img src="https://img.shields.io/npm/v/scrape-le?style=for-the-badge&label=npm%20CLI&color=blue&logo=npm" alt="scrape-le on npm" />
+  </a>
   <a href="https://crates.io/crates/scrape-le">
     <img src="https://img.shields.io/crates/v/scrape-le?style=for-the-badge&label=Rust%20CLI&color=blue&logo=rust" alt="scrape-le on crates.io" />
   </a>
@@ -128,6 +131,22 @@ scrape-le mcp                          # the same check over MCP on stdio
 <p align="center">
   <img src="assets/demos/cli.gif" alt="scrape-le in a terminal" style="max-width: 100%; height: auto;" />
 </p>
+
+**Install it from npm** ([`scrape-le`](https://www.npmjs.com/package/scrape-le)) **or from crates.io** ([`scrape-le`](https://crates.io/crates/scrape-le)). Both install the same `scrape-le` command.
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/scrape-le">
+    <img src="https://img.shields.io/npm/v/scrape-le?style=for-the-badge&label=npm%20CLI&color=blue&logo=npm" alt="scrape-le on npm" />
+  </a>
+  <a href="https://crates.io/crates/scrape-le">
+    <img src="https://img.shields.io/crates/v/scrape-le?style=for-the-badge&label=Rust%20CLI&color=blue&logo=rust" alt="scrape-le on crates.io" />
+  </a>
+</p>
+
+```bash
+npm install -g scrape-le   # or run it once: npx scrape-le
+cargo install scrape-le
+```
 
 The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** ## Detections
 
