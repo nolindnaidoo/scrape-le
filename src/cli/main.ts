@@ -3,7 +3,6 @@
  * extension's detection data. `scrape-le mcp` serves the crate's three tools.
  */
 import { readFileSync } from 'node:fs';
-import { createInterface } from 'node:readline';
 import { version } from '../mcp/info';
 import { serve } from './mcp';
 import { crateOutput } from './output';
@@ -20,14 +19,14 @@ async function main(args: readonly string[]): Promise<void> {
 		return;
 	}
 	if (args[0] === 'mcp') {
-		const lines = createInterface({
-			input: process.stdin,
-			crlfDelay: Number.POSITIVE_INFINITY,
-		});
 		// The crate's server stops at the first reply it cannot write.
 		process.stdout.once('error', () => output.exit(2, null));
 		output.exit(
-			await serve({ version, signatures: BUILT_IN, stderr }, lines, stdout),
+			await serve(
+				{ version, signatures: BUILT_IN, stderr },
+				process.stdin,
+				stdout,
+			),
 			null,
 		);
 		return;

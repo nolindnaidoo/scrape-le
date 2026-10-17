@@ -536,9 +536,11 @@ describe('against a loopback server', () => {
 		await serve(
 			{ version: '0.0.0', signatures: BUILT_IN, stderr: () => undefined },
 			Readable.from([
-				'',
-				'not json',
-				...requests.map((r) => JSON.stringify(r)),
+				Buffer.from(
+					['', 'not json', ...requests.map((r) => JSON.stringify(r)), ''].join(
+						'\n',
+					),
+				),
 			]),
 			(line) => lines.push(line),
 		);
