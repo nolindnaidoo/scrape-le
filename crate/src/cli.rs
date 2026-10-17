@@ -366,8 +366,14 @@ fn doctor() -> ExitCode {
     }
 }
 
+/// A reader that closed stdout early is told once and the run stops, as
+/// every tool in the family does. This expected a writable stdout and
+/// panicked with exit 101 under `| head`.
 fn emit(report: &Report, terminal: bool) {
-    write_report(&mut std::io::stdout().lock(), report, terminal).expect("stdout is writable");
+    if let Err(error) = write_report(&mut std::io::stdout().lock(), report, terminal) {
+        eprintln!("scrape-le: could not write the report: {error}");
+        std::process::exit(2);
+    }
 }
 
 /// A terminal gets nothing here. The stderr summary already says

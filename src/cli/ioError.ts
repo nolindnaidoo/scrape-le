@@ -4,11 +4,11 @@
  * The Rust CLI names a failed read as `Permission denied (os error 13)`, and
  * those words reach stderr and the JSON report's `skipped` diagnostic. Node
  * prints libuv's text instead (`EACCES: permission denied, open 'x'`), so the
- * two `envsync-le` binaries would disagree about the same file. strerror's
+ * two `scrape-le` binaries would disagree about the same file. strerror's
  * wording is spelled out for the errors a walk meets; anything else keeps
  * libuv's text, capitalised, which is the closest available without a guess.
  */
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 const STRERROR: Readonly<Record<string, string>> = Object.freeze({
@@ -21,9 +21,15 @@ const STRERROR: Readonly<Record<string, string>> = Object.freeze({
 	ENAMETOOLONG: 'File name too long',
 	EBUSY: 'Resource busy',
 	EIO: 'Input/output error',
+	EPIPE: 'Broken pipe',
 });
 
 const INVALID_UTF8 = 'INVALID_UTF8';
+
+/** `std::fs::read_to_string`: the whole file, or a refusal if it is not UTF-8. */
+export function readUtf8File(path: string): string {
+	return decodeUtf8OrThrow(readFileSync(path));
+}
 
 export function decodeUtf8OrThrow(bytes: Uint8Array): string {
 	try {
@@ -88,6 +94,8 @@ const WINDOWS: Readonly<Record<string, readonly [number, string]>> =
 		],
 		ENAMETOOLONG: [206, 'The filename or extension is too long.'],
 		ELOOP: [1921, 'The name of the file cannot be resolved by the system.'],
+		// A write to a pipe whose reader has closed it: ERROR_NO_DATA.
+		EPIPE: [232, 'The pipe is being closed.'],
 	});
 
 function windowsMessage(code: string, error: unknown): string | undefined {
