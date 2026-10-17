@@ -10,6 +10,17 @@ npm command line. The Rust CLI in `crate/` keeps its own
 [CHANGELOG](crate/CHANGELOG.md). From 2.5.0 every surface carries one
 version and releases from one tag.
 
+## [2.5.1] - 2026-10-17
+
+### Fixed
+
+- **The npm command line no longer cuts off the end of stderr.** It exited
+  once stdout had drained, while stderr could still hold the end of the
+  listing and its summary line. On macOS and Windows a pipe writes
+  asynchronously, so a reader slower than the writer lost them, and one
+  that paused before reading could lose all of it. It now exits once both
+  streams have drained.
+
 ## [2.5.0] - 2026-10-16
 
 ### Changed

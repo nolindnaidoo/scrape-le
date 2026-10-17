@@ -8,6 +8,13 @@ version and releases from one tag.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-10-17
+
+### Changed
+
+- No change to the crate. The version moves with the npm command line,
+  which now waits for stderr to drain before it exits.
+
 ## [2.5.0] - 2026-10-16
 
 ### Changed
