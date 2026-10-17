@@ -8,6 +8,7 @@ import { DEFAULT_CONCURRENCY } from './batch';
 import { findBrowser } from './browser';
 import { type Context, checkUrl } from './checkUrl';
 import { createRobotsCache } from './fetch';
+import { requests } from './frames';
 import { type Float, float, toJson } from './json';
 import { parseRobots } from './robots';
 import { normalizeUrl, rustTrim, targetUrl, validateUrl } from './url';
@@ -91,21 +92,16 @@ const TOOL_DEFINITIONS = Object.freeze([
 	},
 ]);
 
-/** Serves until stdin closes, one request at a time, in order. */
+/**
+ * Serves until stdin closes, one request at a time, in order, over the
+ * crate's framing in `frames.ts`.
+ */
 export async function serve(
 	context: Context,
-	input: AsyncIterable<string>,
+	input: AsyncIterable<Uint8Array>,
 	write: (line: string) => void,
 ): Promise<number> {
-	for await (const line of input) {
-		if (rustTrim(line) === '') continue;
-		let request: unknown;
-		try {
-			request = JSON.parse(line);
-		} catch {
-			// A frame that is not JSON has no id to answer against.
-			continue;
-		}
+	for await (const request of requests(input)) {
 		const response = await handle(request, context);
 		if (response !== undefined)
 			write(`${toJson(response, { sorted: true })}\n`);
