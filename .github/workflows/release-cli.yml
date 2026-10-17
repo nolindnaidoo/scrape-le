@@ -1,4 +1,5 @@
-# Publishes the npm command line `scrape-le` from cli/.
+# Publishes the npm command line from cli/, under the package name in
+# cli/package.json, which installs the command `scrape-le`.
 # Its own workflow rather than a job in release.yml, because release.yml
 # is byte-identical across the *-le repos (letools-site's fleet check)
 # and not every one of them has a command line on npm.
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish scrape-le to npm (off runs the full dry run only)
+        description: Publish the cli/ package to npm (off runs the full dry run only)
         type: boolean
         default: false
 
@@ -87,6 +88,7 @@ jobs:
       - run: bun run check:cli-parity
         env:
           SCRAPE_LE_PARITY_RENDER: "1"
+      - run: bun run check:cli-pipes
 
   publish:
     needs: preflight

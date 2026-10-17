@@ -37,6 +37,11 @@ const args = [
 	'--target=node20',
 	'--main-fields=module,main',
 	'--banner:js=#!/usr/bin/env node',
+	// stderr is the crate's listing and summary and nothing else, so nothing
+	// the engine warns on the console is part of this build: console.warn is
+	// marked pure, and dropped by the syntax pass even in a development build.
+	'--pure:console.warn',
+	'--minify-syntax',
 	`--define:__MCP_NAME__=${JSON.stringify(root.name)}`,
 	`--define:__MCP_VERSION__=${JSON.stringify(root.version)}`,
 	...(prod ? ['--minify'] : []),

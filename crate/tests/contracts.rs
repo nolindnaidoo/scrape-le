@@ -548,3 +548,45 @@ fn the_two_surfaces_return_identical_findings() {
     assert_eq!(mcp_report["verdict"], "restricted");
     assert_eq!(response["result"]["isError"], false);
 }
+
+/// A reader that closes stdout early, as `| head` does, gets the
+/// family's one-line refusal and exit 2. This panicked with exit 101.
+#[test]
+fn a_closed_stdout_is_refused_not_a_panic() {
+    let port = start_server();
+    let directory = std::env::temp_dir().join(format!("scrape-le-closed-stdout-{port}"));
+    std::fs::create_dir_all(&directory).expect("temp dir");
+    let input = directory.join("urls.txt");
+    let urls: Vec<String> = (0..5)
+        .map(|i| format!("http://127.0.0.1:{port}/page/{i}"))
+        .collect();
+    std::fs::write(&input, urls.join("\n")).expect("write input");
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_scrape-le"))
+        .arg("--no-render")
+        .arg("--input")
+        .arg(&input)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("binary runs");
+    drop(child.stdout.take());
+    let mut stderr = String::new();
+    child
+        .stderr
+        .take()
+        .expect("stderr")
+        .read_to_string(&mut stderr)
+        .expect("stderr reads");
+    let code = child.wait().expect("exits").code().expect("exit code");
+    std::fs::remove_file(&input).ok();
+    std::fs::remove_dir(&directory).ok();
+
+    assert_eq!(code, 2, "stderr: {stderr}");
+    assert!(
+        stderr.contains("scrape-le: could not write the report: "),
+        "stderr: {stderr}"
+    );
+    assert!(!stderr.contains("panicked"), "stderr: {stderr}");
+}

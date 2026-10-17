@@ -10,6 +10,22 @@ npm command line. The Rust CLI in `crate/` keeps its own
 [CHANGELOG](crate/CHANGELOG.md). From 2.5.0 every surface carries one
 version and releases from one tag.
 
+## [2.5.2] - 2026-10-17
+
+### Fixed
+
+- **The npm command line no longer crashes when its reader goes away.**
+  A reader that closed stdout early, as `| head` does, got a Node stack
+  trace and an exit code of 1, or 0 in some tools. It now gets what the
+  Rust CLI prints, `scrape-le: could not write the report: Broken pipe (os error 32)`, and exit 2.
+  A reader that closes stderr early no longer stops the run, and stdout
+  is written in full. `scrape-le mcp` exits 2 without a word when it cannot
+  write a reply, as the crate's server does.
+- The listing on stderr now follows the reports written to stdout before
+  it, as the crate's does. `scripts/check-cli-pipes.ts` closes each pipe
+  under both binaries on macOS, Windows and Linux and fails on any
+  difference.
+
 ## [2.5.1] - 2026-10-17
 
 ### Fixed
@@ -17,9 +33,8 @@ version and releases from one tag.
 - **The npm command line no longer cuts off the end of stderr.** It exited
   once stdout had drained, while stderr could still hold the end of the
   listing and its summary line. On macOS and Windows a pipe writes
-  asynchronously, so a reader slower than the writer lost them, and one
-  that paused before reading could lose all of it. It now exits once both
-  streams have drained.
+  asynchronously, so a reader slower than the writer lost them. It now
+  exits once both streams have drained.
 
 ## [2.5.0] - 2026-10-16
 

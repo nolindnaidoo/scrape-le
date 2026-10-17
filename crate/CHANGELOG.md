@@ -8,6 +8,16 @@ version and releases from one tag.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2026-10-17
+
+### Fixed
+
+- **A closed stdout is refused, not a panic.** A reader that closed
+  stdout early, as `| head` does, made the first report fail to write,
+  and `emit` expected it to succeed: the run panicked with exit 101. It
+  now prints `scrape-le: could not write the report: <error>` and exits
+  2, as every tool in the family does.
+
 ## [2.5.1] - 2026-10-17
 
 ### Changed

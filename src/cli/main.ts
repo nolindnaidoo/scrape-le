@@ -5,21 +5,18 @@
 import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { version } from '../mcp/info';
-import { exitWhenDrained } from './exit';
 import { serve } from './mcp';
+import { crateOutput } from './output';
 import { doctor, run } from './run';
 import { BUILT_IN } from './signatures';
 
-const stdout = (text: string): void => {
-	process.stdout.write(text);
-};
-const stderr = (text: string): void => {
-	process.stderr.write(text);
-};
+const REFUSAL = 'could not write the report';
 
 async function main(args: readonly string[]): Promise<void> {
+	const output = crateOutput('scrape-le');
+	const { stdout, stderr } = output;
 	if (args[0] === 'doctor') {
-		exitWhenDrained(doctor({ stdout }));
+		output.exit(doctor({ stdout }), REFUSAL);
 		return;
 	}
 	if (args[0] === 'mcp') {
@@ -27,14 +24,15 @@ async function main(args: readonly string[]): Promise<void> {
 			input: process.stdin,
 			crlfDelay: Number.POSITIVE_INFINITY,
 		});
-		exitWhenDrained(
-			await serve({ version, signatures: BUILT_IN, stderr }, lines, (line) => {
-				process.stdout.write(line);
-			}),
+		// The crate's server stops at the first reply it cannot write.
+		process.stdout.once('error', () => output.exit(2, null));
+		output.exit(
+			await serve({ version, signatures: BUILT_IN, stderr }, lines, stdout),
+			null,
 		);
 		return;
 	}
-	exitWhenDrained(
+	output.exit(
 		await run(args, {
 			stdout,
 			stderr,
@@ -42,6 +40,7 @@ async function main(args: readonly string[]): Promise<void> {
 			readStdin: () => readFileSync(0),
 			version,
 		}),
+		REFUSAL,
 	);
 }
 

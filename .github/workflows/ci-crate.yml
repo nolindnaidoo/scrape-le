@@ -29,6 +29,7 @@ on:
       - 'cli/**'
       - 'scripts/build-cli.js'
       - 'scripts/check-cli-parity.ts'
+      - 'scripts/check-cli-pipes.ts'
       - 'package.json'
       - 'mcp/package.json'
       - 'server.json'
@@ -57,6 +58,7 @@ on:
       - 'cli/**'
       - 'scripts/build-cli.js'
       - 'scripts/check-cli-parity.ts'
+      - 'scripts/check-cli-pipes.ts'
       - 'package.json'
       - 'mcp/package.json'
       - 'server.json'
@@ -581,3 +583,6 @@ jobs:
         env:
           SCRAPE_LE_PARITY_RENDER: "1"
         run: bun run check:cli-parity
+      - name: Both command lines treat a closed pipe alike
+        working-directory: .
+        run: bun run check:cli-pipes
