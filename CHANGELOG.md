@@ -10,6 +10,18 @@ npm command line. The Rust CLI in `crate/` keeps its own
 [CHANGELOG](crate/CHANGELOG.md). From 2.5.0 every surface carries one
 version and releases from one tag.
 
+## [Unreleased]
+
+### Changed
+
+- **The listing carries the words people search for.** Open VSX ranks a
+  match in the name five times a match in the description, and "Scrape-LE"
+  holds neither "web" nor "anti-bot", so a search for "anti-bot" put it 25th
+  on 2026-10-18. The name is "Scrape-LE: Web Scraping Checker", the
+  description opens with "Web scraping checker", where a card has room for
+  about forty characters, and the keywords are cut from 30 to 10 phrases
+  someone would search for.
+
 ## [2.5.3] - 2026-10-17
 
 ### Fixed
