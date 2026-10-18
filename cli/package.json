@@ -1,6 +1,6 @@
 {
 	"name": "scrape-le",
-	"version": "2.5.3",
+	"version": "2.5.4",
 	"description": "Check whether a page is scrapeable before the scraper is written, and say when it cannot tell.",
 	"keywords": [
 		"scraping",

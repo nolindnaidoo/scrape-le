@@ -3,7 +3,7 @@
 	"publisher": "nolindnaidoo",
 	"displayName": "Scrape-LE: Web Scraping Checker",
 	"description": "Web scraping checker: test whether a page is scrapeable before the scraper is written (anti-bot, robots.txt, rate limits), and say when it cannot tell",
-	"version": "2.5.3",
+	"version": "2.5.4",
 	"license": "MIT",
 	"author": {
 		"name": "nolindnaidoo",
