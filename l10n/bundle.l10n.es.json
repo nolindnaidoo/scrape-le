@@ -30,5 +30,6 @@
 	"Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)": "Scrape-LE requiere tener instalado el navegador Chromium. ¿Quieres instalarlo ahora? (Se trata de una configuración que solo hay que realizar una vez; la descarga es de unos 130 MB)",
 	"✅ Chromium installed successfully!": "✅ ¡Chromium se ha instalado correctamente!",
 	"❌ Chromium installation completed but browser is not available. Please try running \"{0}\" manually.": "❌ La instalación de Chromium se ha completado, pero el navegador no está disponible. Intenta ejecutar «{0}» manualmente.",
-	"❌ Failed to install Chromium: {0}. Please run \"{1}\" manually.": "❌ No se ha podido instalar Chromium: {0}. Ejecuta manualmente «{1}»."
+	"❌ Failed to install Chromium: {0}. Please run \"{1}\" manually.": "❌ No se ha podido instalar Chromium: {0}. Ejecuta manualmente «{1}».",
+	"Scrape-LE could not finish: {0}": "Scrape-LE no pudo terminar: {0}"
 }

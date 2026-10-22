@@ -6,6 +6,7 @@ import type { Notifier, StatusBar } from '../types';
 import type { RatingPrompt } from '../ui/ratingPrompt';
 import { extractUrl } from '../utils/url';
 import { executeCheck } from './check';
+import { guarded } from './guard';
 
 /**
  * Registers the check selection command
@@ -20,7 +21,7 @@ export function registerCheckSelectionCommand(
 ): void {
 	const command = vscode.commands.registerCommand(
 		'scrape-le.checkSelection',
-		async () => {
+		guarded(deps.notifier, async () => {
 			const editor = vscode.window.activeTextEditor;
 
 			if (!editor) {
@@ -47,7 +48,7 @@ export function registerCheckSelectionCommand(
 
 			// Execute the check using the same logic as checkUrl
 			await executeCheck(url, deps, context);
-		},
+		}),
 	);
 
 	context.subscriptions.push(command);

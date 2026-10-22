@@ -30,5 +30,6 @@
 	"Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)": "O Scrape-LE requer que o navegador Chromium esteja instalado. Deseja instalá-lo agora? (Esta é uma configuração única, download de aproximadamente 130 MB)",
 	"✅ Chromium installed successfully!": "✅ O Chromium foi instalado com sucesso!",
 	"❌ Chromium installation completed but browser is not available. Please try running \"{0}\" manually.": "❌ A instalação do Chromium foi concluída, mas o navegador não está disponível. Tente executar manualmente o comando “{0}”.",
-	"❌ Failed to install Chromium: {0}. Please run \"{1}\" manually.": "❌ Falha na instalação do Chromium: {0}. Por favor, execute “{1}” manualmente."
+	"❌ Failed to install Chromium: {0}. Please run \"{1}\" manually.": "❌ Falha na instalação do Chromium: {0}. Por favor, execute “{1}” manualmente.",
+	"Scrape-LE could not finish: {0}": "O Scrape-LE não pôde concluir: {0}"
 }
