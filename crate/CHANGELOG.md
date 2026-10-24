@@ -8,6 +8,15 @@ version and releases from one tag.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- `rustls-webpki` 0.103.15 to 0.103.16 (RUSTSEC-2026-0382) and `webpki-roots`
+  1.0.9 to 1.0.11 (RUSTSEC-2026-0381), both reached through `ureq`: certificate
+  verification could accept distrusted emSign intermediates. Lockfile only,
+  nothing in the crate's own code changed.
+
 ## [2.5.4] - 2026-10-18
 
 ### Changed
