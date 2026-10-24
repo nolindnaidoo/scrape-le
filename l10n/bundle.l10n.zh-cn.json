@@ -30,5 +30,6 @@
 	"Scrape-LE requires Chromium browser to be installed. Would you like to install it now? (This is a one-time setup, ~130MB download)": "Scrape-LE 需要安装 Chromium 浏览器。您现在要安装吗？（这是一次性设置，下载大小约为 130MB）",
 	"✅ Chromium installed successfully!": "✅ Chromium 已成功安装！",
 	"❌ Chromium installation completed but browser is not available. Please try running \"{0}\" manually.": "❌ Chromium 安装已完成，但无法使用浏览器。请尝试手动运行“{0}”。",
-	"❌ Failed to install Chromium: {0}. Please run \"{1}\" manually.": "❌ 安装 Chromium 失败：{0}。请手动运行“{1}”。"
+	"❌ Failed to install Chromium: {0}. Please run \"{1}\" manually.": "❌ 安装 Chromium 失败：{0}。请手动运行“{1}”。",
+	"Scrape-LE could not finish: {0}": "Scrape-LE 无法完成：{0}"
 }

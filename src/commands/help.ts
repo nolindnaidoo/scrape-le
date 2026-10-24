@@ -1,16 +1,17 @@
 import * as vscode from 'vscode';
 import type { Notifier, StatusBar } from '../types';
+import { guarded } from './guard';
 
 export function registerHelpCommand(
 	context: vscode.ExtensionContext,
-	_deps: Readonly<{
+	deps: Readonly<{
 		notifier: Notifier;
 		statusBar: StatusBar;
 	}>,
 ): void {
 	const command = vscode.commands.registerCommand(
 		'scrape-le.help',
-		async () => {
+		guarded(deps.notifier, async () => {
 			const helpText = `
 # Scrape-LE Help & Troubleshooting
 
@@ -91,7 +92,7 @@ Built by nolindnaidoo (https://github.com/nolindnaidoo) — MIT licensed.
 				preview: false,
 				viewColumn: vscode.ViewColumn.Beside,
 			});
-		},
+		}),
 	);
 
 	context.subscriptions.push(command);

@@ -14,6 +14,7 @@ import { logCheckResult, showOutput } from '../ui/output';
 import type { RatingPrompt } from '../ui/ratingPrompt';
 import { formatErrorForUser } from '../utils/errorHandling';
 import { normalizeUrl, validateUrl } from '../utils/url';
+import { guarded } from './guard';
 
 /**
  * Registers the check URL command
@@ -28,7 +29,7 @@ export function registerCheckUrlCommand(
 ): void {
 	const command = vscode.commands.registerCommand(
 		'scrape-le.checkUrl',
-		async () => {
+		guarded(deps.notifier, async () => {
 			// Prompt for URL
 			const urlInput = await vscode.window.showInputBox({
 				prompt: vscode.l10n.t('Enter URL to check'),
@@ -57,7 +58,7 @@ export function registerCheckUrlCommand(
 
 			// Execute the check
 			await executeCheck(url, deps, context);
-		},
+		}),
 	);
 
 	context.subscriptions.push(command);

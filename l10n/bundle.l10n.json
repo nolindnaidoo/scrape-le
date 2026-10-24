@@ -30,5 +30,6 @@
   "Launching browser...": "Launching browser...",
   "Loading page...": "Loading page...",
   "✓ Page is reachable and scrapeable": "✓ Page is reachable and scrapeable",
-  "✗ Failed to reach page: {0}": "✗ Failed to reach page: {0}"
+  "✗ Failed to reach page: {0}": "✗ Failed to reach page: {0}",
+  "Scrape-LE could not finish: {0}": "Scrape-LE could not finish: {0}"
 }

@@ -6,6 +6,8 @@ import {
 	ensureBrowserInstalled,
 	showManualInstallInstructions,
 } from '../scraper/install';
+import { createNotifier } from '../ui/notifier';
+import { guarded } from './guard';
 
 /**
  * Registers the setup command for browser installation
@@ -13,7 +15,7 @@ import {
 export function registerSetupCommand(context: vscode.ExtensionContext): void {
 	const command = vscode.commands.registerCommand(
 		'scrape-le.setup',
-		async () => {
+		guarded(createNotifier(), async () => {
 			const choice = await vscode.window.showQuickPick(
 				[
 					{
@@ -72,7 +74,7 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 					'⚠️ Chromium is not installed. Please run the setup to install it.',
 				);
 			}
-		},
+		}),
 	);
 
 	context.subscriptions.push(command);
