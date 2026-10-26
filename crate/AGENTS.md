@@ -34,7 +34,7 @@ crate/src/
 ├── check_url.rs  one URL end to end — the only path either surface calls
 ├── batch.rs      host grouping, bounded concurrency, streaming
 ├── cli.rs        the terminal surface
-└── mcp.rs        the agent surface
+└── mcp/          the agent surface: the stdio loop and the shared tool
 ```
 
 - **`detect/` touches no network and drives no browser.** It takes
@@ -43,7 +43,7 @@ crate/src/
   the **70% line coverage floor per module**, enforced by the
   `coverage` job. If a `ureq` or `headless_chrome` type appears in
   `detect/`, that is a bug.
-- **Both surfaces are one implementation.** `cli.rs` and `mcp.rs` both
+- **Both surfaces are one implementation.** `cli.rs` and `mcp/` both
   call `check_url.rs`, which calls `check()` in `detect/`. A surface
   that grows its own copy of a rule is a bug, and a contract test
   asserts the two return identical findings for the same URL.

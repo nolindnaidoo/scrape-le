@@ -48,7 +48,7 @@ crate/              (in the extension's repo — the shared corpus lives
     ├── fetch.rs    HTTP
     ├── render.rs   Chromium
     ├── cli.rs
-    └── mcp.rs
+    └── mcp/        the stdio loop, and the shared analyze_robots_txt tool
 ```
 
 **`detect/` touches no network and drives no browser.** It takes evidence
@@ -148,8 +148,9 @@ Sitemaps are reported, never fetched — they come out of a file already
 retrieved, so listing them is free, while following one has no natural
 stopping point and would make this a crawler.
 
-Build on `texting_robots`: RFC 9309 verified in its source, tested
-against Google's C++ suite and 34M Common Crawl responses.
+The parser is the crate's own, `detect/robots.rs`, a port of the
+extension's: the two frontends have to answer one file the same way,
+quirks included, and `fixtures/robots/cases.json` runs against both.
 
 ### 4. Authentication
 
@@ -192,12 +193,14 @@ a second prose generator that could drift from it.
       "detail": "Disallow: /search for User-agent: *",
       "evidence": { "rule": "Disallow: /search", "agent": "*" } },
     { "kind": "antibot", "severity": "warns",
-      "detail": "Cloudflare Turnstile widget present",
+      "detail": "Cloudflare (window global)",
       "evidence": { "signal": "turnstile", "source": "window-global" } }
   ],
   "checks": { "antibot": "ran", "rate_limit": "ran",
               "robots": "ran", "auth": "ran" },
   "checks_skipped": [],
+  "robots": { "exists": true, "allows_crawling": false, "agent": "*",
+              "disallowed_paths": ["/search"], "sitemaps": [] },
   "console_errors": [],
   "screenshot": "./scrape-le-example-com-2026-08-05-75e891e1.png",
   "crawl_delay_ignored": false,

@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- SPEC.md said the robots.txt parser builds on `texting_robots`, named a
+  `mcp.rs` that is a `mcp/` directory, and showed an example report whose
+  finding detail nothing emits and which lacked the `robots` object every
+  report carries. AGENTS.md named the same file.
+
 ### Security
 
 - `rustls-webpki` 0.103.15 to 0.103.16 (RUSTSEC-2026-0382) and `webpki-roots`
