@@ -102,6 +102,12 @@ export type NotificationLevel = 'all' | 'important' | 'silent';
  */
 export type StatusBar = Readonly<{
 	show(message: string, tooltip?: string): void;
+	/**
+	 * Restores the idle text after `delayMs`, unless something is shown
+	 * first. One reset is pending at most; a new show or reset replaces it,
+	 * and dispose cancels it.
+	 */
+	resetAfter(delayMs: number): void;
 	hide(): void;
 	dispose(): void;
 }>;

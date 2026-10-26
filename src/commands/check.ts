@@ -214,13 +214,9 @@ export async function executeCheck(
 					await closeBrowser(browser);
 				}
 
-				// Reset status bar after a delay
-				setTimeout(() => {
-					deps.statusBar.show(
-						'$(globe) Scrape-LE',
-						'Click to check URL scrapeability',
-					);
-				}, 5000);
+				// The idle text comes back after a cooldown; the status bar owns
+				// the timer so a check started meanwhile is not reset mid-run.
+				deps.statusBar.resetAfter(5000);
 			}
 		},
 	);

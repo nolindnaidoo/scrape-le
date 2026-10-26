@@ -14,6 +14,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- A check started while the previous one's five-second status cooldown was
+  pending had its status replaced by the idle text when that timer fired, and
+  the timer outlived deactivation. The status bar owns the reset now: a new
+  message cancels a pending reset, one reset is pending at most, and dispose
+  cancels it.
 - The output channel was created on first use and released by nothing, so it
   outlived deactivation; and the module kept it across the unit tests, which
   passed in file order and failed shuffled. Activation now registers its

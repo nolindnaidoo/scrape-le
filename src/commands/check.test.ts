@@ -49,7 +49,7 @@ function successResult(overrides: Partial<CheckResult> = {}): CheckResult {
 	} as CheckResult;
 }
 
-async function runCheckUrl(): Promise<void> {
+function registerCheckUrl(): () => Promise<void> {
 	const context =
 		_createExtensionContext() as unknown as vscode.ExtensionContext;
 	registerCheckUrlCommand(context, {
@@ -57,7 +57,29 @@ async function runCheckUrl(): Promise<void> {
 		statusBar: createStatusBar(context),
 		ratingPrompt: { recordSuccess: async () => {} },
 	});
-	await _registeredCommands().get('scrape-le.checkUrl')?.();
+	const handler = _registeredCommands().get('scrape-le.checkUrl');
+	if (!handler) throw new Error('scrape-le.checkUrl was not registered');
+	return async () => {
+		await handler();
+	};
+}
+
+async function runCheckUrl(): Promise<void> {
+	await registerCheckUrl()();
+}
+
+/** A promise the test resolves by hand, to hold a check at a suspension. */
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+	let resolve: (value: T) => void = () => {};
+	const promise = new Promise<T>((done) => {
+		resolve = done;
+	});
+	return { promise, resolve };
+}
+
+/** Lets every settled continuation run without moving the fake clock. */
+async function settle(): Promise<void> {
+	for (let turn = 0; turn < 20; turn += 1) await Promise.resolve();
 }
 
 describe('checkUrl command', () => {
@@ -158,6 +180,44 @@ describe('checkUrl command', () => {
 			),
 		).toBe(true);
 		expect(_statusBarItems()[0]?.text).toContain('Failed');
+	});
+
+	// RACE-3: two checks run independently; the status item shows the most
+	// recent event, and the idle reset fires five seconds after the last
+	// result. The first check's cooldown timer used to fire while the second
+	// was still showing its result, and replaced it with the idle text.
+	it('a check started during another one keeps its own result through the first cooldown', async () => {
+		const first = deferred<CheckResult>();
+		const second = deferred<CheckResult>();
+		mockCheck
+			.mockReturnValueOnce(first.promise)
+			.mockReturnValueOnce(second.promise);
+		_respondToInputBox(() => 'https://example.com');
+		const check = registerCheckUrl();
+
+		const run1 = check();
+		await settle();
+		const run2 = check();
+		await settle();
+		expect(_statusBarItems()[0]?.text).toContain('Checking');
+
+		first.resolve(successResult({ loadTimeMs: 42 }));
+		await run1;
+		expect(_statusBarItems()[0]?.text).toContain('Reachable (42ms)');
+
+		vi.advanceTimersByTime(3000);
+		second.resolve(successResult({ loadTimeMs: 77 }));
+		await run2;
+		expect(_statusBarItems()[0]?.text).toContain('Reachable (77ms)');
+
+		// Five seconds after the first result: its timer must not reset the
+		// second's result.
+		vi.advanceTimersByTime(2000);
+		expect(_statusBarItems()[0]?.text).toContain('Reachable (77ms)');
+		// Five seconds after the second result: idle.
+		vi.advanceTimersByTime(3000);
+		expect(_statusBarItems()[0]?.text).toBe('$(globe) Scrape-LE');
+		expect(vi.getTimerCount()).toBe(0);
 	});
 
 	it('formats thrown errors and still closes the browser', async () => {

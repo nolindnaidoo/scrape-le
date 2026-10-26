@@ -42,8 +42,20 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 		}),
 	);
 
+	// One pending reset at most. The timer used to live in the check
+	// command, untracked: a second check started inside the first's cooldown
+	// had its own "Checking..." replaced by the idle text when the first's
+	// timer fired, and the timer outlived deactivation.
+	let pendingReset: ReturnType<typeof setTimeout> | undefined;
+	const cancelReset = (): void => {
+		if (pendingReset === undefined) return;
+		clearTimeout(pendingReset);
+		pendingReset = undefined;
+	};
+
 	return Object.freeze({
 		show(message: string, tooltip?: string): void {
+			cancelReset();
 			statusBarItem.text = message;
 			if (tooltip) {
 				statusBarItem.tooltip = tooltip;
@@ -51,11 +63,22 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 			applyVisibility();
 		},
 
+		resetAfter(delayMs: number): void {
+			cancelReset();
+			pendingReset = setTimeout(() => {
+				pendingReset = undefined;
+				statusBarItem.text = IDLE_TEXT;
+				statusBarItem.tooltip = IDLE_TOOLTIP;
+				applyVisibility();
+			}, delayMs);
+		},
+
 		hide(): void {
 			statusBarItem.hide();
 		},
 
 		dispose(): void {
+			cancelReset();
 			statusBarItem.dispose();
 		},
 	});
