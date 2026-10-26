@@ -14,6 +14,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- A screenshot that could not be written, to a path without permission say,
+  left the report without a screenshot line and said nothing; the reason went
+  to a console nobody opens. The report now prints that the screenshot could
+  not be written and why, with the home directory redacted.
 - A robots.txt declaring `Crawl-delay: 0` had the delay left out of the
   report, as though none were declared.
 - A navigation Playwright made no request for, which has no response, showed

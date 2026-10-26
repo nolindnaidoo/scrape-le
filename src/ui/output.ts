@@ -270,6 +270,11 @@ function appendSuccess(channel: Channel, result: CheckResult): void {
 	if (result.screenshotPath) {
 		channel.appendLine(`   Screenshot: ${result.screenshotPath}`);
 	}
+	if (result.screenshotError) {
+		channel.appendLine(
+			`   Screenshot: could not be written — ${result.screenshotError}`,
+		);
+	}
 	appendConsoleErrors(channel, result.consoleErrors);
 	if (result.detections) {
 		appendDetections(channel, result.detections);

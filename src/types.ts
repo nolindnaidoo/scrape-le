@@ -12,6 +12,8 @@ export type CheckResult = Readonly<{
 	title: string;
 	loadTimeMs: number;
 	screenshotPath?: string | undefined;
+	/** Why no screenshot was written, when one was asked for and failed. */
+	screenshotError?: string | undefined;
 	consoleErrors: readonly string[];
 	error?: string | undefined;
 	detections?: DetectionResults | undefined;

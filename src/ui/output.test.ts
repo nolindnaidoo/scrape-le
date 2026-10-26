@@ -88,6 +88,15 @@ describe('output channel', () => {
 		expect(text).toContain('Login URL: https://example.com/login');
 	});
 
+	it('prints why a screenshot could not be written', () => {
+		logCheckResult(
+			baseResult({ screenshotError: 'EACCES: permission denied' }),
+		);
+		expect(channelText()).toContain(
+			'Screenshot: could not be written — EACCES: permission denied',
+		);
+	});
+
 	it('prints a declared Crawl-delay of 0 and omits an undeclared one', () => {
 		const robots = {
 			agent: '*',
