@@ -117,6 +117,28 @@ describe('checkUrl command', () => {
 		expect(_statusBarItems()[0]?.text).toBe('$(globe) Scrape-LE');
 	});
 
+	// FEAT-6: the setting had a parity test for its default and no consumer
+	// test; nothing showed the configured agent reaching the check.
+	it('passes the configured robots.txt agent to the check, and none when the setting is empty', async () => {
+		_setConfig('scrape-le.robotsTxt.agent', '  MyBot/1.0 ');
+		_respondToInputBox(() => 'https://example.com');
+		await runCheckUrl();
+		expect(mockCheck).toHaveBeenLastCalledWith(
+			expect.anything(),
+			'https://example.com',
+			expect.objectContaining({ robotsAgent: 'MyBot/1.0' }),
+		);
+
+		_setConfig('scrape-le.robotsTxt.agent', '');
+		_respondToInputBox(() => 'https://example.com');
+		await runCheckUrl();
+		expect(mockCheck).toHaveBeenLastCalledWith(
+			expect.anything(),
+			'https://example.com',
+			expect.objectContaining({ robotsAgent: undefined }),
+		);
+	});
+
 	it('normalizes a protocol-less URL before checking', async () => {
 		_respondToInputBox(() => 'example.com');
 

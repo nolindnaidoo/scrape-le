@@ -229,6 +229,33 @@ describe('runDetections', () => {
 		expect(result.robotsTxt?.exists).toBeDefined();
 	}, 10000);
 
+	it('evaluates robots.txt as the configured agent, and as everyone without one', async () => {
+		mockFetch.mockResolvedValue({
+			ok: true,
+			status: 200,
+			text: async () =>
+				'User-agent: MyBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n',
+		} as never);
+
+		const asMyBot = await runDetections(
+			mockPage as Page,
+			mockResponse as Response,
+			'https://example.com/page',
+			{ ...mockOptions, robotsAgent: 'MyBot/1.0' },
+		);
+		expect(asMyBot.robotsTxt?.agent).toBe('mybot');
+		expect(asMyBot.robotsTxt?.allowsCrawling).toBe(false);
+
+		const asAnyone = await runDetections(
+			mockPage as Page,
+			mockResponse as Response,
+			'https://example.com/page',
+			mockOptions,
+		);
+		expect(asAnyone.robotsTxt?.agent).toBe('*');
+		expect(asAnyone.robotsTxt?.allowsCrawling).toBe(true);
+	});
+
 	it('should combine multiple detections', async () => {
 		mockResponse = {
 			headers: () => ({
