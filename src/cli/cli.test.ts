@@ -381,8 +381,13 @@ describe('report', () => {
 		);
 		const saved = saveScreenshot(missing, Buffer.from('png'));
 		expect(saved.path).toBeUndefined();
-		expect(saved.error).toBe(
-			`${missing}: No such file or directory (os error 2)`,
+		// The OS's words and number differ by platform (Windows says "The
+		// system cannot find the path specified. (os error 3)"), so the test
+		// holds the shape the crate prints, not one platform's words.
+		expect(saved.error).toMatch(
+			new RegExp(
+				`^${missing.replaceAll('\\', '\\\\')}: .+ \\(os error \\d+\\)$`,
+			),
 		);
 	});
 });
