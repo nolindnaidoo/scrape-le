@@ -549,6 +549,46 @@ fn the_two_surfaces_return_identical_findings() {
     assert_eq!(response["result"]["isError"], false);
 }
 
+/// A reader that closed the stderr pipe made every refusal a panic:
+/// `eprintln!` panics when its write fails, so `--not-a-flag` under such
+/// a reader exited 101 with a message nobody saw. stderr is not protocol;
+/// a line that cannot be written is dropped and the exit code stands.
+#[test]
+fn a_closed_stderr_is_survived_not_a_panic() {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_scrape-le"))
+        .arg("--not-a-flag")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("binary runs");
+    drop(child.stderr.take());
+    let output = child.wait_with_output().expect("exits");
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "a refusal under a closed stderr is still exit 2"
+    );
+    assert!(output.stdout.is_empty(), "a refusal wrote to stdout");
+
+    // And a check that reports: the report still reaches stdout whole.
+    let port = start_server();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_scrape-le"))
+        .args(["--no-render", &format!("http://127.0.0.1:{port}/forbidden")])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("binary runs");
+    drop(child.stderr.take());
+    let output = child.wait_with_output().expect("exits");
+    assert_eq!(output.status.code(), Some(1));
+    assert_eq!(
+        verdict_of(&String::from_utf8_lossy(&output.stdout)),
+        "restricted"
+    );
+}
+
 /// A reader that closes stdout early, as `| head` does, gets the
 /// family's one-line refusal and exit 2. This panicked with exit 101.
 #[test]

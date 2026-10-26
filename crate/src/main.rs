@@ -5,6 +5,21 @@
 
 use std::process::ExitCode;
 
+/// A line on stderr that a reader may have stopped reading.
+///
+/// `eprintln!` panics when the write fails, and a reader that closed the
+/// stderr pipe turned every refusal into exit 101 with a panic message
+/// nobody saw: `--not-a-flag` under such a reader exited 101, not 2.
+/// Nothing on stderr is protocol, so a write that fails is dropped, as
+/// the npm command line drops it. Defined before the modules so each of
+/// them can use it.
+macro_rules! stderr_line {
+    ($($arg:tt)*) => {{
+        use std::io::Write as _;
+        let _ = writeln!(std::io::stderr(), $($arg)*);
+    }};
+}
+
 mod batch;
 mod check_url;
 mod cli;

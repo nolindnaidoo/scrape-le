@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A reader that closed the stderr pipe turned every refusal into a panic:
+  `eprintln!` panics when its write fails, so `--not-a-flag` under such a
+  reader exited 101 with a message nobody saw. stderr is not protocol; a
+  line that cannot be written is dropped and the exit code stands, as the
+  npm command line already did.
 - **`mcp` answers a malformed frame in the extension server's words, and
   bounds a frame.** A line that was not UTF-8, not JSON or not a JSON-RPC
   2.0 request was dropped without a word, so a client waiting on it waited

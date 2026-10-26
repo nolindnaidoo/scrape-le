@@ -73,7 +73,7 @@ pub(crate) fn run() -> ExitCode {
             return ExitCode::SUCCESS;
         }
         Err(Exit::Error(message)) => {
-            eprintln!("scrape-le: {message}");
+            stderr_line!("scrape-le: {message}");
             return ExitCode::from(2);
         }
     };
@@ -82,7 +82,7 @@ pub(crate) fn run() -> ExitCode {
         Some(source) => run_batch(&source, &parsed.options),
         None => match parsed.urls.as_slice() {
             [] => {
-                eprintln!("{USAGE}");
+                stderr_line!("{USAGE}");
                 ExitCode::from(2)
             }
             [url] => run_single(url, &parsed.options),
@@ -160,7 +160,7 @@ fn parse_args(args: &[String]) -> Result<Parsed, Exit> {
 
     if let Some(path) = signatures {
         let count = crate::detect::signatures::load_extra(&path).map_err(Exit::Error)?;
-        eprintln!(
+        stderr_line!(
             "scrape-le: loaded {count} signature(s) from {}",
             path.display()
         );
@@ -181,12 +181,12 @@ fn value<'a>(iter: &mut impl Iterator<Item = &'a String>, flag: &str) -> Result<
 
 fn run_single(raw: &str, options: &Options) -> ExitCode {
     let Some(url) = target_url(raw) else {
-        eprintln!("scrape-le: not an http(s) URL: {raw}");
+        stderr_line!("scrape-le: not an http(s) URL: {raw}");
         return ExitCode::from(2);
     };
     match check_url(&url, None, options, &RobotsCache::new()) {
         CheckOutcome::Malformed(reason) => {
-            eprintln!("scrape-le: {reason}");
+            stderr_line!("scrape-le: {reason}");
             ExitCode::from(2)
         }
         CheckOutcome::Report(report) => {
@@ -204,19 +204,19 @@ fn run_batch(source: &str, options: &Options) -> ExitCode {
     let raw = match read_input(source) {
         Ok(raw) => raw,
         Err(reason) => {
-            eprintln!("scrape-le: {reason}");
+            stderr_line!("scrape-le: {reason}");
             return ExitCode::from(2);
         }
     };
     let urls = match crate::batch::parse_input(&raw) {
         Ok(urls) => urls,
         Err(reason) => {
-            eprintln!("scrape-le: {reason}");
+            stderr_line!("scrape-le: {reason}");
             return ExitCode::from(2);
         }
     };
     if urls.is_empty() {
-        eprintln!("scrape-le: no URLs in {source}");
+        stderr_line!("scrape-le: no URLs in {source}");
         return ExitCode::from(2);
     }
 
@@ -229,7 +229,7 @@ fn run_batch(source: &str, options: &Options) -> ExitCode {
         // note column); `target_in_text` finds it and falls back to
         // plain normalization for a bare domain.
         let Some(url) = target_in_text(raw_url) else {
-            eprintln!("scrape-le: entry {index} is not an http(s) URL: {raw_url}");
+            stderr_line!("scrape-le: entry {index} is not an http(s) URL: {raw_url}");
             malformed += 1;
             continue;
         };
@@ -273,7 +273,7 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
         |target| match check_url(&target.url, Some(target.index), options, &robots) {
             CheckOutcome::Report(report) => *report,
             CheckOutcome::Malformed(reason) => {
-                eprintln!("scrape-le: entry {}: {reason}", target.index);
+                stderr_line!("scrape-le: entry {}: {reason}", target.index);
                 if let Ok(mut count) = malformed.lock() {
                     *count += 1;
                 }
@@ -294,11 +294,14 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
         },
     );
 
-    eprintln!(
+    stderr_line!(
         "\n{} clear · {} restricted · {} blocked · {} inconclusive",
-        summary.clear, summary.restricted, summary.blocked, summary.inconclusive
+        summary.clear,
+        summary.restricted,
+        summary.blocked,
+        summary.inconclusive
     );
-    eprintln!(
+    stderr_line!(
         "{} URLs across {hosts} host(s) in {:.1}s",
         summary.total(),
         started.elapsed().as_secs_f64()
@@ -307,10 +310,10 @@ fn run_targets(targets: &[Target], options: &Options) -> ExitCode {
     // summary is the only human output it produces — so the fact the
     // reports carry is said here rather than only in the JSON.
     if options.ignore_crawl_delay {
-        eprintln!("declared Crawl-delay not waited for (--ignore-crawl-delay)");
+        stderr_line!("declared Crawl-delay not waited for (--ignore-crawl-delay)");
     }
     if options.no_render {
-        eprintln!("verdicts cannot be `clear` until every check runs fully (--no-render)");
+        stderr_line!("verdicts cannot be `clear` until every check runs fully (--no-render)");
     }
 
     if malformed.into_inner().unwrap_or(0) > 0 {
@@ -371,7 +374,7 @@ fn doctor() -> ExitCode {
 /// panicked with exit 101 under `| head`.
 fn emit(report: &Report, terminal: bool) {
     if let Err(error) = write_report(&mut std::io::stdout().lock(), report, terminal) {
-        eprintln!("scrape-le: could not write the report: {error}");
+        stderr_line!("scrape-le: could not write the report: {error}");
         std::process::exit(2);
     }
 }

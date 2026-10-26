@@ -138,6 +138,11 @@ and pixelactions:
 - **Strict parsing, never silent defaults.** Bad flags, malformed batch
   input, and unreadable config are errors with actionable messages,
   not fallbacks.
+- **Nothing on stderr may panic the process.** Every line to stderr goes
+  through `stderr_line!` in `main.rs`, which drops a write that fails;
+  `eprintln!` panics on one, and a reader that closed the stderr pipe
+  turned every refusal into exit 101. `tests/contracts.rs` holds it
+  (`a_closed_stderr_is_survived_not_a_panic`).
 - **Refuse rather than guess.** A page that cannot be reached or
   rendered is a refusal with a reason, never a fabricated verdict.
   Partial evidence is reported as partial — the report says plainly
