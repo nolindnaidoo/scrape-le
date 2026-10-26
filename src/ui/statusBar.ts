@@ -37,7 +37,6 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 	};
 	applyVisibility();
 
-	context.subscriptions.push(statusBarItem);
 	context.subscriptions.push(
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('scrape-le.statusBar.enabled')) {
@@ -57,7 +56,7 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 		pendingReset = undefined;
 	};
 
-	return Object.freeze({
+	const statusBar: StatusBar = Object.freeze({
 		show(message: string, tooltip?: string): void {
 			cancelReset();
 			statusBarItem.text = message;
@@ -86,4 +85,8 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 			statusBarItem.dispose();
 		},
 	});
+	// The wrapper, not the bare item: deactivation has to cancel a pending
+	// reset as well as release the item, and only the wrapper knows the timer.
+	context.subscriptions.push(statusBar);
+	return statusBar;
 }

@@ -380,8 +380,79 @@ export function _createExtensionContext() {
 		},
 		extension: {
 			id: 'nolindnaidoo.scrape-le',
-			packageJSON: { displayName: 'Scrape-LE' },
+			packageJSON: { displayName: 'Scrape-LE', version: '0.0.0-test' },
 		},
+		asAbsolutePath: (relative: string) => `/ext/${relative}`,
+	};
+}
+
+// ------------------------------------------------------ language model
+
+/** What the provider registers, as `vscode.McpStdioServerDefinition`. */
+export class McpStdioServerDefinition {
+	constructor(
+		readonly label: string,
+		readonly command: string,
+		readonly args: readonly string[],
+		readonly env: Readonly<Record<string, string>>,
+		readonly version: string,
+	) {}
+}
+
+interface MockMcpProvider {
+	id: string;
+	provider: unknown;
+	_disposed: boolean;
+}
+
+const mcpProviders: MockMcpProvider[] = [];
+
+const lmApi = {
+	registerMcpServerDefinitionProvider: (id: string, provider: unknown) => {
+		const entry: MockMcpProvider = { id, provider, _disposed: false };
+		mcpProviders.push(entry);
+		return {
+			dispose: () => {
+				entry._disposed = true;
+			},
+		};
+	},
+};
+
+/**
+ * `vscode.lm`, present by default. A live binding: `_setLmApi(false)` is a
+ * host without agent mode, which the provider must feature-detect.
+ */
+export let lm: typeof lmApi | undefined = lmApi;
+
+export function _setLmApi(present: boolean): void {
+	lm = present ? lmApi : undefined;
+}
+
+export function _mcpProviders(): readonly MockMcpProvider[] {
+	return mcpProviders;
+}
+
+// ------------------------------------------------------- what is alive
+
+/**
+ * Everything created through this mock and not yet released: the count a
+ * lifecycle test reads after deactivation, and after many runs.
+ */
+export function _live(): {
+	statusBarItems: number;
+	outputChannels: number;
+	configListeners: number;
+	commands: number;
+	mcpProviders: number;
+} {
+	return {
+		statusBarItems: statusBarItems.filter((item) => !item._disposed).length,
+		outputChannels: outputChannels.filter((channel) => !channel._disposed)
+			.length,
+		configListeners: configListeners.length,
+		commands: registeredCommands.size,
+		mcpProviders: mcpProviders.filter((entry) => !entry._disposed).length,
 	};
 }
 
@@ -400,6 +471,8 @@ export function _resetMockState(): void {
 	registeredCommands.clear();
 	outputChannels.length = 0;
 	statusBarItems.length = 0;
+	mcpProviders.length = 0;
+	lm = lmApi;
 	activeTextEditor = undefined;
 	quickPickResponder = undefined;
 	warningResponder = undefined;

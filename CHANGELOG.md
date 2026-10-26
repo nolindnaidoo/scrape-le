@@ -20,6 +20,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- Deactivation released the status bar item but not the idle reset pending
+  on it, which the item's wrapper owns: the wrapper is what activation
+  registers now. Found by a new lifecycle test that activates, runs every
+  command, disposes everything and asserts nothing is left alive, then runs
+  every command fifty times and asserts nothing grew.
 - Thirty-eight catalogue values did not fit their place. The anti-bot
   setting's description named Perimeter81, a VPN vendor, in English and in
   every language; the corpus detects PerimeterX. The "retry under common
