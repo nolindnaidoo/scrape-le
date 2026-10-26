@@ -14,7 +14,7 @@
 	"manifest.settings.screenshot.path.desc": "保存截图的目录路径（相对于工作区根目录）",
 	"manifest.settings.screenshot.format.desc": "截图图像格式（PNG 用于无损压缩，JPEG 用于减小文件大小）",
 	"manifest.settings.screenshot.format.option.png": "PNG - 无损压缩，文件较大",
-	"manifest.settings.screenshot.format.option.jpeg": "JPEG——有损压缩，文件大小更小",
+	"manifest.settings.screenshot.format.option.jpeg": "JPEG - 有损压缩，文件较小",
 	"manifest.settings.screenshot.quality.desc": "JPEG 质量（0-100，仅适用于 JPEG 格式，数值越高，质量越好）",
 	"manifest.settings.check-console-errors.desc": "捕获并报告页面中的 JavaScript 控制台错误",
 	"manifest.settings.notifications.level.desc": "控制 VS Code 通知的详细程度",
@@ -22,12 +22,13 @@
 	"manifest.settings.notifications.level.option.important": "仅显示重要通知（警告、错误）",
 	"manifest.settings.notifications.level.option.silent": "屏蔽所有通知（静音模式）",
 	"manifest.settings.statusbar.enabled.desc": "在 VS Code 中显示 Scrape-LE 状态栏条目",
-	"manifest.settings.detections.antibot.desc": "检测反机器人防护系统（Cloudflare、reCAPTCHA、hCaptcha、DataDome、Perimeter81）",
+	"manifest.settings.detections.antibot.desc": "检测反机器人防护系统（Cloudflare、reCAPTCHA、hCaptcha、DataDome、PerimeterX）",
 	"manifest.settings.detections.ratelimit.desc": "检测并解析 HTTP 速率限制标头（X-RateLimit-*、RateLimit-*、Retry-After）",
 	"manifest.settings.robotstxt.agent.desc": "用于评估 robots.txt 的爬虫，例如 Googlebot 或 MyBot/1.0。适用指定该爬虫的组中的规则；若为空或没有组指定它，则适用所有爬虫的规则（User-agent: *）。",
 	"manifest.settings.detections.robotstxt.desc": "获取并解析 robots.txt 文件，以检查抓取权限和策略",
 	"manifest.settings.detections.authentication.desc": "检测身份验证屏障和登录要求（401/403状态码、登录表单、身份验证关键词）",
 	"manifest.capability.untrusted-workspaces.desc": "出于安全考虑，在不受信任的工作区中功能受限",
-	"manifest.settings.retry.user-agents.desc": "如果验证失败或被标记为机器人，请使用几种常见的 User-Agent 重新尝试访问该 URL，并报告其中哪个成功了",
-	"manifest.mcp.label": "Scrape-LE robots.txt 分析工具（适用于用户代理模式）"
+	"manifest.settings.retry.user-agents.desc": "检查失败或被标记为机器人时，使用几种常见的 User-Agent 重试该 URL，并报告其中哪一个成功",
+	"manifest.mcp.label": "Scrape-LE robots.txt 分析工具（代理模式）",
+	"manifest.capability.virtual-workspaces.desc": "在虚拟工作区中功能受限：浏览器和截图需要本地文件系统"
 }

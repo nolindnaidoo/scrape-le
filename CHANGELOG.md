@@ -20,6 +20,20 @@ version and releases from one tag.
 
 ### Fixed
 
+- Thirty-eight catalogue values did not fit their place. The anti-bot
+  setting's description named Perimeter81, a VPN vendor, in English and in
+  every language; the corpus detects PerimeterX. The "retry under common
+  User-Agents" setting read as an instruction to the user in ten languages
+  instead of a description of what the extension does. "Copy Command", the
+  button that copies the install command, read as the name of a Copy command
+  in eleven. "No active editor" meant a person in Korean and Chinese, the
+  German, Korean, Vietnamese and Chinese progress title for installing
+  Chromium was the install button's label, the German, Russian and Ukrainian
+  status-bar setting described a Scrape-LE status bar, the Chinese MCP label
+  said user-agent mode, a Korean string was half transliterated, and a French
+  progress message assumed the URL began with a vowel. The virtual-workspace
+  capability reused the untrusted-workspace description; it has its own,
+  saying what needs a local file system.
 - Twenty-four strings the extension shows were English in every language:
   the status bar's "Checking...", "Reachable", "Failed" and "Error" texts and
   their tooltips, the "Retrying as ..." progress message, the Setup Browser

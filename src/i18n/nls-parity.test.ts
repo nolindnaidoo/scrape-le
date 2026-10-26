@@ -40,3 +40,24 @@ describe('nls parity', () => {
 		});
 	}
 });
+
+describe('the anti-bot setting names the corpus', () => {
+	// The description named Perimeter81, a VPN vendor, in the source and in
+	// every locale; the corpus detects PerimeterX.
+	it('names every vendor the signatures detect, in every catalogue', async () => {
+		const { ANTI_BOT_SIGNATURES } = await import('../detectors/heuristics');
+		const paths = [
+			join(root, 'package.nls.json'),
+			...catalogueFiles.map((file) => join(root, 'src', 'i18n', file)),
+		];
+		for (const path of paths) {
+			const description = (
+				JSON.parse(readFileSync(path, 'utf8')) as Record<string, string>
+			)['manifest.settings.detections.antibot.desc'];
+			for (const signature of ANTI_BOT_SIGNATURES) {
+				expect(description, path).toContain(signature.label);
+			}
+			expect(description, path).not.toContain('Perimeter81');
+		}
+	});
+});
