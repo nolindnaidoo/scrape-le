@@ -14,6 +14,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- An anti-bot probe or an authentication probe that could not run read as
+  "None detected" and "Not required": each swallowed its own failure into an
+  empty result. A probe that fails now fails its detection, which the report
+  states as a check that failed, with the reason.
 - A robots.txt the server failed to serve, with a 5xx, a timeout or a network
   failure, was reported as "Not found" with crawling allowed. RFC 9309
   §2.3.1.4 has a crawler assume a complete disallow then, which is what the

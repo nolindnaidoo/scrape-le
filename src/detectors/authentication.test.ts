@@ -229,7 +229,11 @@ describe('detectAuthentication', () => {
 		expect(result.required).toBe(false);
 	});
 
-	it('should handle page.evaluate errors gracefully', async () => {
+	// A probe that cannot run is a failed detection, not "Not required".
+	// Each of the three signals used to swallow its own failure, so a page
+	// whose evaluate threw read as needing no login; runDetections records
+	// the rejection and the report says the check failed.
+	it('a form probe that cannot run fails the detection rather than reading as not required', async () => {
 		mockPage = {
 			url: () => 'https://example.com',
 			evaluate: async () => {
@@ -237,28 +241,22 @@ describe('detectAuthentication', () => {
 			},
 		};
 
-		const result = await AuthenticationDetector.detectAuthentication(
-			mockPage as Page,
-			200,
-		);
-
-		expect(result.required).toBe(false);
+		await expect(
+			AuthenticationDetector.detectAuthentication(mockPage as Page, 200),
+		).rejects.toThrow('Evaluation failed');
 	});
 
-	it('should handle page.url() errors gracefully', async () => {
+	it('a URL that cannot be read fails the detection rather than reading as not required', async () => {
 		mockPage = {
 			url: () => {
 				throw new Error('URL unavailable');
 			},
-			evaluate: async (_fn: any) => false,
+			evaluate: async (_fn: any) => ({ hasPasswordInput: false }),
 		};
 
-		const result = await AuthenticationDetector.detectAuthentication(
-			mockPage as Page,
-			200,
-		);
-
-		expect(result.required).toBe(false);
+		await expect(
+			AuthenticationDetector.detectAuthentication(mockPage as Page, 200),
+		).rejects.toThrow('URL unavailable');
 	});
 
 	it('should return frozen result object', async () => {
@@ -271,8 +269,7 @@ describe('detectAuthentication', () => {
 		expect(Object.isFrozen(result.indicators)).toBe(true);
 	});
 
-	it('should handle detection errors and return default', async () => {
-		// Force error by making page.url throw
+	it('fails when every probe fails, naming the first failure', async () => {
 		mockPage = {
 			url: () => {
 				throw new Error('Fatal error');
@@ -282,15 +279,9 @@ describe('detectAuthentication', () => {
 			},
 		};
 
-		const result = await AuthenticationDetector.detectAuthentication(
-			mockPage as Page,
-			200,
-		);
-
-		// Should return safe default result
-		expect(result.required).toBe(false);
-		expect(result.indicators).toBeDefined();
-		expect(Object.isFrozen(result)).toBe(true);
+		await expect(
+			AuthenticationDetector.detectAuthentication(mockPage as Page, 200),
+		).rejects.toThrow('Fatal error');
 	});
 
 	it('should not set optional fields when not detected', async () => {
