@@ -22,6 +22,6 @@ export function registerCommands(
 ): void {
 	registerCheckUrlCommand(context, deps);
 	registerCheckSelectionCommand(context, deps);
-	registerSetupCommand(context);
+	registerSetupCommand(context, deps);
 	registerHelpCommand(context, deps);
 }

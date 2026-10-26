@@ -14,6 +14,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- The Setup Browser command showed its results with the editor's own dialogs,
+  past the `notificationsLevel` setting every other notification honours.
+  They go through the notifier now; the quick pick and the install prompts
+  are interaction and stay direct.
 - A screenshot that could not be written, to a path without permission say,
   left the report without a screenshot line and said nothing; the reason went
   to a console nobody opens. The report now prints that the screenshot could

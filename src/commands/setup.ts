@@ -6,16 +6,24 @@ import {
 	ensureBrowserInstalled,
 	showManualInstallInstructions,
 } from '../scraper/install';
-import { createNotifier } from '../ui/notifier';
+import type { Notifier } from '../types';
 import { guarded } from './guard';
 
 /**
- * Registers the setup command for browser installation
+ * Registers the setup command for browser installation.
+ *
+ * Results go through the notifier like every other command's, so
+ * `notificationsLevel` governs them; the quick pick is interaction and
+ * stays direct. The install flow inside `scraper/install.ts` is the
+ * documented exception.
  */
-export function registerSetupCommand(context: vscode.ExtensionContext): void {
+export function registerSetupCommand(
+	context: vscode.ExtensionContext,
+	deps: Readonly<{ notifier: Notifier }>,
+): void {
 	const command = vscode.commands.registerCommand(
 		'scrape-le.setup',
-		guarded(createNotifier(), async () => {
+		guarded(deps.notifier, async () => {
 			const choice = await vscode.window.showQuickPick(
 				[
 					{
@@ -51,8 +59,10 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 			if (choice.action === 'install') {
 				const installed = await ensureBrowserInstalled();
 				if (installed) {
-					vscode.window.showInformationMessage(
-						'✅ Chromium is ready! You can now use Scrape-LE to check URLs.',
+					deps.notifier.info(
+						vscode.l10n.t(
+							'✅ Chromium is ready! You can now use Scrape-LE to check URLs.',
+						),
 					);
 				}
 			}
@@ -65,13 +75,15 @@ export function registerSetupCommand(context: vscode.ExtensionContext): void {
 				const available = await isBrowserAvailable();
 
 				if (available) {
-					vscode.window.showInformationMessage(
-						'✅ Chromium is installed and ready to use!',
+					deps.notifier.info(
+						vscode.l10n.t('✅ Chromium is installed and ready to use!'),
 					);
 					return;
 				}
-				vscode.window.showWarningMessage(
-					'⚠️ Chromium is not installed. Please run the setup to install it.',
+				deps.notifier.warn(
+					vscode.l10n.t(
+						'⚠️ Chromium is not installed. Please run the setup to install it.',
+					),
 				);
 			}
 		}),
