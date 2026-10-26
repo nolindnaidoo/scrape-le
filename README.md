@@ -51,7 +51,7 @@ One-time setup: run `Scrape-LE: Setup Browser` to install Chromium (~130MB, into
 |---|---|---|
 | **VS Code** | The same check, in your editor, on a keystroke | [Marketplace](https://marketplace.visualstudio.com/items?itemName=nolindnaidoo.scrape-le) |
 | **Cursor, VSCodium, Windsurf** | The same extension | [Open VSX](https://open-vsx.org/extension/nolindnaidoo/scrape-le) |
-| **A terminal or a CI step** | The same run over a whole tree, with exit codes | `npx scrape-le` · [npm](https://www.npmjs.com/package/scrape-le) or `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
+| **A terminal or a CI step** | The same check for one URL or a batch, with exit codes | `npx scrape-le` · [npm](https://www.npmjs.com/package/scrape-le) or `cargo install scrape-le` · [crates.io](https://crates.io/crates/scrape-le) |
 | **Any MCP agent, via Node** | `analyze_robots_txt` over stdio | `npx scrape-le-mcp` · [npm](https://www.npmjs.com/package/scrape-le-mcp) |
 
 ## Use it from an AI agent
@@ -148,7 +148,9 @@ npm install -g scrape-le   # or run it once: npx scrape-le
 cargo install scrape-le
 ```
 
-The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.** ## Detections
+The exit code is the answer: **0 clear · 1 a real no · 2 the question was malformed.**
+
+## Detections
 
 | Detection | How it works |
 |---|---|
@@ -157,7 +159,7 @@ The exit code is the answer: **0 clear · 1 a real no · 2 the question was malf
 | robots.txt | Fetches `<origin>/robots.txt` and evaluates it against your URL with RFC 9309 semantics — the group naming `scrape-le.robotsTxt.agent` when set and named, otherwise `User-agent: *`, and the report says which answered; grouped agents, `Allow`/`Disallow` longest-match, `*` wildcards, `$` anchors, crawl-delay, sitemaps |
 | Authentication | HTTP 401/403, login forms (password + username fields), auth keywords in page text, auth path segments in the final URL |
 
-Honest limitations: signatures are best-effort fingerprints of public integration patterns — a detected widget means the page *can* challenge you, not that it will, and a clean result is not proof a site allows scraping. Agent-specific robots.txt groups are ignored (only the `*` rules are reported). Pages get up to 5 seconds to go network-idle after load, so content rendered later than that can be missed by the page-level detections.
+Honest limitations: signatures are best-effort fingerprints of public integration patterns — a detected widget means the page *can* challenge you, not that it will, and a clean result is not proof a site allows scraping. With `scrape-le.robotsTxt.agent` empty, only the `User-agent: *` groups are evaluated. Pages get up to 5 seconds to go network-idle after load, so content rendered later than that can be missed by the page-level detections.
 
 ## Commands
 
@@ -188,6 +190,7 @@ No command is bound to a key by default. Give any of them one under **Keyboard S
 | `scrape-le.detections.antiBot` | `true` | Anti-bot vendor detection |
 | `scrape-le.detections.rateLimit` | `true` | Rate-limit detection |
 | `scrape-le.detections.robotsTxt` | `true` | robots.txt fetch + evaluation |
+| `scrape-le.robotsTxt.agent` | `""` | The crawler robots.txt is evaluated as, e.g. `Googlebot` or `MyBot/1.0`; empty, or unnamed by any group, means the `User-agent: *` rules |
 | `scrape-le.detections.authentication` | `true` | Authentication-wall detection |
 | `scrape-le.notificationsLevel` | `important` | `all` = every notification, `important` = warnings + errors, `silent` = errors only |
 | `scrape-le.statusBar.enabled` | `true` | Show the status bar item |

@@ -20,6 +20,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- The README said agent-specific robots.txt groups are ignored, which the
+  `scrape-le.robotsTxt.agent` setting has not been true of since it was
+  added; the settings table left that setting out; the Detections heading
+  sat on the end of a paragraph and did not render as one; and the install
+  table described a run "over a whole tree", which this tool does not do.
 - The help page listed four of the five anti-bot vendors the corpus detects,
   leaving PerimeterX out, and offered an unpinned `npx playwright-core install
   chromium`, which can fetch a Chromium build the shipped playwright-core will
