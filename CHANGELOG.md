@@ -20,6 +20,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- `scrape_le_check` over MCP, from the npm command line, dropped a `urls`
+  entry that was not a string and reported the rest as the whole answer, and
+  answered a `url` that was not a string with "no URL was supplied". Each is
+  named now: the entry's position, or that `url` must be a string. The crate
+  answers the same.
 - The robots.txt request identified itself as `Scrape-LE/2.0`, a version
   two minors behind the one running. The User-Agent carries no version now.
 - The README said agent-specific robots.txt groups are ignored, which the

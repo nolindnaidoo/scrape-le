@@ -532,6 +532,23 @@ describe('against a loopback server', () => {
 				method: 'tools/call',
 				params: { name: 'scrape_le_check' },
 			},
+			// An entry of the wrong shape is named, never dropped: this used to
+			// check the one string and report count 1.
+			{
+				jsonrpc: '2.0',
+				id: 6,
+				method: 'tools/call',
+				params: {
+					name: 'scrape_le_check',
+					arguments: { urls: [`${base}/page`, 7], render: false },
+				},
+			},
+			{
+				jsonrpc: '2.0',
+				id: 7,
+				method: 'tools/call',
+				params: { name: 'scrape_le_check', arguments: { url: 7 } },
+			},
 		];
 		await serve(
 			{ version: '0.0.0', signatures: BUILT_IN, stderr: () => undefined },
@@ -544,7 +561,7 @@ describe('against a loopback server', () => {
 			]),
 			(line) => lines.push(line),
 		);
-		expect(lines).toHaveLength(5);
+		expect(lines).toHaveLength(7);
 		expect(lines[0]).toBe(
 			'{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"tools":{}},"protocolVersion":"2025-06-18","serverInfo":{"name":"scrape-le","version":"0.0.0"}}}\n',
 		);
@@ -555,6 +572,8 @@ describe('against a loopback server', () => {
 		expect(lines[2]).toContain('has no leading slash and no scheme');
 		expect(lines[3]).toContain('"verdict":"restricted"');
 		expect(lines[4]).toContain('"isError":true');
+		expect(lines[5]).toContain('"text":"entry 1 of urls is not a string"');
+		expect(lines[6]).toContain('"text":"url must be a string"');
 	});
 });
 

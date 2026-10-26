@@ -662,6 +662,9 @@ function mcpRequests(ports: Readonly<Record<string, number>>): readonly unknown[
 		call(38, 'scrape_le_check', { url: `${main}/ratelimit`, render: false }),
 		call(39, 'scrape_le_doctor'),
 		call(40, 'scrape_le_doctor', { anything: true }),
+		call(42, 'scrape_le_check', { url: 7 }),
+		call(43, 'scrape_le_check', { urls: 'not a list' }),
+		call(44, 'scrape_le_check', { urls: [null] }),
 		...(browser.ok ? [call(41, 'scrape_le_check', { url: `${main}/loginform` })] : []),
 	];
 }

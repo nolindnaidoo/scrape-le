@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `scrape_le_check` dropped a `urls` entry that was not a string and reported
+  the rest as the whole answer, `count` included, and answered a `url` that
+  was not a string with "no URL was supplied". Each is named now: the entry's
+  position, or that `url` must be a string.
 - SPEC.md said the robots.txt parser builds on `texting_robots`, named a
   `mcp.rs` that is a `mcp/` directory, and showed an example report whose
   finding detail nothing emits and which lacked the `robots` object every

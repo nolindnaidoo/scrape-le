@@ -224,18 +224,27 @@ async function checkTool(args: unknown, context: Context): Promise<Json> {
 	);
 }
 
+/**
+ * An entry of the wrong shape is named, never dropped. `["…", 7]` used to
+ * check one URL and report `count: 1` with nothing said about the other,
+ * and `url: 7` was answered "no URL was supplied" — one was.
+ */
 function requestedUrls(args: unknown): string[] | string {
 	const url = field(args, 'url');
-	if (typeof url === 'string') return [url];
-	const urls = field(args, 'urls');
-	if (Array.isArray(urls)) {
-		const strings = urls.filter(
-			(item): item is string => typeof item === 'string',
-		);
-		if (strings.length === 0) return 'the list of URLs was empty';
-		return strings;
+	if (url !== undefined) {
+		return typeof url === 'string' ? [url] : 'url must be a string';
 	}
-	return 'no URL was supplied to check';
+	const urls = field(args, 'urls');
+	if (urls === undefined) return 'no URL was supplied to check';
+	if (!Array.isArray(urls)) return 'urls must be a list of strings';
+	const strings: string[] = [];
+	for (const [index, item] of urls.entries()) {
+		if (typeof item !== 'string')
+			return `entry ${index} of urls is not a string`;
+		strings.push(item);
+	}
+	if (strings.length === 0) return 'the list of URLs was empty';
+	return strings;
 }
 
 function doctorTool(): Json {

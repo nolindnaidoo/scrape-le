@@ -223,21 +223,32 @@ fn check_tool(arguments: &Value) -> Value {
     tool_result(&envelope("scrape_le_check", &payload, count, &diagnostics))
 }
 
+/// An entry of the wrong shape is named, never dropped. `["…", 7]` used
+/// to check one URL and report `count: 1` with nothing said about the
+/// other, and `url: 7` was answered "no URL was supplied" — one was.
 fn requested_urls(arguments: &Value) -> Result<Vec<String>, String> {
-    if let Some(url) = arguments.get("url").and_then(Value::as_str) {
-        return Ok(vec![url.to_string()]);
+    match arguments.get("url") {
+        Some(Value::String(url)) => return Ok(vec![url.clone()]),
+        Some(_) => return Err("url must be a string".to_string()),
+        None => {}
     }
-    if let Some(items) = arguments.get("urls").and_then(Value::as_array) {
-        let urls: Vec<String> = items
-            .iter()
-            .filter_map(|item| item.as_str().map(str::to_string))
-            .collect();
-        if urls.is_empty() {
-            return Err("the list of URLs was empty".to_string());
+    match arguments.get("urls") {
+        Some(Value::Array(items)) => {
+            let mut urls = Vec::with_capacity(items.len());
+            for (index, item) in items.iter().enumerate() {
+                let Some(url) = item.as_str() else {
+                    return Err(format!("entry {index} of urls is not a string"));
+                };
+                urls.push(url.to_string());
+            }
+            if urls.is_empty() {
+                return Err("the list of URLs was empty".to_string());
+            }
+            Ok(urls)
         }
-        return Ok(urls);
+        Some(_) => Err("urls must be a list of strings".to_string()),
+        None => Err("no URL was supplied to check".to_string()),
     }
-    Err("no URL was supplied to check".to_string())
 }
 
 fn doctor_tool() -> Value {
@@ -370,6 +381,36 @@ mod tests {
                 .expect("a message")
                 .contains("not an http or https URL")
         );
+    }
+
+    /// An entry of the wrong shape was dropped: `["…", 7]` checked one URL
+    /// and reported `count: 1` with nothing said about the other.
+    #[test]
+    fn a_wrong_shaped_url_entry_is_named_not_dropped() {
+        for (arguments, message) in [
+            (json!({ "url": 7 }), "url must be a string"),
+            (
+                json!({ "urls": ["https://example.com", 7] }),
+                "entry 1 of urls is not a string",
+            ),
+            (json!({ "urls": [null] }), "entry 0 of urls is not a string"),
+            (
+                json!({ "urls": "https://example.com" }),
+                "urls must be a list of strings",
+            ),
+            (json!({ "urls": [] }), "the list of URLs was empty"),
+        ] {
+            let response = handle(&request(
+                "tools/call",
+                &json!({ "name": "scrape_le_check", "arguments": arguments }),
+            ))
+            .expect("a reply");
+            assert_eq!(response["result"]["isError"], true, "{arguments}");
+            assert_eq!(
+                response["result"]["content"][0]["text"], message,
+                "{arguments}"
+            );
+        }
     }
 
     #[test]
