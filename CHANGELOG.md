@@ -20,6 +20,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- The host tests launch VS Code in German as well, with the German language
+  pack installed, and assert the extension activates there with the German
+  bundle where the manifest tells the host to look. Nothing had run the
+  extension under any locale but English.
 - Deactivation released the status bar item but not the idle reset pending
   on it, which the item's wrapper owns: the wrapper is what activation
   registers now. Found by a new lifecycle test that activates, runs every

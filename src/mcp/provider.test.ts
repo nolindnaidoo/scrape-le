@@ -27,11 +27,10 @@ describe('the MCP provider', () => {
 		expect(context.subscriptions).toContain(disposable);
 		const [entry] = _mcpProviders();
 		expect(entry?.id).toBe('scrape-le');
-		const definitions = (
-			entry?.provider as {
-				provideMcpServerDefinitions: () => McpStdioServerDefinition[];
-			}
-		).provideMcpServerDefinitions();
+		const provider = entry?.provider as {
+			provideMcpServerDefinitions: () => McpStdioServerDefinition[];
+		};
+		const definitions = provider.provideMcpServerDefinitions();
 		expect(definitions).toHaveLength(1);
 		const [definition] = definitions;
 		// The extension host is Electron: without this the definition starts a
