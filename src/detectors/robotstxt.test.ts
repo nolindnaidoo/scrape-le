@@ -278,7 +278,11 @@ Sitemap: https://example.com/map2.xml
 			]);
 		});
 
-		it('should handle malformed robots.txt', async () => {
+		// The title used to say "malformed" and the assertion "safe default when
+		// parsing fails", but the parser has no failing path: RFC 9309 has a
+		// line without a directive ignored, so this is a served file with no
+		// rules, and the answer is the empty rule set, not a default.
+		it('reads a file with no directives as an empty rule set that allows everything', async () => {
 			const robotsTxt = 'This is not a valid robots.txt\nRandom content';
 
 			mockFetch.mockResolvedValue({
@@ -287,11 +291,18 @@ Sitemap: https://example.com/map2.xml
 			});
 
 			const result = await RobotsTxtChecker.fetchRobotsTxt(
-				'https://example.com',
+				'https://example.com/anything',
 			);
 
-			expect(result.exists).toBe(true);
-			expect(result.allowsCrawling).toBe(true); // Safe default when parsing fails
+			expect(result).toEqual({
+				exists: true,
+				agent: '*',
+				allowsCrawling: true,
+				disallowedPaths: [],
+				sitemaps: [],
+			});
+			expect(result.crawlDelay).toBeUndefined();
+			expect(result.unreachable).toBeUndefined();
 		});
 	});
 

@@ -1,9 +1,10 @@
 /**
- * Characterization tests: pin the CURRENT detector output, including known
- * bugs (robots.txt literal-prefix matching so wildcard rules never match,
- * agent-group handling that only honors '*' when it is the last grouped
- * User-agent line, empty-string rate-limit headers treated as absent,
- * '/auth' URL substring matching '/author', last-sitemap-wins).
+ * Characterization tests: pin the CURRENT detector output. The header once
+ * listed four "known bugs" these goldens held in place; each has since been
+ * fixed and the goldens moved with the fix (wildcard rules match, every
+ * grouped User-agent line counts, '/auth' matches whole path segments, every
+ * sitemap is kept). What stays pinned on purpose: an empty-string rate-limit
+ * header reads as absent, as JavaScript falsiness reads it.
  *
  * The in-page DOM callbacks passed to page.evaluate() run in a real browser
  * and cannot be pinned here; these tests characterize everything up to that
