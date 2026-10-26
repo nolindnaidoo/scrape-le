@@ -184,7 +184,10 @@ describe('runDetections', () => {
 		expect(Object.isFrozen(result)).toBe(true);
 	});
 
-	it('should handle errors gracefully', async () => {
+	// Titled "handles errors gracefully" and asserting only that something
+	// came back, this covered nothing: a page whose every probe throws is
+	// two detections that failed, and the result has to say so.
+	it('records every detection whose probe threw, and keeps the ones that ran', async () => {
 		mockPage = {
 			url: () => {
 				throw new Error('Fatal error');
@@ -201,8 +204,17 @@ describe('runDetections', () => {
 			mockOptions,
 		);
 
-		// Should still return results even with errors
-		expect(result).toBeDefined();
+		expect(result.antiBot).toBeUndefined();
+		expect(result.authentication).toBeUndefined();
+		expect(result.failures?.map((f) => f.detection).sort()).toEqual([
+			'antiBot',
+			'authentication',
+		]);
+		for (const failure of result.failures ?? []) {
+			expect(failure.message).toBe('Fatal error');
+		}
+		expect(result.rateLimit?.detected).toBe(false);
+		expect(result.robotsTxt).toBeDefined();
 	});
 
 	it('should handle null response for rate limit detection', async () => {
