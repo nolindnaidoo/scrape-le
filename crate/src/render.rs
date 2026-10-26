@@ -139,7 +139,7 @@ pub(crate) fn render(url: &str, browser_path: PathBuf) -> Result<RenderEvidence,
     let title = tab.get_title().ok().filter(|t| !t.is_empty());
     let final_url = Some(tab.get_url());
     let body_html = tab.get_content().unwrap_or_default();
-    let screenshot = capture_screenshot(&tab, url);
+    let shot = capture_screenshot(&tab, url);
 
     let console_errors = console.lock().map(|m| m.clone()).unwrap_or_default();
     let document = document.lock().ok().and_then(|slot| slot.clone());
@@ -162,9 +162,21 @@ pub(crate) fn render(url: &str, browser_path: PathBuf) -> Result<RenderEvidence,
         probes,
         auth,
         console_errors,
-        screenshot,
+        screenshot: shot.path,
+        screenshot_error: shot.error,
         render_ms: ms(started.elapsed()),
     })
+}
+
+/// What the capture came to: the file's path, or why there is none.
+///
+/// A capture that fails is not the check failing, but it used to be
+/// nothing at all: the report simply lacked its `screenshot` field and the
+/// summary its `shot` line, with no word about the directory that could
+/// not be written to. The reason travels with the report now.
+pub(crate) struct Screenshot {
+    pub(crate) path: Option<String>,
+    pub(crate) error: Option<String>,
 }
 
 /// The document response as CDP delivered it.
@@ -346,19 +358,43 @@ fn evaluate_string(tab: &headless_chrome::Tab, script: &str) -> Result<String, S
 /// hard-codes `capture_beyond_viewport` off, and the alternative —
 /// calling the CDP method directly — would mean decoding base64 here
 /// and carrying a dependency for one image.
-fn capture_screenshot(tab: &headless_chrome::Tab, url: &str) -> Option<String> {
-    let filename = screenshot_name(url, civil_date_today())?;
+fn capture_screenshot(tab: &headless_chrome::Tab, url: &str) -> Screenshot {
+    let Some(filename) = screenshot_name(url, civil_date_today()) else {
+        return Screenshot {
+            path: None,
+            error: None,
+        };
+    };
 
     let resized = resize_to_document(tab);
-    let png = tab
-        .capture_screenshot(CaptureScreenshotFormatOption::Png, None, None, true)
-        .ok();
+    let png = tab.capture_screenshot(CaptureScreenshotFormatOption::Png, None, None, true);
     if resized {
         let _ = tab.call_method(ClearDeviceMetricsOverride(None));
     }
 
-    std::fs::write(&filename, png?).ok()?;
-    Some(format!("./{filename}"))
+    match png {
+        Ok(png) => match save_screenshot(&filename, &png) {
+            Ok(path) => Screenshot {
+                path: Some(path),
+                error: None,
+            },
+            Err(error) => Screenshot {
+                path: None,
+                error: Some(error),
+            },
+        },
+        Err(error) => Screenshot {
+            path: None,
+            error: Some(format!("the browser returned no screenshot: {error}")),
+        },
+    }
+}
+
+/// Writes the image into the working directory and names it as the report
+/// does, or says what stopped it, naming the file and the OS's reason.
+fn save_screenshot(filename: &str, png: &[u8]) -> Result<String, String> {
+    std::fs::write(filename, png).map_err(|error| format!("{filename}: {error}"))?;
+    Ok(format!("./{filename}"))
 }
 
 /// The only path the report ever carries, built without `PathBuf` and
@@ -519,6 +555,23 @@ mod tests {
             first,
             screenshot_name("https://example.com/a?page=2", date).expect("a name")
         );
+    }
+
+    /// A directory that cannot be written to used to leave the report
+    /// without its screenshot and say nothing; the reason names the file
+    /// and carries the OS's words.
+    #[test]
+    fn a_screenshot_that_cannot_be_written_says_why() {
+        let missing = std::env::temp_dir()
+            .join(format!("scrape-le-no-such-dir-{}", std::process::id()))
+            .join("shot.png");
+        let error = save_screenshot(&missing.to_string_lossy(), b"png")
+            .expect_err("a missing directory refuses the write");
+        assert!(
+            error.starts_with(&missing.to_string_lossy().to_string()),
+            "{error}"
+        );
+        assert!(error.contains("os error"), "{error}");
     }
 
     #[test]

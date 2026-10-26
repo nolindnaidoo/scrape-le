@@ -1,5 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { groupByHost, parseInput, runBatch, waitFor } from './batch';
@@ -10,6 +12,7 @@ import { displayUri, joinLocation, parseHttpUri, refusedUri } from './httpUri';
 import { float, rustFloatDisplay, rustJsonFloat, toJson } from './json';
 import { serve } from './mcp';
 import { rustNetMessage } from './netError';
+import { saveScreenshot } from './render';
 import { blockedReport, check, extractTitle, type Report } from './report';
 import { parseRobots, unreachableRobots } from './robots';
 import { human, parseArgs, run } from './run';
@@ -358,6 +361,29 @@ describe('report', () => {
 		expect(text).toContain('  robots  Crawl-delay: 1.5s (User-agent: *)');
 		expect(text).toContain('  shot    ./shot.png');
 		expect(text).not.toContain('note');
+	});
+
+	// A rendered check whose screenshot could not be written said nothing
+	// and simply had no `shot` line.
+	it('says why a screenshot could not be written', () => {
+		const report: Report = {
+			...blockedReport('https://a.com', 'refused', undefined, false),
+			screenshot_error:
+				'scrape-le-a-2026-10-26-00000000.png: Permission denied (os error 13)',
+		};
+		expect(human(report)).toContain(
+			'  shot    could not be written: scrape-le-a-2026-10-26-00000000.png: Permission denied (os error 13)',
+		);
+		const missing = join(
+			tmpdir(),
+			`scrape-le-no-such-dir-${process.pid}`,
+			'shot.png',
+		);
+		const saved = saveScreenshot(missing, Buffer.from('png'));
+		expect(saved.path).toBeUndefined();
+		expect(saved.error).toBe(
+			`${missing}: No such file or directory (os error 2)`,
+		);
 	});
 });
 

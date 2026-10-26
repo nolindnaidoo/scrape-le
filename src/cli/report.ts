@@ -54,6 +54,8 @@ export type Report = Readonly<{
 	robots?: RobotsReport | undefined;
 	console_errors: readonly string[];
 	screenshot?: string | undefined;
+	/** Why a rendered check has no screenshot: the file and the OS's reason. */
+	screenshot_error?: string | undefined;
 	crawl_delay_ignored: boolean;
 	timing_ms: Readonly<{
 		fetch: number;
@@ -86,6 +88,7 @@ export type RenderEvidence = Readonly<{
 	auth: AuthPageEvidence;
 	consoleErrors: readonly string[];
 	screenshot: string | undefined;
+	screenshotError: string | undefined;
 	renderMs: number;
 }>;
 
@@ -163,6 +166,7 @@ export function check(
 		robots: robots.report,
 		console_errors: render?.consoleErrors ?? [],
 		screenshot: render?.screenshot,
+		screenshot_error: render?.screenshotError,
 		crawl_delay_ignored: options.ignoreCrawlDelay,
 		timing_ms: {
 			fetch: evidence.fetchMs,

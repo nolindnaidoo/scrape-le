@@ -166,7 +166,9 @@ screenshot — as the extension reports them.
 **The screenshot is written into the working directory** on every
 rendered check, and `--help`, the README and the report all say so:
 `scrape-le-<host>-<date>-<digest>.png`, the digest taken over the whole
-URL. Host and date alone had a batch of paths on one site overwrite one
+URL. When it cannot be written, the report says so in `screenshot_error`,
+naming the file and the OS's reason, and the summary prints the same line;
+a rendered check never has merely no screenshot. Host and date alone had a batch of paths on one site overwrite one
 image and every report but the last name a picture of a page it had not
 checked, so the name identifies the URL, not the site.
 

@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A screenshot that could not be written, into a directory without
+  permission say, left the report without its `screenshot` field and the
+  summary without its `shot` line, and said nothing. The report carries
+  `screenshot_error`, naming the file and the OS's reason, and the summary
+  prints it.
 - A reader that closed the stderr pipe turned every refusal into a panic:
   `eprintln!` panics when its write fails, so `--not-a-flag` under such a
   reader exited 101 with a message nobody saw. stderr is not protocol; a

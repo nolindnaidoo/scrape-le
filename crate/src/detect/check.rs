@@ -51,6 +51,8 @@ pub(crate) struct RenderEvidence {
     pub(crate) auth: AuthPageEvidence,
     pub(crate) console_errors: Vec<String>,
     pub(crate) screenshot: Option<String>,
+    /// why there is no screenshot, when one was attempted
+    pub(crate) screenshot_error: Option<String>,
     pub(crate) render_ms: u64,
 }
 
@@ -156,6 +158,7 @@ pub(crate) fn check(evidence: &Evidence, options: &CheckOptions) -> Report {
         robots,
         console_errors: render.map(|r| r.console_errors.clone()).unwrap_or_default(),
         screenshot: render.and_then(|r| r.screenshot.clone()),
+        screenshot_error: render.and_then(|r| r.screenshot_error.clone()),
         crawl_delay_ignored: options.ignore_crawl_delay,
         timing_ms: Timing {
             fetch: evidence.fetch_ms,
@@ -411,6 +414,7 @@ mod tests {
             },
             console_errors: Vec::new(),
             screenshot: Some("./scrape-le-example-com-2026-08-06-75e891e1.png".to_string()),
+            screenshot_error: None,
             render_ms: 1500,
         }
     }

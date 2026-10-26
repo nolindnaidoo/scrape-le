@@ -90,6 +90,10 @@ pub(crate) struct Report {
     pub(crate) console_errors: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) screenshot: Option<String>,
+    /// Why a rendered check has no screenshot: the file and the OS's
+    /// reason. Absent when one was written, or none was attempted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) screenshot_error: Option<String>,
     /// Whether this run was told not to wait for a declared
     /// `Crawl-delay` (`--ignore-crawl-delay`).
     ///

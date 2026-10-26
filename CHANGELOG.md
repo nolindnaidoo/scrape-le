@@ -20,6 +20,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- The npm command line, like the crate, left a report without its
+  `screenshot` field and said nothing when the file could not be written.
+  Both carry `screenshot_error`, naming the file and the OS's reason, and
+  print it in the summary.
 - The host tests launch VS Code in German as well, with the German language
   pack installed, and assert the extension activates there with the German
   bundle where the manifest tells the host to look. Nothing had run the

@@ -447,6 +447,9 @@ fn write_human(out: &mut impl Write, report: &Report) -> std::io::Result<()> {
     if let Some(screenshot) = &report.screenshot {
         writeln!(out, "  shot    {screenshot}")?;
     }
+    if let Some(error) = &report.screenshot_error {
+        writeln!(out, "  shot    could not be written: {error}")?;
+    }
     let checks = [
         ("antibot", report.checks.antibot),
         ("rate-limit", report.checks.rate_limit),
@@ -519,6 +522,7 @@ pub(crate) fn blocked_report(
         robots: None,
         console_errors: Vec::new(),
         screenshot: None,
+        screenshot_error: None,
         crawl_delay_ignored,
         timing_ms: Timing {
             fetch: 0,
@@ -580,6 +584,21 @@ mod tests {
         let mut report = sample(None);
         report.screenshot = Some("example.com-2026-10-15.png".to_string());
         assert!(human(&report).contains("  shot    example.com-2026-10-15.png"));
+    }
+
+    /// A rendered check whose screenshot could not be written says so,
+    /// where it used to say nothing and simply have no `shot` line.
+    #[test]
+    fn a_screenshot_that_could_not_be_written_is_said_on_stderr() {
+        let mut report = sample(None);
+        report.screenshot_error = Some(
+            "scrape-le-a-2026-10-26-00000000.png: Permission denied (os error 13)".to_string(),
+        );
+        let text = human(&report);
+        assert!(
+            text.contains("  shot    could not be written: scrape-le-a-2026-10-26-00000000.png: Permission denied (os error 13)"),
+            "{text}"
+        );
     }
 
     /// A batch says these once in its closing lines.
