@@ -14,6 +14,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- The help page listed four of the five anti-bot vendors the corpus detects,
+  leaving PerimeterX out, and offered an unpinned `npx playwright-core install
+  chromium`, which can fetch a Chromium build the shipped playwright-core will
+  not find. Both are read from the code now: the vendor list from the
+  signature corpus and the command pinned to the shipped version.
 - The Setup Browser command showed its results with the editor's own dialogs,
   past the `notificationsLevel` setting every other notification honours.
   They go through the notifier now; the quick pick and the install prompts

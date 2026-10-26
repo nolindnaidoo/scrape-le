@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { ANTI_BOT_SIGNATURES } from '../detectors/heuristics';
+import { manualInstallCommand } from '../scraper/install';
 import type { Notifier, StatusBar } from '../types';
 import { guarded } from './guard';
 
@@ -12,6 +14,10 @@ export function registerHelpCommand(
 	const command = vscode.commands.registerCommand(
 		'scrape-le.help',
 		guarded(deps.notifier, async () => {
+			// Read off the corpus and the shipped playwright-core, so the page
+			// cannot list four of five vendors or an unpinned install command.
+			const vendors = ANTI_BOT_SIGNATURES.map((s) => s.label).join(', ');
+			const installCommand = manualInstallCommand();
 			const helpText = `
 # Scrape-LE Help & Troubleshooting
 
@@ -25,7 +31,7 @@ export function registerHelpCommand(
 ## What a Check Reports
 - Reachability: HTTP status code, page title, load time
 - Console errors and page errors captured while the page loads
-- Anti-bot detection: Cloudflare, reCAPTCHA, hCaptcha, DataDome
+- Anti-bot detection: ${vendors}
 - Rate limiting: X-RateLimit-* / RateLimit-* / Retry-After response headers
 - robots.txt: whether it exists, disallowed paths, crawl delay, sitemap
 - Authentication: 401/403 status, login forms, auth keywords in the page
@@ -58,7 +64,7 @@ All settings live under "scrape-le." in VS Code settings:
 
 ### "Chromium browser is required"
 - Run "Scrape-LE: Setup Browser" and choose automatic installation
-- Or run \`npx playwright-core install chromium\` in a terminal
+- Or run \`${installCommand}\` in a terminal (pinned to the shipped playwright-core, so the Chromium build matches)
 
 ### Check times out
 - Increase scrape-le.browser.timeout in settings

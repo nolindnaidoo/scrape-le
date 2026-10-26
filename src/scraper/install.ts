@@ -18,7 +18,7 @@ function resolvePlaywrightCli(): string {
  * Manual command pinned to the shipped playwright-core version — an
  * unpinned install can fetch a Chromium build the library won't find.
  */
-function manualInstallCommand(): string {
+export function manualInstallCommand(): string {
 	try {
 		const { version } = require('playwright-core/package.json') as {
 			version: string;
