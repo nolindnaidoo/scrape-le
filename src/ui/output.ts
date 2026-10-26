@@ -147,7 +147,8 @@ function appendRobotsTxt(channel: Channel, rt: Detections['robotsTxt']): void {
 	channel.appendLine(
 		`      - Allows Crawling: ${rt.allowsCrawling ? 'Yes' : 'No'}`,
 	);
-	if (rt.crawlDelay) {
+	// `Crawl-delay: 0` is a declared value, not an absent one.
+	if (rt.crawlDelay !== undefined) {
 		channel.appendLine(`      - Crawl Delay: ${rt.crawlDelay}s`);
 	}
 	appendDisallowedPaths(channel, rt.disallowedPaths);

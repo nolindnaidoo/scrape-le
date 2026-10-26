@@ -35,8 +35,9 @@ function baseResult(overrides: Partial<CheckResult>): CheckResult {
 	} as CheckResult;
 }
 
+/** The channel the latest log wrote to. */
 function channelText(): string {
-	return (_outputChannels()[0]?._lines ?? []).join('\n');
+	return (_outputChannels().at(-1)?._lines ?? []).join('\n');
 }
 
 describe('output channel', () => {
@@ -85,6 +86,24 @@ describe('output channel', () => {
 		expect(text).toContain('Sitemap: https://example.com/sitemap.xml');
 		expect(text).toContain('Authentication: Required');
 		expect(text).toContain('Login URL: https://example.com/login');
+	});
+
+	it('prints a declared Crawl-delay of 0 and omits an undeclared one', () => {
+		const robots = {
+			agent: '*',
+			exists: true,
+			allowsCrawling: true,
+			disallowedPaths: [],
+			sitemaps: [],
+		};
+		logCheckResult(
+			baseResult({ detections: { robotsTxt: { ...robots, crawlDelay: 0 } } }),
+		);
+		expect(channelText()).toContain('Crawl Delay: 0s');
+
+		disposeOutput();
+		logCheckResult(baseResult({ detections: { robotsTxt: robots } }));
+		expect(channelText()).not.toContain('Crawl Delay');
 	});
 
 	it('says there was no response rather than printing "null" as a status', () => {

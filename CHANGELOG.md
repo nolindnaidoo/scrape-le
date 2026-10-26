@@ -14,6 +14,8 @@ version and releases from one tag.
 
 ### Fixed
 
+- A robots.txt declaring `Crawl-delay: 0` had the delay left out of the
+  report, as though none were declared.
 - A navigation Playwright made no request for, which has no response, showed
   "HTTP null" in the status bar tooltip and "Status Code: null" in the report.
   The tooltip carries the title alone and the report says there was no
