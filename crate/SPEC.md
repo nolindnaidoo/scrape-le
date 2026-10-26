@@ -443,6 +443,12 @@ Two rules borrowed from the other tools' MCP surfaces:
   because that is what reads as "the server is broken".
 - **Refusals speak the caller's vocabulary.** An MCP caller has no command
   line, so no message mentions `--no-render` or any other flag.
+- **A malformed frame is refused, not dropped, in the extension server's
+  words.** A line that is not JSON or not a JSON-RPC 2.0 request is a
+  `-32700` parse error with a null id, a frame over 16 MiB is refused and
+  the rest of it dropped as it arrives, a null id is a notification, and an
+  unknown method or tool is named the way the other two servers name it.
+  A client cannot tell the three servers apart by what it sent.
 
 ## The browser
 

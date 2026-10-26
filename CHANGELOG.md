@@ -20,6 +20,21 @@ version and releases from one tag.
 
 ### Fixed
 
+- **The three MCP servers answer a malformed frame the same way.** They
+  shipped three behaviours: a frame that was not JSON, not UTF-8 or not a
+  JSON-RPC 2.0 request was refused with a parse error by the extension's
+  server and dropped without a word by the crate's and the npm command
+  line's; a request with a null id was ignored by one and answered by two;
+  `initialize` had one server echo whatever protocol version the client
+  named; `notifications/initialized` sent with an id was ignored by one and
+  refused by two; and an unknown method, an unknown tool and a `tools/call`
+  naming no tool were refused in three wordings. The npm command line's
+  server now reads frames as the extension's does, with the same 16 MiB
+  frame limit it had none of, refuses in the same words, reads a null id as
+  a notification, and waits for a full pipe to drain before reading the
+  next frame instead of holding every reply in memory. The extension's
+  server answers its own protocol version, bare tool capabilities, and no
+  longer answers a null id.
 - `scrape_le_check` over MCP, from the npm command line, dropped a `urls`
   entry that was not a string and reported the rest as the whole answer, and
   answered a `url` that was not a string with "no URL was supplied". Each is

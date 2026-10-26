@@ -559,21 +559,120 @@ describe('against a loopback server', () => {
 					),
 				),
 			]),
-			(line) => lines.push(line),
+			(line) => {
+				lines.push(line);
+				return undefined;
+			},
 		);
-		expect(lines).toHaveLength(7);
+		// The frame that is not JSON is answered, in the extension server's
+		// words, rather than dropped; it used to vanish without a word.
+		expect(lines).toHaveLength(8);
 		expect(lines[0]).toBe(
+			'{"error":{"code":-32700,"message":"Invalid JSON"},"id":null,"jsonrpc":"2.0"}\n',
+		);
+		expect(lines[1]).toBe(
 			'{"id":1,"jsonrpc":"2.0","result":{"capabilities":{"tools":{}},"protocolVersion":"2025-06-18","serverInfo":{"name":"scrape-le","version":"0.0.0"}}}\n',
 		);
-		expect(lines[1]).toContain(
-			'"message":"this server does not implement nope"',
+		expect(lines[2]).toContain('"message":"Unknown method: nope"');
+		expect(lines[3]).toContain('"crawlDelay":9223372036854775807');
+		expect(lines[3]).toContain('has no leading slash and no scheme');
+		expect(lines[4]).toContain('"verdict":"restricted"');
+		expect(lines[5]).toContain('"isError":true');
+		expect(lines[5]).toContain('"text":"no URL was supplied to check"');
+		expect(lines[6]).toContain('"text":"entry 1 of urls is not a string"');
+		expect(lines[7]).toContain('"text":"url must be a string"');
+	});
+
+	// ERR-19: the three servers this repository ships answered a malformed
+	// frame three different ways. The words are the extension server's.
+	it('refuses malformed frames in the words the other two servers use, and a null id is a notification', async () => {
+		const lines: string[] = [];
+		const input = [
+			'{"id":1,"method":"ping"}',
+			'{"jsonrpc":"1.0","id":2,"method":"ping"}',
+			'[{"jsonrpc":"2.0","id":3,"method":"ping"}]',
+			'{"jsonrpc":"2.0","id":null,"method":"ping"}',
+			'{"jsonrpc":"2.0","id":4,"method":"notifications/initialized"}',
+			'{"jsonrpc":"2.0","id":5,"method":"tools/call","params":5}',
+			'{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"nope"}}',
+			'{"jsonrpc":"2.0","id":7,"method":"initialize","params":{"protocolVersion":"1999-01-01"}}',
+		].join('\n');
+		await serve(
+			{ version: '0.0.0', signatures: BUILT_IN, stderr: () => undefined },
+			Readable.from([Buffer.from(`${input}\n`)]),
+			(line) => {
+				lines.push(line);
+				return undefined;
+			},
 		);
-		expect(lines[2]).toContain('"crawlDelay":9223372036854775807');
-		expect(lines[2]).toContain('has no leading slash and no scheme');
-		expect(lines[3]).toContain('"verdict":"restricted"');
-		expect(lines[4]).toContain('"isError":true');
-		expect(lines[5]).toContain('"text":"entry 1 of urls is not a string"');
-		expect(lines[6]).toContain('"text":"url must be a string"');
+		expect(lines.map((line) => JSON.parse(line))).toEqual([
+			{
+				jsonrpc: '2.0',
+				id: null,
+				error: { code: -32700, message: 'Not a JSON-RPC 2.0 request' },
+			},
+			{
+				jsonrpc: '2.0',
+				id: null,
+				error: { code: -32700, message: 'Not a JSON-RPC 2.0 request' },
+			},
+			{
+				jsonrpc: '2.0',
+				id: null,
+				error: { code: -32700, message: 'Not a JSON-RPC 2.0 request' },
+			},
+			{
+				jsonrpc: '2.0',
+				id: 4,
+				error: {
+					code: -32601,
+					message: 'Unknown method: notifications/initialized',
+				},
+			},
+			{
+				jsonrpc: '2.0',
+				id: 5,
+				error: { code: -32602, message: 'tools/call requires a string `name`' },
+			},
+			{
+				jsonrpc: '2.0',
+				id: 6,
+				error: { code: -32602, message: 'Unknown tool: nope' },
+			},
+			{
+				jsonrpc: '2.0',
+				id: 7,
+				result: {
+					capabilities: { tools: {} },
+					protocolVersion: '2025-06-18',
+					serverInfo: { name: 'scrape-le', version: '0.0.0' },
+				},
+			},
+		]);
+	});
+
+	it('waits for the pipe to drain before reading the next frame', async () => {
+		const lines: string[] = [];
+		let drained = 0;
+		await serve(
+			{ version: '0.0.0', signatures: BUILT_IN, stderr: () => undefined },
+			Readable.from([
+				Buffer.from(
+					'{"jsonrpc":"2.0","id":1,"method":"ping"}\n{"jsonrpc":"2.0","id":2,"method":"ping"}\n',
+				),
+			]),
+			(line) => {
+				lines.push(line);
+				return new Promise((resolve) =>
+					setTimeout(() => {
+						drained += 1;
+						resolve();
+					}, 1),
+				);
+			},
+		);
+		expect(lines).toHaveLength(2);
+		expect(drained).toBe(2);
 	});
 });
 

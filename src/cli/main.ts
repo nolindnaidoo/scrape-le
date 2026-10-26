@@ -21,11 +21,17 @@ async function main(args: readonly string[]): Promise<void> {
 	if (args[0] === 'mcp') {
 		// The crate's server stops at the first reply it cannot write.
 		process.stdout.once('error', () => output.exit(2, null));
+		// A full pipe is waited out before the next frame is read, as the
+		// crate's blocking write waits it out.
+		const writeReply = (line: string): Promise<void> | undefined =>
+			process.stdout.write(line)
+				? undefined
+				: new Promise((resolve) => process.stdout.once('drain', resolve));
 		output.exit(
 			await serve(
 				{ version, signatures: BUILT_IN, stderr },
 				process.stdin,
-				stdout,
+				writeReply,
 			),
 			null,
 		);

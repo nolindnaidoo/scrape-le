@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`mcp` answers a malformed frame in the extension server's words, and
+  bounds a frame.** A line that was not UTF-8, not JSON or not a JSON-RPC
+  2.0 request was dropped without a word, so a client waiting on it waited
+  forever; it is a parse error now, with the request after it still served.
+  A line had no size limit, so a client streaming without a newline grew the
+  process without bound; a frame over 16 MiB is refused and the rest of the
+  line dropped as it arrives. A request with a null id is a notification
+  and takes no reply, and an unknown method, an unknown tool and a
+  `tools/call` naming no tool are refused in the same words the other two
+  servers use, so a client cannot tell the three apart by what it sent.
 - `scrape_le_check` dropped a `urls` entry that was not a string and reported
   the rest as the whole answer, `count` included, and answered a `url` that
   was not a string with "no URL was supplied". Each is named now: the entry's

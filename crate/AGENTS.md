@@ -146,6 +146,15 @@ and pixelactions:
 - **Refusals speak the caller's vocabulary.** An MCP caller has no
   command line; no message aimed at one mentions `--no-render` or any
   other flag.
+- **A malformed frame is answered in the npm server's words.** Three
+  servers ship from this repository; `mcp/mod.rs` reads a line that is
+  not UTF-8 with replacement characters, refuses one that is not JSON or
+  not a JSON-RPC 2.0 request with the extension server's parse error,
+  refuses a frame over `MAX_FRAME_BYTES` and drops the rest of it as it
+  arrives, reads a null id as a notification, and names an unknown
+  method, an unknown tool and a nameless `tools/call` exactly as the
+  other two do. `scripts/check-cli-pipes.ts` holds it against the npm
+  command line.
 - **`analyze_robots_txt` belongs to both servers.** The npm server
   (`src/mcp/tools.ts`) and this one offer the same tool: same schema,
   same envelope, byte-identical output.
