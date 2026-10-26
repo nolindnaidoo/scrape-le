@@ -14,6 +14,12 @@ version and releases from one tag.
 
 ### Fixed
 
+- A robots.txt the server failed to serve, with a 5xx, a timeout or a network
+  failure, was reported as "Not found" with crawling allowed. RFC 9309
+  §2.3.1.4 has a crawler assume a complete disallow then, which is what the
+  crate and the npm command line already answered; the report now says the
+  file could not be read, why, and that the disallow is assumed, and quotes no
+  rule. A 4xx still reads as no rules, crawling allowed.
 - A check started while the previous one's five-second status cooldown was
   pending had its status replaced by the idle text when that timer fired, and
   the timer outlived deactivation. The status bar owns the reset now: a new

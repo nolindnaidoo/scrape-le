@@ -133,6 +133,29 @@ describe('output channel', () => {
 		expect(text).toContain('Authentication: Not required');
 	});
 
+	it('states the assumed disallow when robots.txt could not be read', () => {
+		logCheckResult(
+			baseResult({
+				detections: {
+					robotsTxt: {
+						agent: '*',
+						exists: false,
+						allowsCrawling: false,
+						disallowedPaths: [],
+						sitemaps: [],
+						unreachable: 'HTTP 503',
+					},
+				},
+			}),
+		);
+
+		const text = channelText();
+		expect(text).toContain('robots.txt: Could not be read (HTTP 503)');
+		expect(text).toContain('Allows Crawling: No');
+		expect(text).toContain('RFC 9309');
+		expect(text).not.toContain('robots.txt: Not found');
+	});
+
 	it('showOutput reveals the channel', () => {
 		showOutput();
 		expect(_outputChannels()[0]?._shown).toBe(true);

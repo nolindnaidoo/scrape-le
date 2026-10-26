@@ -78,20 +78,59 @@ Disallow: /admin
 			expect(result.allowsCrawling).toBe(false); // /admin is disallowed
 		});
 
-		it('propagates a fetch failure instead of reporting crawling allowed', async () => {
-			// The previous default was `exists: false, allowsCrawling: true`,
-			// commented "safe default" — but reporting that crawling is permitted
-			// because the check failed is the least safe answer available. The
-			// caller records the failure and the report states it.
-			mockFetch.mockRejectedValue(new Error('Network error'));
+		// RFC 9309 §2.3.1.3: the rest of 4xx is "unavailable" too, and allows
+		// crawling, as the crate and the npm command line answer it.
+		it('treats a 403 like a 404: no rules, crawling allowed', async () => {
+			mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
-			await expect(
-				RobotsTxtChecker.fetchRobotsTxt('https://example.com'),
-			).rejects.toThrow('Network error');
+			const result = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com',
+			);
+
+			expect(result.exists).toBe(false);
+			expect(result.allowsCrawling).toBe(true);
+			expect(result.unreachable).toBeUndefined();
 		});
 
-		// Note: Timeout behavior is covered by "should handle fetch errors gracefully" test
-		// Testing AbortController.timeout() requires complex mock setup that doesn't add value
+		// RFC 9309 §2.3.1.4: a 5xx means the rules exist and could not be read,
+		// and a crawler "MUST assume complete disallow". This came back as "Not
+		// found, crawling allowed" — nothing forbids you, from a blip — while
+		// the crate and the npm command line assumed the disallow.
+		it('assumes a complete disallow on a 5xx, and says the file was not served', async () => {
+			mockFetch.mockResolvedValue({ ok: false, status: 503 });
+
+			const result = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com/anything',
+			);
+
+			expect(result.allowsCrawling).toBe(false);
+			expect(result.exists).toBe(false);
+			expect(result.unreachable).toBe('HTTP 503');
+			// No rule is quoted: no server sent one.
+			expect(result.disallowedPaths).toEqual([]);
+		});
+
+		it('assumes a complete disallow when the fetch fails, naming the failure', async () => {
+			// The previous default was `exists: false, allowsCrawling: true`,
+			// commented "safe default" — reporting that crawling is permitted
+			// because the check failed is the least safe answer available.
+			mockFetch.mockRejectedValue(new Error('Network error'));
+
+			const result = await RobotsTxtChecker.fetchRobotsTxt(
+				'https://example.com',
+			);
+
+			expect(result.allowsCrawling).toBe(false);
+			expect(result.exists).toBe(false);
+			expect(result.unreachable).toBe('Network error');
+		});
+
+		it('refuses a URL that will not parse rather than reading it as unreachable', async () => {
+			await expect(
+				RobotsTxtChecker.fetchRobotsTxt('not a url'),
+			).rejects.toThrow();
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
 
 		it('should ignore comments and empty lines', async () => {
 			const robotsTxt = `

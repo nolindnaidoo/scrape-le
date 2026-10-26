@@ -187,6 +187,13 @@ export type RobotsTxtInfo = Readonly<{
 	/** Which group answered: `*`, or the agent's product token. */
 	agent: string;
 	allowsCrawling: boolean;
+	/**
+	 * Why the file could not be read, when it could not: a 5xx status, a
+	 * timeout or a network failure. RFC 9309 §2.3.1.4 has a crawler assume a
+	 * complete disallow then, so `allowsCrawling` is false and `exists` stays
+	 * false, because no file was served.
+	 */
+	unreachable?: string | undefined;
 	crawlDelay?: number | undefined;
 	disallowedPaths: readonly string[];
 	sitemaps: readonly string[];

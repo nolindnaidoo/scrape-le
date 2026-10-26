@@ -25,15 +25,16 @@ export async function fetchRobotsTxt(
 	url: string,
 	agent?: string,
 ): Promise<RobotsTxtInfo> {
+	// Outside the try: a URL that will not parse is a malformed question,
+	// not a robots.txt that could not be read.
+	const urlObj = new URL(url);
+	const robotsUrl = `${urlObj.origin}/robots.txt`;
+
+	// Fetch with timeout
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 5000);
+
 	try {
-		// Extract origin from URL
-		const urlObj = new URL(url);
-		const robotsUrl = `${urlObj.origin}/robots.txt`;
-
-		// Fetch with timeout
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 5000);
-
 		const response = await fetch(robotsUrl, {
 			signal: controller.signal,
 			headers: {
@@ -41,9 +42,17 @@ export async function fetchRobotsTxt(
 			},
 		});
 
-		clearTimeout(timeoutId);
-
-		// Early return if robots.txt doesn't exist or is inaccessible
+		// RFC 9309 draws a line between the two ways a robots.txt fails to
+		// arrive. §2.3.1.3: an *unavailable* one — 404, and the rest of 4xx —
+		// allows crawling, because the site has no rules. §2.3.1.4: an
+		// *unreachable* one — 5xx, or a network failure — means "MUST assume
+		// complete disallow", because the rules exist and could not be read.
+		// Both used to come back as "Not found, crawling allowed": "nothing
+		// forbids you", from a blip. The CLI and the crate already answer this
+		// way.
+		if (response.status >= 500) {
+			return unreachableRobotsTxtInfo(`HTTP ${response.status}`);
+		}
 		if (!response.ok) {
 			return createDefaultRobotsTxtInfo(false);
 		}
@@ -51,13 +60,14 @@ export async function fetchRobotsTxt(
 		const content = await response.text();
 		return parseRobotsTxt(content, urlObj.pathname, agent);
 	} catch (error) {
-		// Rethrown rather than swallowed into a default result. Returning the
-		// all-clear on error made a crashed check indistinguishable from a clean
-		// one — the report stated "Not detected" for a detection that never ran.
-		// runDetections records the failure and the report shows it.
-		// A failed fetch previously rendered as "no robots.txt", which a reader
-		// could take as "scraping is unrestricted".
-		throw error;
+		// A timeout or a network failure is the unreachable case above, and
+		// reads as one rather than as a check that did not run: the report
+		// states the assumed disallow and why.
+		return unreachableRobotsTxtInfo(
+			error instanceof Error ? error.message : String(error),
+		);
+	} finally {
+		clearTimeout(timeoutId);
 	}
 }
 
@@ -326,6 +336,23 @@ function createDefaultRobotsTxtInfo(exists: boolean): RobotsTxtInfo {
 		allowsCrawling: true, // Default to allowing if uncertain
 		disallowedPaths: Object.freeze([]),
 		sitemaps: Object.freeze([]),
+	});
+}
+
+/**
+ * RFC 9309 §2.3.1.4's answer for a robots.txt that could not be read: a
+ * complete disallow, assumed rather than served. No rule is quoted, because
+ * no server sent one — a reader who fetched the file would find a 500, not
+ * `Disallow: /`.
+ */
+function unreachableRobotsTxtInfo(reason: string): RobotsTxtInfo {
+	return Object.freeze({
+		exists: false,
+		agent: '*',
+		allowsCrawling: false,
+		disallowedPaths: Object.freeze([]),
+		sitemaps: Object.freeze([]),
+		unreachable: reason,
 	});
 }
 

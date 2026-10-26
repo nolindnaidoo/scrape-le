@@ -126,6 +126,15 @@ function appendDisallowedPaths(
 
 function appendRobotsTxt(channel: Channel, rt: Detections['robotsTxt']): void {
 	if (!rt) return;
+	if (rt.unreachable !== undefined) {
+		channel.appendLine(
+			`   🤖 robots.txt: Could not be read (${rt.unreachable})`,
+		);
+		channel.appendLine(
+			'      - Allows Crawling: No — RFC 9309 §2.3.1.4 has a crawler assume a complete disallow when robots.txt is unreachable',
+		);
+		return;
+	}
 	if (!rt.exists) {
 		channel.appendLine('   🤖 robots.txt: Not found');
 		return;
