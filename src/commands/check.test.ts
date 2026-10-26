@@ -242,6 +242,16 @@ describe('checkUrl command', () => {
 		expect(info?.message).not.toContain('scrapeable');
 	});
 
+	it('leaves "HTTP" out of the tooltip when the navigation had no response', async () => {
+		mockCheck.mockResolvedValue(successResult({ statusCode: null }));
+		_respondToInputBox(() => 'https://example.com');
+
+		await runCheckUrl();
+
+		expect(_statusBarItems()[0]?.tooltip).toBe('Example');
+		expect(_statusBarItems()[0]?.tooltip).not.toContain('null');
+	});
+
 	it('reports console errors as a warning', async () => {
 		mockCheck.mockResolvedValue(
 			successResult({ consoleErrors: ['boom', 'bang'] }),

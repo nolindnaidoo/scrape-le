@@ -14,6 +14,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- A navigation Playwright made no request for, which has no response, showed
+  "HTTP null" in the status bar tooltip and "Status Code: null" in the report.
+  The tooltip carries the title alone and the report says there was no
+  response.
 - The toast after a check said "Page is reachable and scrapeable" whenever
   the page loaded without console errors, over a report listing anti-bot
   vendors, a login wall, a robots.txt refusal or a 403. The detectors name

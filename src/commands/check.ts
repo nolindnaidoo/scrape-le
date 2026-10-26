@@ -236,7 +236,11 @@ export async function executeCheck(
 				if (result.success) {
 					deps.statusBar.show(
 						`$(check) Reachable (${result.loadTimeMs}ms)`,
-						`${result.title} - HTTP ${result.statusCode}`,
+						// Playwright returns no response for a navigation it did not
+						// make a request for; the tooltip read "HTTP null" then.
+						result.statusCode === null
+							? result.title
+							: `${result.title} - HTTP ${result.statusCode}`,
 					);
 					announceSuccess(result, deps.notifier);
 				}

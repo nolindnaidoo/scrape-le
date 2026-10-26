@@ -87,6 +87,16 @@ describe('output channel', () => {
 		expect(text).toContain('Login URL: https://example.com/login');
 	});
 
+	it('says there was no response rather than printing "null" as a status', () => {
+		logCheckResult(baseResult({ statusCode: null }));
+
+		const text = channelText();
+		expect(text).toContain(
+			'Status Code: none (no response for the navigation)',
+		);
+		expect(text).not.toContain('null');
+	});
+
 	it('logs a failure result', () => {
 		logCheckResult(
 			baseResult({

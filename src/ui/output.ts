@@ -261,7 +261,9 @@ function appendFailure(channel: Channel, result: CheckResult): void {
 
 function appendSuccess(channel: Channel, result: CheckResult): void {
 	channel.appendLine(`✅ SUCCESS: ${result.url}`);
-	channel.appendLine(`   Status Code: ${result.statusCode}`);
+	channel.appendLine(
+		`   Status Code: ${result.statusCode === null ? 'none (no response for the navigation)' : result.statusCode}`,
+	);
 	channel.appendLine(`   Title: ${result.title}`);
 	channel.appendLine(`   Load Time: ${result.loadTimeMs}ms`);
 	if (result.screenshotPath) {
