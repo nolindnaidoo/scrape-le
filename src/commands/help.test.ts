@@ -5,6 +5,8 @@ import {
 	_createExtensionContext,
 	_registeredCommands,
 	_resetMockState,
+	_setShowDocumentError,
+	_shownMessages,
 } from '../__mocks__/vscode';
 import { ANTI_BOT_SIGNATURES } from '../detectors/heuristics';
 import { manualInstallCommand } from '../scraper/install';
@@ -49,6 +51,24 @@ describe('help command', () => {
 		expect(content).toContain('detections.antiBot');
 
 		expect(showSpy).toHaveBeenCalledOnce();
+	});
+
+	// The guard's path for this command had no test: the mock could not make
+	// the editor refuse to show the document.
+	it('reports a document the editor refused to show, through the guard', async () => {
+		_setShowDocumentError(new Error('editor refused /Users/jane/x'));
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerHelpCommand(context, {
+			notifier: createNotifier(),
+			statusBar: createStatusBar(context),
+		});
+		await _registeredCommands().get('scrape-le.help')?.();
+
+		const error = _shownMessages().find((m) => m.kind === 'error');
+		expect(error?.message).toContain('Scrape-LE could not finish');
+		expect(error?.message).toContain('editor refused /Users/***/');
+		expect(error?.message).not.toContain('jane');
 	});
 
 	// FEAT-17: the page listed four of the five vendors the corpus detects,

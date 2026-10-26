@@ -257,7 +257,10 @@ export const window = {
 		}
 		return value;
 	},
-	showTextDocument: async (_document: unknown, _column?: unknown) => undefined,
+	showTextDocument: async (_document: unknown, _column?: unknown) => {
+		if (showDocumentError !== undefined) throw showDocumentError;
+		return undefined;
+	},
 	withProgress: async <T>(
 		_options: unknown,
 		task: (progress: { report: (value: unknown) => void }) => Thenable<T>,
@@ -346,17 +349,41 @@ export const env = {
 	appName: 'Visual Studio Code',
 	clipboard: {
 		writeText: async (text: string) => {
+			if (clipboardError !== undefined) throw clipboardError;
 			clipboard.value = text;
 		},
 		readText: async () => clipboard.value,
 	},
 	openExternal: async (uri: Uri) => {
+		if (openExternalError !== undefined) throw openExternalError;
 		openedExternal.push(uri.toString());
 		return true;
 	},
 };
 
 export const openedExternal: string[] = [];
+
+// The failures the editor can hand back, so every catch around these calls
+// has a test that reaches it. A path the mock cannot make fail is an
+// untested path whatever the coverage figure says.
+let clipboardError: unknown;
+let openExternalError: unknown;
+let showDocumentError: unknown;
+
+/** Makes `env.clipboard.writeText` reject with `error`. */
+export function _setClipboardError(error: unknown): void {
+	clipboardError = error;
+}
+
+/** Makes `env.openExternal` reject with `error`. */
+export function _setOpenExternalError(error: unknown): void {
+	openExternalError = error;
+}
+
+/** Makes `window.showTextDocument` reject with `error`. */
+export function _setShowDocumentError(error: unknown): void {
+	showDocumentError = error;
+}
 
 export function _clipboardText(): string {
 	return clipboard.value;
@@ -478,6 +505,9 @@ export function _resetMockState(): void {
 	warningResponder = undefined;
 	inputBoxResponder = undefined;
 	clipboard.value = '';
+	clipboardError = undefined;
+	openExternalError = undefined;
+	showDocumentError = undefined;
 	workspace.workspaceFolders = undefined;
 }
 
