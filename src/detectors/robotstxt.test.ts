@@ -125,6 +125,18 @@ Disallow: /admin
 			expect(result.unreachable).toBe('Network error');
 		});
 
+		it('identifies itself without a version it cannot keep current', async () => {
+			mockFetch.mockResolvedValue({ ok: false, status: 404 });
+
+			await RobotsTxtChecker.fetchRobotsTxt('https://example.com');
+
+			const headers = mockFetch.mock.calls[0]?.[1]?.headers as Record<
+				string,
+				string
+			>;
+			expect(headers['User-Agent']).toBe('Scrape-LE (VS Code Extension)');
+		});
+
 		it('refuses a URL that will not parse rather than reading it as unreachable', async () => {
 			await expect(
 				RobotsTxtChecker.fetchRobotsTxt('not a url'),

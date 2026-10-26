@@ -38,7 +38,9 @@ export async function fetchRobotsTxt(
 		const response = await fetch(robotsUrl, {
 			signal: controller.signal,
 			headers: {
-				'User-Agent': 'Scrape-LE/2.0 (VS Code Extension)',
+				// No version: the one this carried was two minors stale, and the
+				// extension bundle has no build-time version to read.
+				'User-Agent': 'Scrape-LE (VS Code Extension)',
 			},
 		});
 

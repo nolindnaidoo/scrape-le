@@ -20,6 +20,8 @@ version and releases from one tag.
 
 ### Fixed
 
+- The robots.txt request identified itself as `Scrape-LE/2.0`, a version
+  two minors behind the one running. The User-Agent carries no version now.
 - The README said agent-specific robots.txt groups are ignored, which the
   `scrape-le.robotsTxt.agent` setting has not been true of since it was
   added; the settings table left that setting out; the Detections heading
