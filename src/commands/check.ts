@@ -65,6 +65,79 @@ export function registerCheckUrlCommand(
 }
 
 /**
+ * The toast for a page that loaded. "Reachable and scrapeable" was shown
+ * whenever the page loaded without console errors, with anti-bot vendors,
+ * a login wall, a robots.txt refusal or a 403 sitting in the report below
+ * it; the detectors cannot prove scrapeability, only name what blocks it,
+ * so the toast now names what they found or says that nothing was found.
+ */
+function announceSuccess(result: CheckResult, notifier: Notifier): void {
+	const blockers = blockingSignals(result);
+	if (blockers.length > 0) {
+		notifier.warn(
+			vscode.l10n.t(
+				'✓ Page is reachable, but scraping may be blocked: {0}. See output for details.',
+				blockers.join(', '),
+			),
+		);
+		return;
+	}
+	const errorCount = result.consoleErrors.length;
+	if (errorCount > 0) {
+		notifier.warn(
+			vscode.l10n.t(
+				'✓ Page is reachable but found {0} console error(s). Check output for details.',
+				errorCount,
+			),
+		);
+		return;
+	}
+	notifier.info(
+		vscode.l10n.t(
+			'✓ Page is reachable and nothing found would block a scraper',
+		),
+	);
+}
+
+/**
+ * Everything in a result that would stop or limit a scraper, as the report
+ * lists it: the status, each detection that fired, and any detection that
+ * could not run, because a check that did not run proves nothing.
+ */
+function blockingSignals(result: CheckResult): string[] {
+	const signals: string[] = [];
+	if (result.statusCode !== null && result.statusCode >= 400) {
+		signals.push(vscode.l10n.t('HTTP {0}', result.statusCode));
+	}
+	const detections = result.detections;
+	if (!detections) return signals;
+	const antiBot = detections.antiBot;
+	if (
+		antiBot &&
+		(antiBot.cloudflare ||
+			antiBot.recaptcha ||
+			antiBot.hcaptcha ||
+			antiBot.datadome ||
+			antiBot.perimeterx)
+	) {
+		signals.push(vscode.l10n.t('anti-bot measures'));
+	}
+	if (detections.rateLimit?.detected) {
+		signals.push(vscode.l10n.t('rate limiting'));
+	}
+	if (detections.robotsTxt && !detections.robotsTxt.allowsCrawling) {
+		signals.push(vscode.l10n.t('robots.txt'));
+	}
+	if (detections.authentication?.required) {
+		signals.push(vscode.l10n.t('authentication'));
+	}
+	if (detections.failures && detections.failures.length > 0) {
+		signals.push(vscode.l10n.t('a detection that could not run'));
+	}
+	return signals;
+}
+
+/**
  * Executes a scrapeability check for a given URL
  */
 export async function executeCheck(
@@ -165,18 +238,7 @@ export async function executeCheck(
 						`$(check) Reachable (${result.loadTimeMs}ms)`,
 						`${result.title} - HTTP ${result.statusCode}`,
 					);
-
-					const errorCount = result.consoleErrors.length;
-					if (errorCount > 0) {
-						deps.notifier.warn(
-							`✓ Page reachable but found ${errorCount} console error(s). Check output for details.`,
-						);
-					}
-					if (errorCount === 0) {
-						deps.notifier.info(
-							vscode.l10n.t('✓ Page is reachable and scrapeable'),
-						);
-					}
+					announceSuccess(result, deps.notifier);
 				}
 				if (!result.success) {
 					deps.statusBar.show('$(x) Failed', result.error || 'Check failed');

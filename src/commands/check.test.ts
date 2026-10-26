@@ -151,6 +151,97 @@ describe('checkUrl command', () => {
 		).toBe(true);
 	});
 
+	// BUG-13: the detectors cannot prove a page is scrapeable, only name what
+	// blocks it, and the toast said "scrapeable" over a report that listed
+	// Cloudflare, a login wall and a robots.txt refusal.
+	it('names what the detections found instead of calling the page scrapeable', async () => {
+		mockCheck.mockResolvedValue(
+			successResult({
+				statusCode: 403,
+				detections: {
+					antiBot: {
+						cloudflare: true,
+						recaptcha: false,
+						hcaptcha: false,
+						datadome: false,
+						perimeterx: false,
+						details: ['Cloudflare (cf-ray header)'],
+					},
+					rateLimit: { detected: false },
+					robotsTxt: {
+						agent: '*',
+						exists: true,
+						allowsCrawling: false,
+						disallowedPaths: ['/'],
+						sitemaps: [],
+					},
+					authentication: {
+						required: true,
+						indicators: ['HTTP 403 Forbidden'],
+					},
+					failures: [
+						{ detection: 'rateLimit', message: 'headers unavailable' },
+					],
+				},
+			}),
+		);
+		_respondToInputBox(() => 'https://example.com');
+
+		await runCheckUrl();
+
+		const warning = _shownMessages().find((m) => m.kind === 'warning');
+		expect(warning?.message).toContain('scraping may be blocked');
+		for (const signal of [
+			'HTTP 403',
+			'anti-bot measures',
+			'robots.txt',
+			'authentication',
+			'a detection that could not run',
+		]) {
+			expect(warning?.message).toContain(signal);
+		}
+		expect(warning?.message).not.toContain('rate limiting');
+		expect(_shownMessages().some((m) => m.message.includes('scrapeable'))).toBe(
+			false,
+		);
+		expect(
+			_shownMessages().some((m) => m.message.includes('nothing found')),
+		).toBe(false);
+	});
+
+	it('says nothing was found only when every detection ran and found nothing', async () => {
+		mockCheck.mockResolvedValue(
+			successResult({
+				detections: {
+					antiBot: {
+						cloudflare: false,
+						recaptcha: false,
+						hcaptcha: false,
+						datadome: false,
+						perimeterx: false,
+						details: [],
+					},
+					rateLimit: { detected: false },
+					robotsTxt: {
+						agent: '*',
+						exists: true,
+						allowsCrawling: true,
+						disallowedPaths: ['/admin'],
+						sitemaps: [],
+					},
+					authentication: { required: false, indicators: [] },
+				},
+			}),
+		);
+		_respondToInputBox(() => 'https://example.com');
+
+		await runCheckUrl();
+
+		const info = _shownMessages().find((m) => m.kind === 'info');
+		expect(info?.message).toContain('nothing found would block a scraper');
+		expect(info?.message).not.toContain('scrapeable');
+	});
+
 	it('reports console errors as a warning', async () => {
 		mockCheck.mockResolvedValue(
 			successResult({ consoleErrors: ['boom', 'bang'] }),

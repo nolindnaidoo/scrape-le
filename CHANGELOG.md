@@ -14,6 +14,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- The toast after a check said "Page is reachable and scrapeable" whenever
+  the page loaded without console errors, over a report listing anti-bot
+  vendors, a login wall, a robots.txt refusal or a 403. The detectors name
+  what blocks a scraper and cannot prove its absence, so the toast now names
+  what they found, or says that nothing found would block a scraper.
 - An anti-bot probe or an authentication probe that could not run read as
   "None detected" and "Not required": each swallowed its own failure into an
   empty result. A probe that fails now fails its detection, which the report
