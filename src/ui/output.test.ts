@@ -1,10 +1,27 @@
-import { describe, expect, it } from 'vitest';
-import { _outputChannels } from '../__mocks__/vscode';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type * as vscode from 'vscode';
+import {
+	_createExtensionContext,
+	_outputChannels,
+	_resetMockState,
+} from '../__mocks__/vscode';
 import type { CheckResult } from '../types';
-import { logCheckResult, showOutput } from './output';
+import {
+	disposeOutput,
+	logCheckResult,
+	logLine,
+	registerOutput,
+	showOutput,
+} from './output';
 
-// output.ts caches its channel at module level, so all tests share the
-// first created channel; no _resetMockState() here.
+// output.ts keeps its channel at module level, so a test that reads the
+// mock's first channel needs the module's one released as well as the
+// mock's list cleared; with only the list cleared, every test after the
+// first found no channel at all, and the suite depended on its order.
+beforeEach(() => {
+	_resetMockState();
+	disposeOutput();
+});
 
 function baseResult(overrides: Partial<CheckResult>): CheckResult {
 	return {
@@ -119,5 +136,35 @@ describe('output channel', () => {
 	it('showOutput reveals the channel', () => {
 		showOutput();
 		expect(_outputChannels()[0]?._shown).toBe(true);
+	});
+});
+
+describe('output channel lifetime', () => {
+	it('is released on deactivation, and a later log starts a fresh one', () => {
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerOutput(context);
+		logLine('first session');
+		expect(_outputChannels()).toHaveLength(1);
+
+		for (const subscription of context.subscriptions) subscription.dispose();
+		expect(_outputChannels()[0]?._disposed).toBe(true);
+
+		// A second dispose is harmless, and the next log does not write into
+		// the released channel.
+		for (const subscription of context.subscriptions) subscription.dispose();
+		logLine('second session');
+		expect(_outputChannels()).toHaveLength(2);
+		expect(_outputChannels()[1]?._disposed).toBe(false);
+		expect(_outputChannels()[1]?._lines).toEqual(['second session']);
+	});
+
+	it('registers the release even when no channel is ever created', () => {
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerOutput(context);
+		expect(context.subscriptions).toHaveLength(1);
+		for (const subscription of context.subscriptions) subscription.dispose();
+		expect(_outputChannels()).toHaveLength(0);
 	});
 });

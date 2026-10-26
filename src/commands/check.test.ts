@@ -12,6 +12,7 @@ import {
 } from '../__mocks__/vscode';
 import type { CheckResult } from '../types';
 import { createNotifier } from '../ui/notifier';
+import { disposeOutput } from '../ui/output';
 import { createStatusBar } from '../ui/statusBar';
 import { registerCheckUrlCommand } from './check';
 
@@ -62,6 +63,9 @@ async function runCheckUrl(): Promise<void> {
 describe('checkUrl command', () => {
 	beforeEach(() => {
 		_resetMockState();
+		// The output module keeps its channel across tests; released here so
+		// each test reads the channel its own run created, in any order.
+		disposeOutput();
 		vi.clearAllMocks();
 		vi.useFakeTimers();
 		mockEnsure.mockResolvedValue(true);

@@ -14,6 +14,10 @@ version and releases from one tag.
 
 ### Fixed
 
+- The output channel was created on first use and released by nothing, so it
+  outlived deactivation; and the module kept it across the unit tests, which
+  passed in file order and failed shuffled. Activation now registers its
+  release, and the tests release it between runs.
 - The MCP server held every byte of a frame until its newline, with no
   ceiling, so a client that streamed without one grew the process without
   bound and got no answer. A frame over 16 MiB is refused with a parse error

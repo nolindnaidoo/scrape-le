@@ -182,6 +182,8 @@ interface MockOutputChannel {
 	dispose: () => void;
 	_lines: string[];
 	_shown: boolean;
+	/** Set by dispose(), so a test can assert the channel was released. */
+	_disposed: boolean;
 }
 
 const outputChannels: MockOutputChannel[] = [];
@@ -198,6 +200,8 @@ interface MockStatusBarItem {
 	show(): void;
 	hide(): void;
 	dispose(): void;
+	/** Set by dispose(), so a test can assert the item was released. */
+	_disposed: boolean;
 }
 
 const statusBarItems: MockStatusBarItem[] = [];
@@ -268,9 +272,12 @@ export const window = {
 			clear: () => {
 				lines.length = 0;
 			},
-			dispose: () => {},
+			dispose: () => {
+				channel._disposed = true;
+			},
 			_lines: lines,
 			_shown: false,
+			_disposed: false,
 		};
 		outputChannels.push(channel);
 		return channel;
@@ -290,7 +297,10 @@ export const window = {
 			hide(): void {
 				item.visible = false;
 			},
-			dispose: () => {},
+			dispose: () => {
+				item._disposed = true;
+			},
+			_disposed: false,
 		};
 		statusBarItems.push(item);
 		return item;

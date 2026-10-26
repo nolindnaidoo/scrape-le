@@ -21,6 +21,24 @@ function getOutputChannel(): vscode.OutputChannel {
 	return outputChannel;
 }
 
+/**
+ * Owns the channel's lifetime. It is created on first use, so nothing
+ * registered at activation held it and deactivation left it live; the
+ * release is registered up front, whether or not a channel is ever made.
+ */
+export function registerOutput(context: vscode.ExtensionContext): void {
+	context.subscriptions.push({ dispose: disposeOutput });
+}
+
+/**
+ * Releases the channel, if one was created, and forgets it so the next
+ * log creates a fresh one. Safe to call again.
+ */
+export function disposeOutput(): void {
+	outputChannel?.dispose();
+	outputChannel = null;
+}
+
 type Detections = NonNullable<CheckResult['detections']>;
 type Channel = vscode.OutputChannel;
 
