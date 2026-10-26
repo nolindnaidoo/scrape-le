@@ -114,7 +114,9 @@ async function installBrowser(): Promise<boolean> {
 				return false;
 			} catch (error) {
 				const errorMessage =
-					error instanceof Error ? error.message : 'Unknown error';
+					error instanceof Error
+						? error.message
+						: vscode.l10n.t('Unknown error');
 				vscode.window.showErrorMessage(
 					vscode.l10n.t(
 						'❌ Failed to install Chromium: {0}. Please run "{1}" manually.',
@@ -193,8 +195,12 @@ This is a one-time setup (~130MB download).`;
 				}
 			} catch (error: unknown) {
 				const errorMsg =
-					error instanceof Error ? error.message : 'Unknown error';
-				vscode.window.showErrorMessage(`Failed to execute action: ${errorMsg}`);
+					error instanceof Error
+						? error.message
+						: vscode.l10n.t('Unknown error');
+				vscode.window.showErrorMessage(
+					vscode.l10n.t('Failed to execute action: {0}', errorMsg),
+				);
 			}
 		});
 }

@@ -12,7 +12,7 @@ import { retryWithUserAgents, shouldRetry } from '../scraper/retry';
 import type { CheckOptions, CheckResult, Notifier, StatusBar } from '../types';
 import { logCheckResult, showOutput } from '../ui/output';
 import type { RatingPrompt } from '../ui/ratingPrompt';
-import { formatErrorForUser } from '../utils/errorHandling';
+import { classifyError } from '../utils/errorHandling';
 import { normalizeUrl, validateUrl } from '../utils/url';
 import { guarded } from './guard';
 
@@ -107,7 +107,8 @@ function announceSuccess(result: CheckResult, notifier: Notifier): void {
 function blockingSignals(result: CheckResult): string[] {
 	const signals: string[] = [];
 	if (result.statusCode !== null && result.statusCode >= 400) {
-		signals.push(vscode.l10n.t('HTTP {0}', result.statusCode));
+		// A protocol token and a number: never translated.
+		signals.push(`HTTP ${result.statusCode}`);
 	}
 	const detections = result.detections;
 	if (!detections) return signals;
@@ -126,7 +127,8 @@ function blockingSignals(result: CheckResult): string[] {
 		signals.push(vscode.l10n.t('rate limiting'));
 	}
 	if (detections.robotsTxt && !detections.robotsTxt.allowsCrawling) {
-		signals.push(vscode.l10n.t('robots.txt'));
+		// A file name: never translated.
+		signals.push('robots.txt');
 	}
 	if (detections.authentication?.required) {
 		signals.push(vscode.l10n.t('authentication'));
@@ -135,6 +137,15 @@ function blockingSignals(result: CheckResult): string[] {
 		signals.push(vscode.l10n.t('a detection that could not run'));
 	}
 	return signals;
+}
+
+/** The thrown error as the user reads it: classified, redacted, localized. */
+function describeError(error: unknown): string {
+	const { kind, message } = classifyError(error);
+	if (kind === 'timeout') return vscode.l10n.t('⏱️ Timeout: {0}', message);
+	if (kind === 'network')
+		return vscode.l10n.t('🔌 Network error: {0}', message);
+	return vscode.l10n.t('❌ Error: {0}', message);
 }
 
 /**
@@ -153,7 +164,9 @@ export async function executeCheck(
 	const browserAvailable = await ensureBrowserInstalled();
 	if (!browserAvailable) {
 		deps.notifier.warn(
-			'Chromium browser is required. Please install it to use Scrape-LE.',
+			vscode.l10n.t(
+				'Chromium browser is required. Please install it to use Scrape-LE.',
+			),
 		);
 		return;
 	}
@@ -192,8 +205,8 @@ export async function executeCheck(
 
 			// Update status bar
 			deps.statusBar.show(
-				'$(sync~spin) Checking...',
-				'Checking URL scrapeability',
+				vscode.l10n.t('$(sync~spin) Checking...'),
+				vscode.l10n.t('Checking URL scrapeability'),
 			);
 
 			let browser = null;
@@ -235,7 +248,7 @@ export async function executeCheck(
 				// Show result in status bar
 				if (result.success) {
 					deps.statusBar.show(
-						`$(check) Reachable (${result.loadTimeMs}ms)`,
+						vscode.l10n.t('$(check) Reachable ({0}ms)', result.loadTimeMs),
 						// Playwright returns no response for a navigation it did not
 						// make a request for; the tooltip read "HTTP null" then.
 						result.statusCode === null
@@ -245,14 +258,17 @@ export async function executeCheck(
 					announceSuccess(result, deps.notifier);
 				}
 				if (!result.success) {
-					deps.statusBar.show('$(x) Failed', result.error || 'Check failed');
+					deps.statusBar.show(
+						vscode.l10n.t('$(x) Failed'),
+						result.error || vscode.l10n.t('Check failed'),
+					);
 					// result.error is optional; the template literal this replaced
 					// rendered the string "undefined" when it was absent. The status
 					// bar line directly above already falls back to 'Check failed'.
 					deps.notifier.error(
 						vscode.l10n.t(
 							'✗ Failed to reach page: {0}',
-							result.error || 'Check failed',
+							result.error || vscode.l10n.t('Check failed'),
 						),
 					);
 				}
@@ -268,8 +284,8 @@ export async function executeCheck(
 					void deps.ratingPrompt.recordSuccess();
 				}
 			} catch (error) {
-				const errorMessage = formatErrorForUser(error);
-				deps.statusBar.show('$(x) Error', errorMessage);
+				const errorMessage = describeError(error);
+				deps.statusBar.show(vscode.l10n.t('$(x) Error'), errorMessage);
 				deps.notifier.error(errorMessage);
 
 				// Log to output

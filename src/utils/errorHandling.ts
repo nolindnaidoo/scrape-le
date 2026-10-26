@@ -70,19 +70,20 @@ export function sanitizeErrorMessage(message: string): string {
 		.replace(/key[=:]\s*[^\s]+/gi, 'key=***');
 }
 
+export type ErrorKind = 'timeout' | 'network' | 'error';
+
 /**
- * Formats error for user display with appropriate prefix
+ * The error's kind and its redacted message, for a caller to word. The
+ * wording used to be built here, in English, with the prefix emoji; it
+ * lives with the command now so it can go through `l10n.t()`, and this
+ * module stays free of `vscode`, which the MCP bundle must never load.
  */
-export function formatErrorForUser(error: unknown): string {
+export function classifyError(error: unknown): {
+	kind: ErrorKind;
+	message: string;
+} {
 	const message = sanitizeErrorMessage(extractErrorMessage(error));
-
-	if (isTimeoutError(error)) {
-		return `⏱️ Timeout: ${message}`;
-	}
-
-	if (isNetworkError(error)) {
-		return `🔌 Network error: ${message}`;
-	}
-
-	return `❌ Error: ${message}`;
+	if (isTimeoutError(error)) return { kind: 'timeout', message };
+	if (isNetworkError(error)) return { kind: 'network', message };
+	return { kind: 'error', message };
 }

@@ -5,8 +5,12 @@ import * as vscode from 'vscode';
 import { getConfiguration } from '../config/config';
 import type { StatusBar } from '../types';
 
+/** A codicon and the product name: never translated. */
 const IDLE_TEXT = '$(globe) Scrape-LE';
-const IDLE_TOOLTIP = 'Click to check URL scrapeability';
+// Read inside the function, never at module scope: `l10n.t()` resolves
+// when it runs, and the bundle is not loaded when the module is required.
+const idleTooltip = (): string =>
+	vscode.l10n.t('Click to check URL scrapeability');
 
 /**
  * Creates the status bar item. Visibility is owned here and follows
@@ -22,7 +26,7 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 
 	statusBarItem.command = 'scrape-le.checkUrl';
 	statusBarItem.text = IDLE_TEXT;
-	statusBarItem.tooltip = IDLE_TOOLTIP;
+	statusBarItem.tooltip = idleTooltip();
 
 	const applyVisibility = (): void => {
 		if (getConfiguration().statusBar.enabled) {
@@ -68,7 +72,7 @@ export function createStatusBar(context: vscode.ExtensionContext): StatusBar {
 			pendingReset = setTimeout(() => {
 				pendingReset = undefined;
 				statusBarItem.text = IDLE_TEXT;
-				statusBarItem.tooltip = IDLE_TOOLTIP;
+				statusBarItem.tooltip = idleTooltip();
 				applyVisibility();
 			}, delayMs);
 		},

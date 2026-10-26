@@ -20,6 +20,14 @@ version and releases from one tag.
 
 ### Fixed
 
+- Twenty-four strings the extension shows were English in every language:
+  the status bar's "Checking...", "Reachable", "Failed" and "Error" texts and
+  their tooltips, the "Retrying as ..." progress message, the Setup Browser
+  results, the "Chromium browser is required" warning, the timeout, network
+  and error prefixes on a failed check, and the install flow's "Failed to
+  execute action" and "Unknown error". Each goes through the runtime bundle
+  now, in all twelve languages, and a unit test holds the source and the
+  bundle together so a string cannot be added to one without the other.
 - **The three MCP servers answer a malformed frame the same way.** They
   shipped three behaviours: a frame that was not JSON, not UTF-8 or not a
   JSON-RPC 2.0 request was refused with a parse error by the extension's
