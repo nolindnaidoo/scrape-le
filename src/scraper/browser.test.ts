@@ -31,14 +31,13 @@ describe('browser', () => {
 			const mockBrowser = { close: vi.fn() } as unknown as Browser;
 			chromiumMock.launch.mockResolvedValue(mockBrowser);
 
-			const { createBrowser, isRunningUnsandboxed } = await import('./browser');
+			const { createBrowser } = await import('./browser');
 			const browser = await createBrowser();
 
 			expect(browser).toBe(mockBrowser);
 			const args = chromiumMock.launch.mock.calls[0]?.[0]?.args ?? [];
 			expect(args).not.toContain('--no-sandbox');
 			expect(args).not.toContain('--disable-setuid-sandbox');
-			expect(isRunningUnsandboxed()).toBe(false);
 		});
 
 		it('falls back to no-sandbox only when the sandboxed launch fails', async () => {
@@ -49,14 +48,13 @@ describe('browser', () => {
 				.mockRejectedValueOnce(new Error('no usable sandbox'))
 				.mockResolvedValueOnce(mockBrowser);
 
-			const { createBrowser, isRunningUnsandboxed } = await import('./browser');
+			const { createBrowser } = await import('./browser');
 			const browser = await createBrowser();
 
 			expect(browser).toBe(mockBrowser);
 			expect(chromiumMock.launch).toHaveBeenCalledTimes(2);
 			const args = chromiumMock.launch.mock.calls[1]?.[0]?.args ?? [];
 			expect(args).toContain('--no-sandbox');
-			expect(isRunningUnsandboxed()).toBe(true);
 		});
 
 		it('should throw enhanced error on launch failure', async () => {

@@ -129,7 +129,6 @@ export type Notifier = Readonly<{
 export type ConsoleMessage = Readonly<{
 	type: 'log' | 'error' | 'warning' | 'info';
 	text: string;
-	timestamp: number;
 }>;
 
 /**

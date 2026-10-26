@@ -49,7 +49,6 @@ export async function checkPageScrapeability(
 					consoleMessages.push({
 						type: type as 'error' | 'warning',
 						text: msg.text(),
-						timestamp: Date.now(),
 					});
 				}
 			});
@@ -59,7 +58,6 @@ export async function checkPageScrapeability(
 				consoleMessages.push({
 					type: 'error',
 					text: error.message,
-					timestamp: Date.now(),
 				});
 			});
 		}

@@ -12,6 +12,12 @@ version and releases from one tag.
 
 ## [Unreleased]
 
+### Removed
+
+- Two declarations nothing read: `isRunningUnsandboxed()` and the module
+  state behind it, and the `timestamp` every captured console message
+  carried.
+
 ### Fixed
 
 - The help page listed four of the five anti-bot vendors the corpus detects,
