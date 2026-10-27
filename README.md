@@ -232,8 +232,8 @@ setting of its own.
 <!-- performance:start -->
 | Input | Size | Found | Time | Rate | Scan speed |
 | --- | --- | --- | --- | --- | --- |
-| Header signature scan | 2.83 MB | 20,000 | 5.19 ms | 3,852,946/sec | 544.6 MB/s |
-| robots.txt path match | 3.32 MB | 60,000 | 9.64 ms | 6,223,689/sec | 344.3 MB/s |
+| Header signature scan | 2.83 MB | 20,000 | 7.24 ms | 2,762,876/sec | 390.5 MB/s |
+| robots.txt path match | 3.32 MB | 60,000 | 14.41 ms | 4,164,654/sec | 230.4 MB/s |
 
 Median of 7 runs after warmup, on Apple M5 Pro, 24 GB RAM, Node 24.3.0. Inputs are generated
 by `scripts/benchmark.ts` rather than checked in, so the sizes above are
@@ -248,12 +248,12 @@ a build only tells you how busy the runner was.
 <!-- coverage:start -->
 | Metric | Coverage |
 | --- | --- |
-| Statements | 76.09% |
-| Branches | 67.97% |
+| Statements | 76.08% |
+| Branches | 68.02% |
 | Functions | 82.75% |
 | Lines | 78.97% |
 
-525 test cases across 40 files, plus an integration suite that runs
+527 test cases across 40 files, plus an integration suite that runs
 in a real VS Code extension host and an end-to-end test that installs the
 built `.vsix` into a clean profile.
 
