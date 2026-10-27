@@ -1,9 +1,10 @@
 /**
- * Characterization tests: pin the CURRENT detector output, including known
- * bugs (robots.txt literal-prefix matching so wildcard rules never match,
- * agent-group handling that only honors '*' when it is the last grouped
- * User-agent line, empty-string rate-limit headers treated as absent,
- * '/auth' URL substring matching '/author', last-sitemap-wins).
+ * Characterization tests: pin the CURRENT detector output. The header once
+ * listed four "known bugs" these goldens held in place; each has since been
+ * fixed and the goldens moved with the fix (wildcard rules match, every
+ * grouped User-agent line counts, '/auth' matches whole path segments, every
+ * sitemap is kept). What stays pinned on purpose: an empty-string rate-limit
+ * header reads as absent, as JavaScript falsiness reads it.
  *
  * The in-page DOM callbacks passed to page.evaluate() run in a real browser
  * and cannot be pinned here; these tests characterize everything up to that
@@ -48,14 +49,14 @@ function makeResponse(headers: Record<string, string>, status = 200): Response {
 	} as unknown as Response;
 }
 
-function stubRobotsFetch(body: string | null, ok = true): void {
+function stubRobotsFetch(body: string | null, ok = true, status = 200): void {
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(async () => {
 			if (body === null) {
 				throw new Error('network down');
 			}
-			return { ok, text: async () => body };
+			return { ok, status, text: async () => body };
 		}),
 	);
 }
@@ -97,16 +98,21 @@ describe('robots.txt characterization', () => {
 	}
 
 	it('missing robots.txt (404)', async () => {
-		stubRobotsFetch('Not Found', false);
+		stubRobotsFetch('Not Found', false, 404);
 		expect(await fetchRobotsTxt('https://example.com/')).toMatchSnapshot();
 	});
 
 	it('network failure', async () => {
-		// Previously snapshotted a default result claiming crawling was allowed.
-		// A failed fetch is now propagated so the caller can report it rather
-		// than presenting the all-clear for a check that never completed.
+		// Once snapshotted a default result claiming crawling was allowed, then
+		// propagated the failure. RFC 9309 §2.3.1.4 names the answer: a
+		// complete disallow, assumed, with the failure stated and no rule quoted.
 		stubRobotsFetch(null);
-		await expect(fetchRobotsTxt('https://example.com/')).rejects.toThrow();
+		expect(await fetchRobotsTxt('https://example.com/')).toMatchSnapshot();
+	});
+
+	it('server error', async () => {
+		stubRobotsFetch('', false, 503);
+		expect(await fetchRobotsTxt('https://example.com/')).toMatchSnapshot();
 	});
 });
 

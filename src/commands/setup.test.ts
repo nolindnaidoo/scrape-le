@@ -5,8 +5,10 @@ import {
 	_registeredCommands,
 	_resetMockState,
 	_respondToQuickPick,
+	_setConfig,
 	_shownMessages,
 } from '../__mocks__/vscode';
+import { createNotifier } from '../ui/notifier';
 import { registerSetupCommand } from './setup';
 
 const { mockEnsure, mockAvailable } = vi.hoisted(() => ({
@@ -37,7 +39,7 @@ async function runSetup(action: string | undefined): Promise<void> {
 	);
 	const context =
 		_createExtensionContext() as unknown as vscode.ExtensionContext;
-	registerSetupCommand(context);
+	registerSetupCommand(context, { notifier: createNotifier() });
 	await _registeredCommands().get('scrape-le.setup')?.();
 }
 
@@ -45,6 +47,23 @@ describe('setup command', () => {
 	beforeEach(() => {
 		_resetMockState();
 		vi.clearAllMocks();
+		_setConfig('scrape-le.notificationsLevel', 'all');
+	});
+
+	// ERR-10: the results were shown with vscode.window.show* directly,
+	// bypassing the one channel notificationsLevel governs.
+	it('reports its results through the notifier, so notificationsLevel governs them', async () => {
+		_setConfig('scrape-le.notificationsLevel', 'silent');
+		mockEnsure.mockResolvedValue(true);
+		await runSetup('install');
+		mockAvailable.mockResolvedValue(true);
+		await runSetup('test');
+		expect(_shownMessages()).toHaveLength(0);
+
+		_setConfig('scrape-le.notificationsLevel', 'important');
+		mockAvailable.mockResolvedValue(false);
+		await runSetup('test');
+		expect(_shownMessages().map((m) => m.kind)).toEqual(['warning']);
 	});
 
 	it('does nothing when the quick pick is dismissed', async () => {

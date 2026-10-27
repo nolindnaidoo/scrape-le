@@ -48,7 +48,7 @@ crate/              (in the extension's repo — the shared corpus lives
     ├── fetch.rs    HTTP
     ├── render.rs   Chromium
     ├── cli.rs
-    └── mcp.rs
+    └── mcp/        the stdio loop, and the shared analyze_robots_txt tool
 ```
 
 **`detect/` touches no network and drives no browser.** It takes evidence
@@ -148,8 +148,9 @@ Sitemaps are reported, never fetched — they come out of a file already
 retrieved, so listing them is free, while following one has no natural
 stopping point and would make this a crawler.
 
-Build on `texting_robots`: RFC 9309 verified in its source, tested
-against Google's C++ suite and 34M Common Crawl responses.
+The parser is the crate's own, `detect/robots.rs`, a port of the
+extension's: the two frontends have to answer one file the same way,
+quirks included, and `fixtures/robots/cases.json` runs against both.
 
 ### 4. Authentication
 
@@ -165,7 +166,9 @@ screenshot — as the extension reports them.
 **The screenshot is written into the working directory** on every
 rendered check, and `--help`, the README and the report all say so:
 `scrape-le-<host>-<date>-<digest>.png`, the digest taken over the whole
-URL. Host and date alone had a batch of paths on one site overwrite one
+URL. When it cannot be written, the report says so in `screenshot_error`,
+naming the file and the OS's reason, and the summary prints the same line;
+a rendered check never has merely no screenshot. Host and date alone had a batch of paths on one site overwrite one
 image and every report but the last name a picture of a page it had not
 checked, so the name identifies the URL, not the site.
 
@@ -192,12 +195,14 @@ a second prose generator that could drift from it.
       "detail": "Disallow: /search for User-agent: *",
       "evidence": { "rule": "Disallow: /search", "agent": "*" } },
     { "kind": "antibot", "severity": "warns",
-      "detail": "Cloudflare Turnstile widget present",
+      "detail": "Cloudflare (window global)",
       "evidence": { "signal": "turnstile", "source": "window-global" } }
   ],
   "checks": { "antibot": "ran", "rate_limit": "ran",
               "robots": "ran", "auth": "ran" },
   "checks_skipped": [],
+  "robots": { "exists": true, "allows_crawling": false, "agent": "*",
+              "disallowed_paths": ["/search"], "sitemaps": [] },
   "console_errors": [],
   "screenshot": "./scrape-le-example-com-2026-08-05-75e891e1.png",
   "crawl_delay_ignored": false,
@@ -440,6 +445,12 @@ Two rules borrowed from the other tools' MCP surfaces:
   because that is what reads as "the server is broken".
 - **Refusals speak the caller's vocabulary.** An MCP caller has no command
   line, so no message mentions `--no-render` or any other flag.
+- **A malformed frame is refused, not dropped, in the extension server's
+  words.** A line that is not JSON or not a JSON-RPC 2.0 request is a
+  `-32700` parse error with a null id, a frame over 16 MiB is refused and
+  the rest of it dropped as it arrives, a null id is a notification, and an
+  unknown method or tool is named the way the other two servers name it.
+  A client cannot tell the three servers apart by what it sent.
 
 ## The browser
 

@@ -248,6 +248,17 @@ exports[`robots.txt characterization > missing robots.txt (404) 1`] = `
 }
 `;
 
+exports[`robots.txt characterization > network failure 1`] = `
+{
+  "agent": "*",
+  "allowsCrawling": false,
+  "disallowedPaths": [],
+  "exists": false,
+  "sitemaps": [],
+  "unreachable": "network down",
+}
+`;
+
 exports[`robots.txt characterization > robots-disallow-all.txt for path / 1`] = `
 {
   "agent": "*",
@@ -446,6 +457,17 @@ exports[`robots.txt characterization > robots-wildcards.txt for path /public/pag
     "https://example.com/map1.xml",
     "https://example.com/map2.xml",
   ],
+}
+`;
+
+exports[`robots.txt characterization > server error 1`] = `
+{
+  "agent": "*",
+  "allowsCrawling": false,
+  "disallowedPaths": [],
+  "exists": false,
+  "sitemaps": [],
+  "unreachable": "HTTP 503",
 }
 `;
 

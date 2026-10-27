@@ -1,6 +1,6 @@
 {
 	"manifest.command.category": "Scrape-LE",
-	"manifest.command.check-url.title": "Überprüfen der Scrapbarkeit einer URL",
+	"manifest.command.check-url.title": "Scrapbarkeit einer URL prüfen",
 	"manifest.command.check-selection.title": "Ausgewählte URL prüfen",
 	"manifest.command.setup.title": "Browser einrichten",
 	"manifest.command.settings.title": "Einstellungen öffnen",
@@ -21,13 +21,14 @@
 	"manifest.settings.notifications.level.option.all": "Alle Benachrichtigungen anzeigen (Informationen, Warnungen, Fehler)",
 	"manifest.settings.notifications.level.option.important": "Nur wichtige Benachrichtigungen anzeigen (Warnungen, Fehler)",
 	"manifest.settings.notifications.level.option.silent": "Alle Benachrichtigungen unterdrücken (Stummschaltungsmodus)",
-	"manifest.settings.statusbar.enabled.desc": "Eintrag zur Scrape-LE-Statusleiste in VS Code anzeigen",
-	"manifest.settings.detections.antibot.desc": "Anti-Bot-Schutzsysteme erkennen (Cloudflare, reCAPTCHA, hCaptcha, DataDome, Perimeter81)",
+	"manifest.settings.statusbar.enabled.desc": "Scrape-LE-Eintrag in der VS Code-Statusleiste anzeigen",
+	"manifest.settings.detections.antibot.desc": "Anti-Bot-Schutzsysteme erkennen (Cloudflare, reCAPTCHA, hCaptcha, DataDome, PerimeterX)",
 	"manifest.settings.detections.ratelimit.desc": "HTTP-Header zur Ratenbegrenzung erkennen und auswerten (X-RateLimit-*, RateLimit-*, Retry-After)",
 	"manifest.settings.robotstxt.agent.desc": "Der Crawler, für den robots.txt ausgewertet wird, z. B. Googlebot oder MyBot/1.0. Es gelten die Regeln einer Gruppe, die ihn nennt; ist das Feld leer oder nennt ihn keine Gruppe, gelten die Regeln für alle Crawler (User-agent: *).",
 	"manifest.settings.detections.robotstxt.desc": "Die Datei „robots.txt“ abrufen und analysieren, um die Crawling-Berechtigungen und -Richtlinien zu überprüfen",
 	"manifest.settings.detections.authentication.desc": "Authentifizierungsbarrieren und Anmeldeanforderungen erkennen (401/403-Statuscodes, Anmeldeformulare, Authentifizierungs-Schlüsselwörter)",
 	"manifest.capability.untrusted-workspaces.desc": "Aus Sicherheitsgründen eingeschränkte Funktionalität in nicht vertrauenswürdigen Arbeitsbereichen",
-	"manifest.settings.retry.user-agents.desc": "Wenn eine Überprüfung fehlgeschlagen ist oder als Bot markiert wurde, versuche es erneut mit der URL unter Verwendung einiger gängiger User-Agents und gib an, welcher davon funktioniert hat.",
-	"manifest.mcp.label": "Scrape-LE-Tools zur Analyse der „robots.txt“-Datei im Agent-Modus"
+	"manifest.settings.retry.user-agents.desc": "Bei einer fehlgeschlagenen oder als Bot markierten Prüfung wird die URL mit einigen gängigen User-Agents erneut geprüft und gemeldet, welcher davon funktioniert hat",
+	"manifest.mcp.label": "Scrape-LE-Tools zur Analyse der „robots.txt“-Datei im Agent-Modus",
+	"manifest.capability.virtual-workspaces.desc": "Eingeschränkte Funktionalität in virtuellen Arbeitsbereichen: Browser und Screenshots benötigen ein lokales Dateisystem"
 }

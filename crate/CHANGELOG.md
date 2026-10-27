@@ -10,6 +10,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- A screenshot that could not be written, into a directory without
+  permission say, left the report without its `screenshot` field and the
+  summary without its `shot` line, and said nothing. The report carries
+  `screenshot_error`, naming the file and the OS's reason, and the summary
+  prints it.
+- A reader that closed the stderr pipe turned every refusal into a panic:
+  `eprintln!` panics when its write fails, so `--not-a-flag` under such a
+  reader exited 101 with a message nobody saw. stderr is not protocol; a
+  line that cannot be written is dropped and the exit code stands, as the
+  npm command line already did.
+- **`mcp` answers a malformed frame in the extension server's words, and
+  bounds a frame.** A line that was not UTF-8, not JSON or not a JSON-RPC
+  2.0 request was dropped without a word, so a client waiting on it waited
+  forever; it is a parse error now, with the request after it still served.
+  A line had no size limit, so a client streaming without a newline grew the
+  process without bound; a frame over 16 MiB is refused and the rest of the
+  line dropped as it arrives. A request with a null id is a notification
+  and takes no reply, and an unknown method, an unknown tool and a
+  `tools/call` naming no tool are refused in the same words the other two
+  servers use, so a client cannot tell the three apart by what it sent.
+- `scrape_le_check` dropped a `urls` entry that was not a string and reported
+  the rest as the whole answer, `count` included, and answered a `url` that
+  was not a string with "no URL was supplied". Each is named now: the entry's
+  position, or that `url` must be a string.
+- SPEC.md said the robots.txt parser builds on `texting_robots`, named a
+  `mcp.rs` that is a `mcp/` directory, and showed an example report whose
+  finding detail nothing emits and which lacked the `robots` object every
+  report carries. AGENTS.md named the same file.
+
 ### Security
 
 - `rustls-webpki` 0.103.15 to 0.103.16 (RUSTSEC-2026-0382) and `webpki-roots`

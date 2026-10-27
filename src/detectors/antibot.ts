@@ -67,28 +67,22 @@ export async function detectAntiBot(
 	});
 }
 
+// No catch in either: a header set that cannot be read or a probe that
+// cannot run used to become `{}`, and the check then said "None detected"
+// for vendors it never looked for. The failure propagates to runDetections,
+// which records it, and the report says the check failed.
 function readHeaders(response: Response | null): Record<string, string> {
 	if (!response) {
 		return {};
 	}
-	try {
-		return response.headers();
-	} catch (error) {
-		console.error('Error reading response headers:', error);
-		return {};
-	}
+	return response.headers();
 }
 
 async function runPageProbe(page: Page): Promise<PageProbeResult> {
-	try {
-		return (await page.evaluate(
-			pageProbeScan,
-			buildPageProbes(),
-		)) as PageProbeResult;
-	} catch (error) {
-		console.error('Error probing page for anti-bot vendors:', error);
-		return {};
-	}
+	return (await page.evaluate(
+		pageProbeScan,
+		buildPageProbes(),
+	)) as PageProbeResult;
 }
 
 export const AntiBotDetector = Object.freeze({

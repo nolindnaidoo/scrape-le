@@ -12,6 +12,8 @@ export type CheckResult = Readonly<{
 	title: string;
 	loadTimeMs: number;
 	screenshotPath?: string | undefined;
+	/** Why no screenshot was written, when one was asked for and failed. */
+	screenshotError?: string | undefined;
 	consoleErrors: readonly string[];
 	error?: string | undefined;
 	detections?: DetectionResults | undefined;
@@ -102,6 +104,12 @@ export type NotificationLevel = 'all' | 'important' | 'silent';
  */
 export type StatusBar = Readonly<{
 	show(message: string, tooltip?: string): void;
+	/**
+	 * Restores the idle text after `delayMs`, unless something is shown
+	 * first. One reset is pending at most; a new show or reset replaces it,
+	 * and dispose cancels it.
+	 */
+	resetAfter(delayMs: number): void;
 	hide(): void;
 	dispose(): void;
 }>;
@@ -121,7 +129,6 @@ export type Notifier = Readonly<{
 export type ConsoleMessage = Readonly<{
 	type: 'log' | 'error' | 'warning' | 'info';
 	text: string;
-	timestamp: number;
 }>;
 
 /**
@@ -181,6 +188,13 @@ export type RobotsTxtInfo = Readonly<{
 	/** Which group answered: `*`, or the agent's product token. */
 	agent: string;
 	allowsCrawling: boolean;
+	/**
+	 * Why the file could not be read, when it could not: a 5xx status, a
+	 * timeout or a network failure. RFC 9309 §2.3.1.4 has a crawler assume a
+	 * complete disallow then, so `allowsCrawling` is false and `exists` stays
+	 * false, because no file was served.
+	 */
+	unreachable?: string | undefined;
 	crawlDelay?: number | undefined;
 	disallowedPaths: readonly string[];
 	sitemaps: readonly string[];

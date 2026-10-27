@@ -80,7 +80,10 @@ async function detectLoginForm(
 	type?: AuthenticationInfo['type'];
 	loginUrl?: string;
 }> {
-	try {
+	// No catch around the evaluates below: a probe that cannot run used to
+	// read as "Not required", which is the one direction this check must not
+	// guess in. The failure propagates to runDetections, which records it.
+	{
 		const formInfo = await page.evaluate(() => {
 			// Look for password inputs
 			const passwordInputs = document.querySelectorAll(
@@ -133,8 +136,6 @@ async function detectLoginForm(
 			indicators.push('Password input detected');
 			return { detected: true, type: 'form' };
 		}
-	} catch (error) {
-		console.error('Error detecting login form:', error);
 	}
 
 	return { detected: false };
@@ -147,7 +148,7 @@ async function detectAuthKeywords(
 	page: Page,
 	indicators: string[],
 ): Promise<boolean> {
-	try {
+	{
 		const hasKeywords = await page.evaluate(() => {
 			const text = document.body.innerText.toLowerCase();
 			const keywords = [
@@ -175,8 +176,6 @@ async function detectAuthKeywords(
 			indicators.push(`Authentication keyword: "${hasKeywords.keyword}"`);
 			return true;
 		}
-	} catch (error) {
-		console.error('Error detecting auth keywords:', error);
 	}
 
 	return false;
@@ -190,19 +189,15 @@ async function checkUrlForAuth(
 	page: Page,
 	indicators: string[],
 ): Promise<boolean> {
-	try {
-		const authSegments = ['login', 'signin', 'sign-in', 'auth', 'authenticate'];
-		const pathname = new URL(page.url()).pathname.toLowerCase();
-		const segments = pathname.split('/').filter((s) => s.length > 0);
+	const authSegments = ['login', 'signin', 'sign-in', 'auth', 'authenticate'];
+	const pathname = new URL(page.url()).pathname.toLowerCase();
+	const segments = pathname.split('/').filter((s) => s.length > 0);
 
-		for (const segment of segments) {
-			if (authSegments.includes(segment)) {
-				indicators.push(`URL contains auth path segment: /${segment}`);
-				return true;
-			}
+	for (const segment of segments) {
+		if (authSegments.includes(segment)) {
+			indicators.push(`URL contains auth path segment: /${segment}`);
+			return true;
 		}
-	} catch (error) {
-		console.error('Error checking URL for auth:', error);
 	}
 
 	return false;

@@ -249,6 +249,38 @@ describe('checker', () => {
 			expect(result.screenshotPath).toMatch(/\.jpg$/);
 		});
 
+		it('reports a screenshot that could not be written instead of dropping it', async () => {
+			const mockPage = {
+				goto: vi.fn().mockResolvedValue({ status: () => 200 }),
+				title: vi.fn().mockResolvedValue('Test Page'),
+				screenshot: vi
+					.fn()
+					.mockRejectedValue(
+						new Error(
+							'EACCES: permission denied, open /Users/jane/shots/x.png',
+						),
+					),
+				close: vi.fn().mockResolvedValue(undefined),
+				on: vi.fn(),
+			};
+			const mockBrowser = {
+				newPage: vi.fn().mockResolvedValue(mockPage),
+			} as unknown as Browser;
+
+			const result = await checkPageScrapeability(
+				mockBrowser,
+				'https://example.com',
+				mockOptions,
+			);
+
+			// The check itself succeeded; the shortfall is named, redacted.
+			expect(result.success).toBe(true);
+			expect(result.screenshotPath).toBeUndefined();
+			expect(result.screenshotError).toContain('EACCES');
+			expect(result.screenshotError).toContain('/Users/***/');
+			expect(result.screenshotError).not.toContain('jane');
+		});
+
 		it('should skip screenshot when disabled', async () => {
 			const optionsNoScreenshot: CheckOptions = {
 				...mockOptions,

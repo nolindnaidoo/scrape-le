@@ -34,35 +34,24 @@ const SANDBOX_OPT_OUT: readonly string[] = Object.freeze([
 	'--disable-setuid-sandbox',
 ]);
 
-/** True when the browser is running without its sandbox. */
-let launchedUnsandboxed = false;
-
-export function isRunningUnsandboxed(): boolean {
-	return launchedUnsandboxed;
-}
-
 /**
  * Creates and launches a Playwright browser instance.
  */
 export async function createBrowser(): Promise<Browser> {
 	try {
-		const browser = await chromium.launch({
+		return await chromium.launch({
 			headless: true,
 			args: [...RESOURCE_ARGS],
 		});
-		launchedUnsandboxed = false;
-		return browser;
 	} catch (sandboxedError) {
 		// Environments that cannot run the sandbox (containers, some CI images,
 		// hardened kernels) fail at launch. Retry without it rather than leaving
 		// the extension unusable there.
 		try {
-			const browser = await chromium.launch({
+			return await chromium.launch({
 				headless: true,
 				args: [...RESOURCE_ARGS, ...SANDBOX_OPT_OUT],
 			});
-			launchedUnsandboxed = true;
-			return browser;
 		} catch {
 			throw createEnhancedError(
 				'Failed to launch browser. Is Chromium installed?',

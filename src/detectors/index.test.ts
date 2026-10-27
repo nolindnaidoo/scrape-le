@@ -184,7 +184,10 @@ describe('runDetections', () => {
 		expect(Object.isFrozen(result)).toBe(true);
 	});
 
-	it('should handle errors gracefully', async () => {
+	// Titled "handles errors gracefully" and asserting only that something
+	// came back, this covered nothing: a page whose every probe throws is
+	// two detections that failed, and the result has to say so.
+	it('records every detection whose probe threw, and keeps the ones that ran', async () => {
 		mockPage = {
 			url: () => {
 				throw new Error('Fatal error');
@@ -201,8 +204,17 @@ describe('runDetections', () => {
 			mockOptions,
 		);
 
-		// Should still return results even with errors
-		expect(result).toBeDefined();
+		expect(result.antiBot).toBeUndefined();
+		expect(result.authentication).toBeUndefined();
+		expect(result.failures?.map((f) => f.detection).sort()).toEqual([
+			'antiBot',
+			'authentication',
+		]);
+		for (const failure of result.failures ?? []) {
+			expect(failure.message).toBe('Fatal error');
+		}
+		expect(result.rateLimit?.detected).toBe(false);
+		expect(result.robotsTxt).toBeDefined();
 	});
 
 	it('should handle null response for rate limit detection', async () => {
@@ -228,6 +240,33 @@ describe('runDetections', () => {
 		expect(result.robotsTxt).toBeDefined();
 		expect(result.robotsTxt?.exists).toBeDefined();
 	}, 10000);
+
+	it('evaluates robots.txt as the configured agent, and as everyone without one', async () => {
+		mockFetch.mockResolvedValue({
+			ok: true,
+			status: 200,
+			text: async () =>
+				'User-agent: MyBot\nDisallow: /\n\nUser-agent: *\nAllow: /\n',
+		} as never);
+
+		const asMyBot = await runDetections(
+			mockPage as Page,
+			mockResponse as Response,
+			'https://example.com/page',
+			{ ...mockOptions, robotsAgent: 'MyBot/1.0' },
+		);
+		expect(asMyBot.robotsTxt?.agent).toBe('mybot');
+		expect(asMyBot.robotsTxt?.allowsCrawling).toBe(false);
+
+		const asAnyone = await runDetections(
+			mockPage as Page,
+			mockResponse as Response,
+			'https://example.com/page',
+			mockOptions,
+		);
+		expect(asAnyone.robotsTxt?.agent).toBe('*');
+		expect(asAnyone.robotsTxt?.allowsCrawling).toBe(true);
+	});
 
 	it('should combine multiple detections', async () => {
 		mockResponse = {

@@ -5,7 +5,11 @@ import {
 	_createExtensionContext,
 	_registeredCommands,
 	_resetMockState,
+	_setShowDocumentError,
+	_shownMessages,
 } from '../__mocks__/vscode';
+import { ANTI_BOT_SIGNATURES } from '../detectors/heuristics';
+import { manualInstallCommand } from '../scraper/install';
 import { createNotifier } from '../ui/notifier';
 import { createStatusBar } from '../ui/statusBar';
 import { registerHelpCommand } from './help';
@@ -47,5 +51,49 @@ describe('help command', () => {
 		expect(content).toContain('detections.antiBot');
 
 		expect(showSpy).toHaveBeenCalledOnce();
+	});
+
+	// The guard's path for this command had no test: the mock could not make
+	// the editor refuse to show the document.
+	it('reports a document the editor refused to show, through the guard', async () => {
+		_setShowDocumentError(new Error('editor refused /Users/jane/x'));
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerHelpCommand(context, {
+			notifier: createNotifier(),
+			statusBar: createStatusBar(context),
+		});
+		await _registeredCommands().get('scrape-le.help')?.();
+
+		const error = _shownMessages().find((m) => m.kind === 'error');
+		expect(error?.message).toContain('Scrape-LE could not finish');
+		expect(error?.message).toContain('editor refused /Users/***/');
+		expect(error?.message).not.toContain('jane');
+	});
+
+	// FEAT-17: the page listed four of the five vendors the corpus detects,
+	// and an unpinned install command that install.ts says can fetch a
+	// Chromium build the shipped playwright-core will not find.
+	it('names every vendor in the corpus and the pinned install command', async () => {
+		const openSpy = vi.spyOn(vscodeMock.workspace, 'openTextDocument');
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerHelpCommand(context, {
+			notifier: createNotifier(),
+			statusBar: createStatusBar(context),
+		});
+		await _registeredCommands().get('scrape-le.help')?.();
+		const content = (
+			openSpy.mock.calls[0]?.[0] as { content: string } | undefined
+		)?.content;
+
+		for (const signature of ANTI_BOT_SIGNATURES) {
+			expect(content).toContain(signature.label);
+		}
+		expect(content).toContain(manualInstallCommand());
+		expect(content).toMatch(
+			/npx playwright-core@\d+\.\d+\.\d+ install chromium/,
+		);
+		expect(content).not.toContain('`npx playwright-core install chromium`');
 	});
 });

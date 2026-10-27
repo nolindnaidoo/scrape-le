@@ -374,6 +374,8 @@ export function human(report: Report): string {
 	}
 	if (report.screenshot !== undefined)
 		lines.push(`  shot    ${report.screenshot}`);
+	if (report.screenshot_error !== undefined)
+		lines.push(`  shot    could not be written: ${report.screenshot_error}`);
 	const checks = [
 		['antibot', report.checks.antibot],
 		['rate-limit', report.checks.rate_limit],

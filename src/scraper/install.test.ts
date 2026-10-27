@@ -5,6 +5,8 @@ import {
 	_resetMockState,
 	_respondToInformation,
 	_respondToWarning,
+	_setClipboardError,
+	_setOpenExternalError,
 	_shownMessages,
 	openedExternal,
 } from '../__mocks__/vscode';
@@ -59,6 +61,18 @@ describe('ensureBrowserInstalled', () => {
 		expect(await ensureBrowserInstalled()).toBe(false);
 		expect(openedExternal[0]).toContain('playwright.dev');
 	});
+
+	it('lets a Learn More the editor could not open reach the command guard', async () => {
+		// Nothing here catches it, so the command's guard reports it as one
+		// redacted, localized error rather than the editor's own words.
+		mockAvailable.mockResolvedValue(false);
+		_respondToWarning(() => 'Learn More');
+		_setOpenExternalError(new Error('no browser is registered'));
+
+		await expect(ensureBrowserInstalled()).rejects.toThrow(
+			'no browser is registered',
+		);
+	});
 });
 
 describe('showManualInstallInstructions', () => {
@@ -105,6 +119,44 @@ describe('showManualInstallInstructions', () => {
 		showManualInstallInstructions();
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(_clipboardText()).toBeFalsy();
+	});
+
+	// The catch around the two actions had no test: the mock could not make
+	// the clipboard or the browser fail.
+	it('reports a copy the clipboard refused', async () => {
+		_setClipboardError(new Error('clipboard unavailable'));
+		_respondToInformation((items) =>
+			items.find((i) => String(i).includes('Copy')),
+		);
+		showManualInstallInstructions();
+		await vi.waitFor(() => {
+			expect(
+				_shownMessages().some(
+					(m) =>
+						m.kind === 'error' &&
+						m.message.includes('Failed to execute action') &&
+						m.message.includes('clipboard unavailable'),
+				),
+			).toBe(true);
+		});
+		expect(_clipboardText()).toBeFalsy();
+	});
+
+	it('reports a Learn More the editor could not open', async () => {
+		_setOpenExternalError(new Error('no browser is registered'));
+		_respondToInformation((items) =>
+			items.find((i) => String(i).includes('Learn More')),
+		);
+		showManualInstallInstructions();
+		await vi.waitFor(() => {
+			expect(
+				_shownMessages().some(
+					(m) =>
+						m.kind === 'error' &&
+						m.message.includes('no browser is registered'),
+				),
+			).toBe(true);
+		});
 	});
 });
 

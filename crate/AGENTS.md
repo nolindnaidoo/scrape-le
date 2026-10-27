@@ -34,7 +34,7 @@ crate/src/
 ├── check_url.rs  one URL end to end — the only path either surface calls
 ├── batch.rs      host grouping, bounded concurrency, streaming
 ├── cli.rs        the terminal surface
-└── mcp.rs        the agent surface
+└── mcp/          the agent surface: the stdio loop and the shared tool
 ```
 
 - **`detect/` touches no network and drives no browser.** It takes
@@ -43,7 +43,7 @@ crate/src/
   the **70% line coverage floor per module**, enforced by the
   `coverage` job. If a `ureq` or `headless_chrome` type appears in
   `detect/`, that is a bug.
-- **Both surfaces are one implementation.** `cli.rs` and `mcp.rs` both
+- **Both surfaces are one implementation.** `cli.rs` and `mcp/` both
   call `check_url.rs`, which calls `check()` in `detect/`. A surface
   that grows its own copy of a rule is a bug, and a contract test
   asserts the two return identical findings for the same URL.
@@ -138,6 +138,11 @@ and pixelactions:
 - **Strict parsing, never silent defaults.** Bad flags, malformed batch
   input, and unreadable config are errors with actionable messages,
   not fallbacks.
+- **Nothing on stderr may panic the process.** Every line to stderr goes
+  through `stderr_line!` in `main.rs`, which drops a write that fails;
+  `eprintln!` panics on one, and a reader that closed the stderr pipe
+  turned every refusal into exit 101. `tests/contracts.rs` holds it
+  (`a_closed_stderr_is_survived_not_a_panic`).
 - **Refuse rather than guess.** A page that cannot be reached or
   rendered is a refusal with a reason, never a fabricated verdict.
   Partial evidence is reported as partial — the report says plainly
@@ -146,6 +151,15 @@ and pixelactions:
 - **Refusals speak the caller's vocabulary.** An MCP caller has no
   command line; no message aimed at one mentions `--no-render` or any
   other flag.
+- **A malformed frame is answered in the npm server's words.** Three
+  servers ship from this repository; `mcp/mod.rs` reads a line that is
+  not UTF-8 with replacement characters, refuses one that is not JSON or
+  not a JSON-RPC 2.0 request with the extension server's parse error,
+  refuses a frame over `MAX_FRAME_BYTES` and drops the rest of it as it
+  arrives, reads a null id as a notification, and names an unknown
+  method, an unknown tool and a nameless `tools/call` exactly as the
+  other two do. `scripts/check-cli-pipes.ts` holds it against the npm
+  command line.
 - **`analyze_robots_txt` belongs to both servers.** The npm server
   (`src/mcp/tools.ts`) and this one offer the same tool: same schema,
   same envelope, byte-identical output.

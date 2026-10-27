@@ -26,6 +26,7 @@ export async function checkPageScrapeability(
 	let statusCode: number | null = null;
 	let title = '';
 	let screenshotPath: string | undefined;
+	let screenshotError: string | undefined;
 	let page = null;
 
 	try {
@@ -48,7 +49,6 @@ export async function checkPageScrapeability(
 					consoleMessages.push({
 						type: type as 'error' | 'warning',
 						text: msg.text(),
-						timestamp: Date.now(),
 					});
 				}
 			});
@@ -58,7 +58,6 @@ export async function checkPageScrapeability(
 				consoleMessages.push({
 					type: 'error',
 					text: error.message,
-					timestamp: Date.now(),
 				});
 			});
 		}
@@ -89,7 +88,9 @@ export async function checkPageScrapeability(
 
 		// Take screenshot if enabled
 		if (options.screenshotEnabled) {
-			screenshotPath = await captureScreenshot(page, url, options);
+			const screenshot = await captureScreenshot(page, url, options);
+			screenshotPath = screenshot.path;
+			screenshotError = screenshot.error;
 		}
 
 		// Run detections if any are enabled
@@ -113,6 +114,7 @@ export async function checkPageScrapeability(
 			title,
 			loadTimeMs,
 			screenshotPath,
+			screenshotError,
 			consoleErrors: Object.freeze(consoleMessages.map((msg) => msg.text)),
 			detections,
 		});
@@ -146,7 +148,12 @@ export async function checkPageScrapeability(
 
 /**
  * Captures screenshot of the page honoring format and quality settings
- * (quality applies to jpeg only — Playwright rejects it for png)
+ * (quality applies to jpeg only — Playwright rejects it for png).
+ *
+ * A capture that fails is not the check failing, but it is not nothing
+ * either: the report used to leave the screenshot line out and say nothing,
+ * with the reason in a console the user never opens. The failure comes back
+ * beside the path it would have had, and the report prints it.
  */
 async function captureScreenshot(
 	page: {
@@ -162,7 +169,7 @@ async function captureScreenshot(
 		CheckOptions,
 		'screenshotPath' | 'screenshotFormat' | 'screenshotQuality'
 	>,
-): Promise<string> {
+): Promise<{ path?: string; error?: string }> {
 	try {
 		const extension = options.screenshotFormat === 'jpeg' ? 'jpg' : 'png';
 		const filename = `${convertUrlToFilename(url)}.${extension}`;
@@ -180,10 +187,10 @@ async function captureScreenshot(
 				: {}),
 		});
 
-		return fullPath;
+		return { path: fullPath };
 	} catch (error) {
-		// Screenshot is non-critical, log but continue
-		console.error('Failed to capture screenshot:', error);
-		return '';
+		return {
+			error: sanitizeErrorMessage(extractErrorMessage(error)),
+		};
 	}
 }

@@ -3,8 +3,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+	classifyError,
 	extractErrorMessage,
-	formatErrorForUser,
 	isNetworkError,
 	isTimeoutError,
 	sanitizeErrorMessage,
@@ -57,31 +57,34 @@ describe('Error Handling', () => {
 		});
 	});
 
-	describe('formatErrorForUser', () => {
-		it('should format timeout errors with emoji', () => {
-			const formatted = formatErrorForUser(new Error('Timeout exceeded'));
-			expect(formatted).toContain('⏱️');
-			expect(formatted).toContain('Timeout');
+	describe('classifyError', () => {
+		it('classifies a timeout', () => {
+			expect(classifyError(new Error('Timeout exceeded'))).toEqual({
+				kind: 'timeout',
+				message: 'Timeout exceeded',
+			});
 		});
 
-		it('should format network errors with emoji', () => {
-			const formatted = formatErrorForUser(new Error('Network error'));
-			expect(formatted).toContain('🔌');
-			expect(formatted).toContain('Network error');
+		it('classifies a network failure', () => {
+			expect(classifyError(new Error('Network error'))).toEqual({
+				kind: 'network',
+				message: 'Network error',
+			});
 		});
 
-		it('should format generic errors', () => {
-			const formatted = formatErrorForUser(new Error('Generic error'));
-			expect(formatted).toContain('❌');
-			expect(formatted).toContain('Generic error');
+		it('classifies anything else as an error', () => {
+			expect(classifyError(new Error('Generic error'))).toEqual({
+				kind: 'error',
+				message: 'Generic error',
+			});
 		});
 
-		it('should sanitize user paths in formatted errors', () => {
-			const formatted = formatErrorForUser(
+		it('redacts user paths in the message', () => {
+			const { message } = classifyError(
 				new Error('ENOENT /Users/jane/project/file.txt'),
 			);
-			expect(formatted).toContain('/Users/***/');
-			expect(formatted).not.toContain('jane');
+			expect(message).toContain('/Users/***/');
+			expect(message).not.toContain('jane');
 		});
 	});
 

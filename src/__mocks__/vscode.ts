@@ -182,6 +182,8 @@ interface MockOutputChannel {
 	dispose: () => void;
 	_lines: string[];
 	_shown: boolean;
+	/** Set by dispose(), so a test can assert the channel was released. */
+	_disposed: boolean;
 }
 
 const outputChannels: MockOutputChannel[] = [];
@@ -198,6 +200,8 @@ interface MockStatusBarItem {
 	show(): void;
 	hide(): void;
 	dispose(): void;
+	/** Set by dispose(), so a test can assert the item was released. */
+	_disposed: boolean;
 }
 
 const statusBarItems: MockStatusBarItem[] = [];
@@ -253,7 +257,10 @@ export const window = {
 		}
 		return value;
 	},
-	showTextDocument: async (_document: unknown, _column?: unknown) => undefined,
+	showTextDocument: async (_document: unknown, _column?: unknown) => {
+		if (showDocumentError !== undefined) throw showDocumentError;
+		return undefined;
+	},
 	withProgress: async <T>(
 		_options: unknown,
 		task: (progress: { report: (value: unknown) => void }) => Thenable<T>,
@@ -268,9 +275,12 @@ export const window = {
 			clear: () => {
 				lines.length = 0;
 			},
-			dispose: () => {},
+			dispose: () => {
+				channel._disposed = true;
+			},
 			_lines: lines,
 			_shown: false,
+			_disposed: false,
 		};
 		outputChannels.push(channel);
 		return channel;
@@ -290,7 +300,10 @@ export const window = {
 			hide(): void {
 				item.visible = false;
 			},
-			dispose: () => {},
+			dispose: () => {
+				item._disposed = true;
+			},
+			_disposed: false,
 		};
 		statusBarItems.push(item);
 		return item;
@@ -336,17 +349,41 @@ export const env = {
 	appName: 'Visual Studio Code',
 	clipboard: {
 		writeText: async (text: string) => {
+			if (clipboardError !== undefined) throw clipboardError;
 			clipboard.value = text;
 		},
 		readText: async () => clipboard.value,
 	},
 	openExternal: async (uri: Uri) => {
+		if (openExternalError !== undefined) throw openExternalError;
 		openedExternal.push(uri.toString());
 		return true;
 	},
 };
 
 export const openedExternal: string[] = [];
+
+// The failures the editor can hand back, so every catch around these calls
+// has a test that reaches it. A path the mock cannot make fail is an
+// untested path whatever the coverage figure says.
+let clipboardError: unknown;
+let openExternalError: unknown;
+let showDocumentError: unknown;
+
+/** Makes `env.clipboard.writeText` reject with `error`. */
+export function _setClipboardError(error: unknown): void {
+	clipboardError = error;
+}
+
+/** Makes `env.openExternal` reject with `error`. */
+export function _setOpenExternalError(error: unknown): void {
+	openExternalError = error;
+}
+
+/** Makes `window.showTextDocument` reject with `error`. */
+export function _setShowDocumentError(error: unknown): void {
+	showDocumentError = error;
+}
 
 export function _clipboardText(): string {
 	return clipboard.value;
@@ -370,8 +407,79 @@ export function _createExtensionContext() {
 		},
 		extension: {
 			id: 'nolindnaidoo.scrape-le',
-			packageJSON: { displayName: 'Scrape-LE' },
+			packageJSON: { displayName: 'Scrape-LE', version: '0.0.0-test' },
 		},
+		asAbsolutePath: (relative: string) => `/ext/${relative}`,
+	};
+}
+
+// ------------------------------------------------------ language model
+
+/** What the provider registers, as `vscode.McpStdioServerDefinition`. */
+export class McpStdioServerDefinition {
+	constructor(
+		readonly label: string,
+		readonly command: string,
+		readonly args: readonly string[],
+		readonly env: Readonly<Record<string, string>>,
+		readonly version: string,
+	) {}
+}
+
+interface MockMcpProvider {
+	id: string;
+	provider: unknown;
+	_disposed: boolean;
+}
+
+const mcpProviders: MockMcpProvider[] = [];
+
+const lmApi = {
+	registerMcpServerDefinitionProvider: (id: string, provider: unknown) => {
+		const entry: MockMcpProvider = { id, provider, _disposed: false };
+		mcpProviders.push(entry);
+		return {
+			dispose: () => {
+				entry._disposed = true;
+			},
+		};
+	},
+};
+
+/**
+ * `vscode.lm`, present by default. A live binding: `_setLmApi(false)` is a
+ * host without agent mode, which the provider must feature-detect.
+ */
+export let lm: typeof lmApi | undefined = lmApi;
+
+export function _setLmApi(present: boolean): void {
+	lm = present ? lmApi : undefined;
+}
+
+export function _mcpProviders(): readonly MockMcpProvider[] {
+	return mcpProviders;
+}
+
+// ------------------------------------------------------- what is alive
+
+/**
+ * Everything created through this mock and not yet released: the count a
+ * lifecycle test reads after deactivation, and after many runs.
+ */
+export function _live(): {
+	statusBarItems: number;
+	outputChannels: number;
+	configListeners: number;
+	commands: number;
+	mcpProviders: number;
+} {
+	return {
+		statusBarItems: statusBarItems.filter((item) => !item._disposed).length,
+		outputChannels: outputChannels.filter((channel) => !channel._disposed)
+			.length,
+		configListeners: configListeners.length,
+		commands: registeredCommands.size,
+		mcpProviders: mcpProviders.filter((entry) => !entry._disposed).length,
 	};
 }
 
@@ -390,11 +498,16 @@ export function _resetMockState(): void {
 	registeredCommands.clear();
 	outputChannels.length = 0;
 	statusBarItems.length = 0;
+	mcpProviders.length = 0;
+	lm = lmApi;
 	activeTextEditor = undefined;
 	quickPickResponder = undefined;
 	warningResponder = undefined;
 	inputBoxResponder = undefined;
 	clipboard.value = '';
+	clipboardError = undefined;
+	openExternalError = undefined;
+	showDocumentError = undefined;
 	workspace.workspaceFolders = undefined;
 }
 

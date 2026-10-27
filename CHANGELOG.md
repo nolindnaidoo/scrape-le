@@ -12,8 +12,119 @@ version and releases from one tag.
 
 ## [Unreleased]
 
+### Removed
+
+- Two declarations nothing read: `isRunningUnsandboxed()` and the module
+  state behind it, and the `timestamp` every captured console message
+  carried.
+
 ### Fixed
 
+- The npm command line, like the crate, left a report without its
+  `screenshot` field and said nothing when the file could not be written.
+  Both carry `screenshot_error`, naming the file and the OS's reason, and
+  print it in the summary.
+- The host tests launch VS Code in German as well, with the German language
+  pack installed, and assert the extension activates there with the German
+  bundle where the manifest tells the host to look. Nothing had run the
+  extension under any locale but English.
+- Deactivation released the status bar item but not the idle reset pending
+  on it, which the item's wrapper owns: the wrapper is what activation
+  registers now. Found by a new lifecycle test that activates, runs every
+  command, disposes everything and asserts nothing is left alive, then runs
+  every command fifty times and asserts nothing grew.
+- Thirty-eight catalogue values did not fit their place. The anti-bot
+  setting's description named Perimeter81, a VPN vendor, in English and in
+  every language; the corpus detects PerimeterX. The "retry under common
+  User-Agents" setting read as an instruction to the user in ten languages
+  instead of a description of what the extension does. "Copy Command", the
+  button that copies the install command, read as the name of a Copy command
+  in eleven. "No active editor" meant a person in Korean and Chinese, the
+  German, Korean, Vietnamese and Chinese progress title for installing
+  Chromium was the install button's label, the German, Russian and Ukrainian
+  status-bar setting described a Scrape-LE status bar, the Chinese MCP label
+  said user-agent mode, a Korean string was half transliterated, and a French
+  progress message assumed the URL began with a vowel. The virtual-workspace
+  capability reused the untrusted-workspace description; it has its own,
+  saying what needs a local file system.
+- Twenty-four strings the extension shows were English in every language:
+  the status bar's "Checking...", "Reachable", "Failed" and "Error" texts and
+  their tooltips, the "Retrying as ..." progress message, the Setup Browser
+  results, the "Chromium browser is required" warning, the timeout, network
+  and error prefixes on a failed check, and the install flow's "Failed to
+  execute action" and "Unknown error". Each goes through the runtime bundle
+  now, in all twelve languages, and a unit test holds the source and the
+  bundle together so a string cannot be added to one without the other.
+- **The three MCP servers answer a malformed frame the same way.** They
+  shipped three behaviours: a frame that was not JSON, not UTF-8 or not a
+  JSON-RPC 2.0 request was refused with a parse error by the extension's
+  server and dropped without a word by the crate's and the npm command
+  line's; a request with a null id was ignored by one and answered by two;
+  `initialize` had one server echo whatever protocol version the client
+  named; `notifications/initialized` sent with an id was ignored by one and
+  refused by two; and an unknown method, an unknown tool and a `tools/call`
+  naming no tool were refused in three wordings. The npm command line's
+  server now reads frames as the extension's does, with the same 16 MiB
+  frame limit it had none of, refuses in the same words, reads a null id as
+  a notification, and waits for a full pipe to drain before reading the
+  next frame instead of holding every reply in memory. The extension's
+  server answers its own protocol version, bare tool capabilities, and no
+  longer answers a null id.
+- `scrape_le_check` over MCP, from the npm command line, dropped a `urls`
+  entry that was not a string and reported the rest as the whole answer, and
+  answered a `url` that was not a string with "no URL was supplied". Each is
+  named now: the entry's position, or that `url` must be a string. The crate
+  answers the same.
+- The robots.txt request identified itself as `Scrape-LE/2.0`, a version
+  two minors behind the one running. The User-Agent carries no version now.
+- The README said agent-specific robots.txt groups are ignored, which the
+  `scrape-le.robotsTxt.agent` setting has not been true of since it was
+  added; the settings table left that setting out; the Detections heading
+  sat on the end of a paragraph and did not render as one; and the install
+  table described a run "over a whole tree", which this tool does not do.
+- The help page listed four of the five anti-bot vendors the corpus detects,
+  leaving PerimeterX out, and offered an unpinned `npx playwright-core install
+  chromium`, which can fetch a Chromium build the shipped playwright-core will
+  not find. Both are read from the code now: the vendor list from the
+  signature corpus and the command pinned to the shipped version.
+- The Setup Browser command showed its results with the editor's own dialogs,
+  past the `notificationsLevel` setting every other notification honours.
+  They go through the notifier now; the quick pick and the install prompts
+  are interaction and stay direct.
+- A screenshot that could not be written, to a path without permission say,
+  left the report without a screenshot line and said nothing; the reason went
+  to a console nobody opens. The report now prints that the screenshot could
+  not be written and why, with the home directory redacted.
+- A robots.txt declaring `Crawl-delay: 0` had the delay left out of the
+  report, as though none were declared.
+- A navigation Playwright made no request for, which has no response, showed
+  "HTTP null" in the status bar tooltip and "Status Code: null" in the report.
+  The tooltip carries the title alone and the report says there was no
+  response.
+- The toast after a check said "Page is reachable and scrapeable" whenever
+  the page loaded without console errors, over a report listing anti-bot
+  vendors, a login wall, a robots.txt refusal or a 403. The detectors name
+  what blocks a scraper and cannot prove its absence, so the toast now names
+  what they found, or says that nothing found would block a scraper.
+- An anti-bot probe or an authentication probe that could not run read as
+  "None detected" and "Not required": each swallowed its own failure into an
+  empty result. A probe that fails now fails its detection, which the report
+  states as a check that failed, with the reason.
+- A robots.txt the server failed to serve, with a 5xx, a timeout or a network
+  failure, was reported as "Not found" with crawling allowed. RFC 9309
+  §2.3.1.4 has a crawler assume a complete disallow then, which is what the
+  crate and the npm command line already answered; the report now says the
+  file could not be read, why, and that the disallow is assumed, and quotes no
+  rule. A 4xx still reads as no rules, crawling allowed.
+- A check started while the previous one's five-second status cooldown was
+  pending had its status replaced by the idle text when that timer fired, and
+  the timer outlived deactivation. The status bar owns the reset now: a new
+  message cancels a pending reset, one reset is pending at most, and dispose
+  cancels it.
+- The output channel was created on first use and released by nothing, so it
+  outlived deactivation; and the module kept it across the unit tests, which
+  passed in file order and failed shuffled. Activation now registers its
+  release, and the tests release it between runs.
 - The MCP server held every byte of a frame until its newline, with no
   ceiling, so a client that streamed without one grew the process without
   bound and got no answer. A frame over 16 MiB is refused with a parse error

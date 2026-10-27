@@ -233,23 +233,23 @@ describe('detectAntiBot', () => {
 		expect(result.details).toEqual([]);
 	});
 
-	it('should handle page.evaluate errors gracefully', async () => {
+	// A probe that cannot run is a failed detection, not a clean one. Both
+	// failures used to collapse into `{}` and the check said "None detected"
+	// for vendors it never looked for; runDetections records the rejection
+	// and the report says the check failed.
+	it('a probe that cannot run fails the detection rather than reading as clean', async () => {
 		mockPage = {
 			evaluate: async () => {
 				throw new Error('Evaluation failed');
 			},
 		} as unknown as Page;
 
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage,
-			mockResponse as Response,
-		);
-
-		expect(result.recaptcha).toBe(false);
-		expect(result.hcaptcha).toBe(false);
+		await expect(
+			AntiBotDetector.detectAntiBot(mockPage, mockResponse as Response),
+		).rejects.toThrow('Evaluation failed');
 	});
 
-	it('should still probe the page when response.headers() throws', async () => {
+	it('headers that cannot be read fail the detection rather than reading as clean', async () => {
 		mockResponse = {
 			headers: () => {
 				throw new Error('Headers unavailable');
@@ -261,13 +261,9 @@ describe('detectAntiBot', () => {
 			}),
 		);
 
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage,
-			mockResponse as Response,
-		);
-
-		expect(result.cloudflare).toBe(false);
-		expect(result.recaptcha).toBe(true);
+		await expect(
+			AntiBotDetector.detectAntiBot(mockPage, mockResponse as Response),
+		).rejects.toThrow('Headers unavailable');
 	});
 
 	it('should return frozen result object', async () => {
@@ -280,7 +276,7 @@ describe('detectAntiBot', () => {
 		expect(Object.isFrozen(result.details)).toBe(true);
 	});
 
-	it('should return default when both headers and probe fail', async () => {
+	it('fails when both headers and probe fail, naming the first failure', async () => {
 		mockPage = {
 			evaluate: async () => {
 				throw new Error('Fatal error');
@@ -292,16 +288,8 @@ describe('detectAntiBot', () => {
 			},
 		};
 
-		const result = await AntiBotDetector.detectAntiBot(
-			mockPage,
-			mockResponse as Response,
-		);
-
-		expect(result.cloudflare).toBe(false);
-		expect(result.recaptcha).toBe(false);
-		expect(result.hcaptcha).toBe(false);
-		expect(result.datadome).toBe(false);
-		expect(result.perimeterx).toBe(false);
-		expect(result.details).toEqual([]);
+		await expect(
+			AntiBotDetector.detectAntiBot(mockPage, mockResponse as Response),
+		).rejects.toThrow('Fatal error');
 	});
 });

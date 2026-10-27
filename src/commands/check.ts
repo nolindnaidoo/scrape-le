@@ -12,7 +12,7 @@ import { retryWithUserAgents, shouldRetry } from '../scraper/retry';
 import type { CheckOptions, CheckResult, Notifier, StatusBar } from '../types';
 import { logCheckResult, showOutput } from '../ui/output';
 import type { RatingPrompt } from '../ui/ratingPrompt';
-import { formatErrorForUser } from '../utils/errorHandling';
+import { classifyError } from '../utils/errorHandling';
 import { normalizeUrl, validateUrl } from '../utils/url';
 import { guarded } from './guard';
 
@@ -65,6 +65,90 @@ export function registerCheckUrlCommand(
 }
 
 /**
+ * The toast for a page that loaded. "Reachable and scrapeable" was shown
+ * whenever the page loaded without console errors, with anti-bot vendors,
+ * a login wall, a robots.txt refusal or a 403 sitting in the report below
+ * it; the detectors cannot prove scrapeability, only name what blocks it,
+ * so the toast now names what they found or says that nothing was found.
+ */
+function announceSuccess(result: CheckResult, notifier: Notifier): void {
+	const blockers = blockingSignals(result);
+	if (blockers.length > 0) {
+		notifier.warn(
+			vscode.l10n.t(
+				'✓ Page is reachable, but scraping may be blocked: {0}. See output for details.',
+				blockers.join(', '),
+			),
+		);
+		return;
+	}
+	const errorCount = result.consoleErrors.length;
+	if (errorCount > 0) {
+		notifier.warn(
+			vscode.l10n.t(
+				'✓ Page is reachable but found {0} console error(s). Check output for details.',
+				errorCount,
+			),
+		);
+		return;
+	}
+	notifier.info(
+		vscode.l10n.t(
+			'✓ Page is reachable and nothing found would block a scraper',
+		),
+	);
+}
+
+/**
+ * Everything in a result that would stop or limit a scraper, as the report
+ * lists it: the status, each detection that fired, and any detection that
+ * could not run, because a check that did not run proves nothing.
+ */
+function blockingSignals(result: CheckResult): string[] {
+	const signals: string[] = [];
+	if (result.statusCode !== null && result.statusCode >= 400) {
+		// A protocol token and a number: never translated.
+		signals.push(`HTTP ${result.statusCode}`);
+	}
+	const detections = result.detections;
+	if (!detections) return signals;
+	const antiBot = detections.antiBot;
+	if (
+		antiBot &&
+		(antiBot.cloudflare ||
+			antiBot.recaptcha ||
+			antiBot.hcaptcha ||
+			antiBot.datadome ||
+			antiBot.perimeterx)
+	) {
+		signals.push(vscode.l10n.t('anti-bot measures'));
+	}
+	if (detections.rateLimit?.detected) {
+		signals.push(vscode.l10n.t('rate limiting'));
+	}
+	if (detections.robotsTxt && !detections.robotsTxt.allowsCrawling) {
+		// A file name: never translated.
+		signals.push('robots.txt');
+	}
+	if (detections.authentication?.required) {
+		signals.push(vscode.l10n.t('authentication'));
+	}
+	if (detections.failures && detections.failures.length > 0) {
+		signals.push(vscode.l10n.t('a detection that could not run'));
+	}
+	return signals;
+}
+
+/** The thrown error as the user reads it: classified, redacted, localized. */
+function describeError(error: unknown): string {
+	const { kind, message } = classifyError(error);
+	if (kind === 'timeout') return vscode.l10n.t('⏱️ Timeout: {0}', message);
+	if (kind === 'network')
+		return vscode.l10n.t('🔌 Network error: {0}', message);
+	return vscode.l10n.t('❌ Error: {0}', message);
+}
+
+/**
  * Executes a scrapeability check for a given URL
  */
 export async function executeCheck(
@@ -80,7 +164,9 @@ export async function executeCheck(
 	const browserAvailable = await ensureBrowserInstalled();
 	if (!browserAvailable) {
 		deps.notifier.warn(
-			'Chromium browser is required. Please install it to use Scrape-LE.',
+			vscode.l10n.t(
+				'Chromium browser is required. Please install it to use Scrape-LE.',
+			),
 		);
 		return;
 	}
@@ -119,8 +205,8 @@ export async function executeCheck(
 
 			// Update status bar
 			deps.statusBar.show(
-				'$(sync~spin) Checking...',
-				'Checking URL scrapeability',
+				vscode.l10n.t('$(sync~spin) Checking...'),
+				vscode.l10n.t('Checking URL scrapeability'),
 			);
 
 			let browser = null;
@@ -162,31 +248,27 @@ export async function executeCheck(
 				// Show result in status bar
 				if (result.success) {
 					deps.statusBar.show(
-						`$(check) Reachable (${result.loadTimeMs}ms)`,
-						`${result.title} - HTTP ${result.statusCode}`,
+						vscode.l10n.t('$(check) Reachable ({0}ms)', result.loadTimeMs),
+						// Playwright returns no response for a navigation it did not
+						// make a request for; the tooltip read "HTTP null" then.
+						result.statusCode === null
+							? result.title
+							: `${result.title} - HTTP ${result.statusCode}`,
 					);
-
-					const errorCount = result.consoleErrors.length;
-					if (errorCount > 0) {
-						deps.notifier.warn(
-							`✓ Page reachable but found ${errorCount} console error(s). Check output for details.`,
-						);
-					}
-					if (errorCount === 0) {
-						deps.notifier.info(
-							vscode.l10n.t('✓ Page is reachable and scrapeable'),
-						);
-					}
+					announceSuccess(result, deps.notifier);
 				}
 				if (!result.success) {
-					deps.statusBar.show('$(x) Failed', result.error || 'Check failed');
+					deps.statusBar.show(
+						vscode.l10n.t('$(x) Failed'),
+						result.error || vscode.l10n.t('Check failed'),
+					);
 					// result.error is optional; the template literal this replaced
 					// rendered the string "undefined" when it was absent. The status
 					// bar line directly above already falls back to 'Check failed'.
 					deps.notifier.error(
 						vscode.l10n.t(
 							'✗ Failed to reach page: {0}',
-							result.error || 'Check failed',
+							result.error || vscode.l10n.t('Check failed'),
 						),
 					);
 				}
@@ -202,8 +284,8 @@ export async function executeCheck(
 					void deps.ratingPrompt.recordSuccess();
 				}
 			} catch (error) {
-				const errorMessage = formatErrorForUser(error);
-				deps.statusBar.show('$(x) Error', errorMessage);
+				const errorMessage = describeError(error);
+				deps.statusBar.show(vscode.l10n.t('$(x) Error'), errorMessage);
 				deps.notifier.error(errorMessage);
 
 				// Log to output
@@ -214,13 +296,9 @@ export async function executeCheck(
 					await closeBrowser(browser);
 				}
 
-				// Reset status bar after a delay
-				setTimeout(() => {
-					deps.statusBar.show(
-						'$(globe) Scrape-LE',
-						'Click to check URL scrapeability',
-					);
-				}, 5000);
+				// The idle text comes back after a cooldown; the status bar owns
+				// the timer so a check started meanwhile is not reset mid-run.
+				deps.statusBar.resetAfter(5000);
 			}
 		},
 	);

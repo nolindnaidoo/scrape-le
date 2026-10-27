@@ -12,6 +12,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Readable, Writable } from 'node:stream';
+import { rustIoMessage } from './ioError';
 import type { AuthPageEvidence, ProbeResult, RenderEvidence } from './report';
 import type { Signature } from './signatures';
 
@@ -338,7 +339,7 @@ async function session(
 	);
 	const tabUrl = targetUrl;
 	const bodyHtml = await evaluateString(GET_CONTENT).catch(() => '');
-	const screenshot = await captureScreenshot(send, evaluateString, url);
+	const shot = await captureScreenshot(send, evaluateString, url);
 
 	const finalUrl =
 		document !== undefined && document.url !== '' ? document.url : tabUrl;
@@ -351,7 +352,8 @@ async function session(
 		probes,
 		auth,
 		consoleErrors,
-		screenshot,
+		screenshot: shot.path,
+		screenshotError: shot.error,
 		renderMs: Date.now() - started,
 	});
 }
@@ -459,10 +461,18 @@ async function authProbe(
 	});
 }
 
+/** What the capture came to: the file's path, or why there is none. */
+export type Screenshot = Readonly<{
+	path?: string | undefined;
+	error?: string | undefined;
+}>;
+
 /**
  * A full-page PNG in the working directory, named for the URL and the day.
- * The capture is documentation, never evidence a finding rests on, so any
- * failure here leaves the report without a screenshot rather than failing it.
+ * The capture is documentation, never evidence a finding rests on, so a
+ * failure here does not fail the check — but it used to be nothing at all,
+ * a report without its `screenshot` field and a summary without its `shot`
+ * line. The reason travels with the report, as the crate carries it.
  */
 async function captureScreenshot(
 	send: (
@@ -471,9 +481,9 @@ async function captureScreenshot(
 	) => Promise<Record<string, unknown>>,
 	evaluateString: (expression: string) => Promise<string>,
 	url: string,
-): Promise<string | undefined> {
+): Promise<Screenshot> {
 	const filename = screenshotName(url, civilDateToday());
-	if (filename === undefined) return undefined;
+	if (filename === undefined) return {};
 	const resized = await resizeToDocument(send, evaluateString);
 	const png = await send('Page.captureScreenshot', {
 		format: 'png',
@@ -482,18 +492,30 @@ async function captureScreenshot(
 		(result) =>
 			typeof result.data === 'string'
 				? Buffer.from(result.data, 'base64')
-				: undefined,
-		() => undefined,
+				: new Error('no image data'),
+		(error: unknown) =>
+			error instanceof Error ? error : new Error(String(error)),
 	);
 	if (resized)
 		await send('Emulation.clearDeviceMetricsOverride').catch(() => undefined);
-	if (png === undefined) return undefined;
+	if (png instanceof Error) {
+		return { error: `the browser returned no screenshot: ${png.message}` };
+	}
+	return saveScreenshot(filename, png);
+}
+
+/**
+ * Writes the image into the working directory and names it as the report
+ * does, or says what stopped it, naming the file and the OS's reason in the
+ * crate's words.
+ */
+export function saveScreenshot(filename: string, png: Buffer): Screenshot {
 	try {
 		writeFileSync(filename, png);
-	} catch {
-		return undefined;
+	} catch (error) {
+		return { error: `${filename}: ${rustIoMessage(error)}` };
 	}
-	return `./${filename}`;
+	return { path: `./${filename}` };
 }
 
 async function resizeToDocument(

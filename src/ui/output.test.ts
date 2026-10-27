@@ -1,10 +1,27 @@
-import { describe, expect, it } from 'vitest';
-import { _outputChannels } from '../__mocks__/vscode';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type * as vscode from 'vscode';
+import {
+	_createExtensionContext,
+	_outputChannels,
+	_resetMockState,
+} from '../__mocks__/vscode';
 import type { CheckResult } from '../types';
-import { logCheckResult, showOutput } from './output';
+import {
+	disposeOutput,
+	logCheckResult,
+	logLine,
+	registerOutput,
+	showOutput,
+} from './output';
 
-// output.ts caches its channel at module level, so all tests share the
-// first created channel; no _resetMockState() here.
+// output.ts keeps its channel at module level, so a test that reads the
+// mock's first channel needs the module's one released as well as the
+// mock's list cleared; with only the list cleared, every test after the
+// first found no channel at all, and the suite depended on its order.
+beforeEach(() => {
+	_resetMockState();
+	disposeOutput();
+});
 
 function baseResult(overrides: Partial<CheckResult>): CheckResult {
 	return {
@@ -18,8 +35,9 @@ function baseResult(overrides: Partial<CheckResult>): CheckResult {
 	} as CheckResult;
 }
 
+/** The channel the latest log wrote to. */
 function channelText(): string {
-	return (_outputChannels()[0]?._lines ?? []).join('\n');
+	return (_outputChannels().at(-1)?._lines ?? []).join('\n');
 }
 
 describe('output channel', () => {
@@ -70,6 +88,43 @@ describe('output channel', () => {
 		expect(text).toContain('Login URL: https://example.com/login');
 	});
 
+	it('prints why a screenshot could not be written', () => {
+		logCheckResult(
+			baseResult({ screenshotError: 'EACCES: permission denied' }),
+		);
+		expect(channelText()).toContain(
+			'Screenshot: could not be written — EACCES: permission denied',
+		);
+	});
+
+	it('prints a declared Crawl-delay of 0 and omits an undeclared one', () => {
+		const robots = {
+			agent: '*',
+			exists: true,
+			allowsCrawling: true,
+			disallowedPaths: [],
+			sitemaps: [],
+		};
+		logCheckResult(
+			baseResult({ detections: { robotsTxt: { ...robots, crawlDelay: 0 } } }),
+		);
+		expect(channelText()).toContain('Crawl Delay: 0s');
+
+		disposeOutput();
+		logCheckResult(baseResult({ detections: { robotsTxt: robots } }));
+		expect(channelText()).not.toContain('Crawl Delay');
+	});
+
+	it('says there was no response rather than printing "null" as a status', () => {
+		logCheckResult(baseResult({ statusCode: null }));
+
+		const text = channelText();
+		expect(text).toContain(
+			'Status Code: none (no response for the navigation)',
+		);
+		expect(text).not.toContain('null');
+	});
+
 	it('logs a failure result', () => {
 		logCheckResult(
 			baseResult({
@@ -116,8 +171,61 @@ describe('output channel', () => {
 		expect(text).toContain('Authentication: Not required');
 	});
 
+	it('states the assumed disallow when robots.txt could not be read', () => {
+		logCheckResult(
+			baseResult({
+				detections: {
+					robotsTxt: {
+						agent: '*',
+						exists: false,
+						allowsCrawling: false,
+						disallowedPaths: [],
+						sitemaps: [],
+						unreachable: 'HTTP 503',
+					},
+				},
+			}),
+		);
+
+		const text = channelText();
+		expect(text).toContain('robots.txt: Could not be read (HTTP 503)');
+		expect(text).toContain('Allows Crawling: No');
+		expect(text).toContain('RFC 9309');
+		expect(text).not.toContain('robots.txt: Not found');
+	});
+
 	it('showOutput reveals the channel', () => {
 		showOutput();
 		expect(_outputChannels()[0]?._shown).toBe(true);
+	});
+});
+
+describe('output channel lifetime', () => {
+	it('is released on deactivation, and a later log starts a fresh one', () => {
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerOutput(context);
+		logLine('first session');
+		expect(_outputChannels()).toHaveLength(1);
+
+		for (const subscription of context.subscriptions) subscription.dispose();
+		expect(_outputChannels()[0]?._disposed).toBe(true);
+
+		// A second dispose is harmless, and the next log does not write into
+		// the released channel.
+		for (const subscription of context.subscriptions) subscription.dispose();
+		logLine('second session');
+		expect(_outputChannels()).toHaveLength(2);
+		expect(_outputChannels()[1]?._disposed).toBe(false);
+		expect(_outputChannels()[1]?._lines).toEqual(['second session']);
+	});
+
+	it('registers the release even when no channel is ever created', () => {
+		const context =
+			_createExtensionContext() as unknown as vscode.ExtensionContext;
+		registerOutput(context);
+		expect(context.subscriptions).toHaveLength(1);
+		for (const subscription of context.subscriptions) subscription.dispose();
+		expect(_outputChannels()).toHaveLength(0);
 	});
 });

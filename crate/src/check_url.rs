@@ -75,7 +75,7 @@ fn render_evidence(url: &str, options: &Options, robots: &RobotsCache) -> Option
     let browser = match crate::render::find_browser() {
         Ok(browser) => browser,
         Err(reason) => {
-            eprintln!("scrape-le: render unavailable — {reason}");
+            stderr_line!("scrape-le: render unavailable — {reason}");
             return None;
         }
     };
@@ -86,7 +86,7 @@ fn render_evidence(url: &str, options: &Options, robots: &RobotsCache) -> Option
             crate::fetch::fetch_robots_only(url, robots),
         )),
         Err(reason) => {
-            eprintln!("scrape-le: render failed — {reason}; falling back to HTTP evidence");
+            stderr_line!("scrape-le: render failed — {reason}; falling back to HTTP evidence");
             None
         }
     }

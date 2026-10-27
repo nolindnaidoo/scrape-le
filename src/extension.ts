@@ -6,7 +6,7 @@ import { registerCommands } from './commands';
 import { registerOpenSettingsCommand } from './config/settings';
 import { registerMcpProvider } from './mcp/provider';
 import { createNotifier } from './ui/notifier';
-import { logLine } from './ui/output';
+import { logLine, registerOutput } from './ui/output';
 import { createRatingPromptFor } from './ui/ratingPrompt';
 import { createStatusBar } from './ui/statusBar';
 
@@ -14,6 +14,7 @@ import { createStatusBar } from './ui/statusBar';
  * Extension activation
  */
 export function activate(context: vscode.ExtensionContext): void {
+	registerOutput(context);
 	const notifier = createNotifier();
 	const statusBar = createStatusBar(context);
 

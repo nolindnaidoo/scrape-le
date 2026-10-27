@@ -44,7 +44,7 @@
 	"capabilities": {
 		"virtualWorkspaces": {
 			"supported": "limited",
-			"description": "%manifest.capability.untrusted-workspaces.desc%"
+			"description": "%manifest.capability.virtual-workspaces.desc%"
 		},
 		"untrustedWorkspaces": {
 			"supported": "limited",

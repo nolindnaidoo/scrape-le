@@ -21,6 +21,24 @@ function getOutputChannel(): vscode.OutputChannel {
 	return outputChannel;
 }
 
+/**
+ * Owns the channel's lifetime. It is created on first use, so nothing
+ * registered at activation held it and deactivation left it live; the
+ * release is registered up front, whether or not a channel is ever made.
+ */
+export function registerOutput(context: vscode.ExtensionContext): void {
+	context.subscriptions.push({ dispose: disposeOutput });
+}
+
+/**
+ * Releases the channel, if one was created, and forgets it so the next
+ * log creates a fresh one. Safe to call again.
+ */
+export function disposeOutput(): void {
+	outputChannel?.dispose();
+	outputChannel = null;
+}
+
 type Detections = NonNullable<CheckResult['detections']>;
 type Channel = vscode.OutputChannel;
 
@@ -108,6 +126,15 @@ function appendDisallowedPaths(
 
 function appendRobotsTxt(channel: Channel, rt: Detections['robotsTxt']): void {
 	if (!rt) return;
+	if (rt.unreachable !== undefined) {
+		channel.appendLine(
+			`   🤖 robots.txt: Could not be read (${rt.unreachable})`,
+		);
+		channel.appendLine(
+			'      - Allows Crawling: No — RFC 9309 §2.3.1.4 has a crawler assume a complete disallow when robots.txt is unreachable',
+		);
+		return;
+	}
 	if (!rt.exists) {
 		channel.appendLine('   🤖 robots.txt: Not found');
 		return;
@@ -120,7 +147,8 @@ function appendRobotsTxt(channel: Channel, rt: Detections['robotsTxt']): void {
 	channel.appendLine(
 		`      - Allows Crawling: ${rt.allowsCrawling ? 'Yes' : 'No'}`,
 	);
-	if (rt.crawlDelay) {
+	// `Crawl-delay: 0` is a declared value, not an absent one.
+	if (rt.crawlDelay !== undefined) {
 		channel.appendLine(`      - Crawl Delay: ${rt.crawlDelay}s`);
 	}
 	appendDisallowedPaths(channel, rt.disallowedPaths);
@@ -234,11 +262,18 @@ function appendFailure(channel: Channel, result: CheckResult): void {
 
 function appendSuccess(channel: Channel, result: CheckResult): void {
 	channel.appendLine(`✅ SUCCESS: ${result.url}`);
-	channel.appendLine(`   Status Code: ${result.statusCode}`);
+	channel.appendLine(
+		`   Status Code: ${result.statusCode === null ? 'none (no response for the navigation)' : result.statusCode}`,
+	);
 	channel.appendLine(`   Title: ${result.title}`);
 	channel.appendLine(`   Load Time: ${result.loadTimeMs}ms`);
 	if (result.screenshotPath) {
 		channel.appendLine(`   Screenshot: ${result.screenshotPath}`);
+	}
+	if (result.screenshotError) {
+		channel.appendLine(
+			`   Screenshot: could not be written — ${result.screenshotError}`,
+		);
 	}
 	appendConsoleErrors(channel, result.consoleErrors);
 	if (result.detections) {
