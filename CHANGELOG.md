@@ -10,6 +10,15 @@ npm command line. The Rust CLI in `crate/` keeps its own
 [CHANGELOG](crate/CHANGELOG.md). From 2.5.0 every surface carries one
 version and releases from one tag.
 
+## [Unreleased]
+
+### Fixed
+
+- The npm command line's MCP server joined the chunks of a line in progress
+  on every chunk, copying the whole line so far each time, so a 16 MiB line
+  cost about a gigabyte of transient copies on its way to the frame limit.
+  It joins them once, at the newline.
+
 ## [2.6.0] - 2026-10-27
 
 ### Removed
