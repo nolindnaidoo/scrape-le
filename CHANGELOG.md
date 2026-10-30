@@ -14,6 +14,11 @@ version and releases from one tag.
 
 ### Fixed
 
+- The extension's MCP server, the one `scrape-le-mcp` and the editor run, died
+  on an unhandled EPIPE with a Node stack trace when the client closed the
+  pipe, which a host logs as the server crashing. It exits 2 quietly at the
+  first reply it cannot write, as the crate's server and the npm command
+  line do.
 - The npm command line's MCP server joined the chunks of a line in progress
   on every chunk, copying the whole line so far each time, so a 16 MiB line
   cost about a gigabyte of transient copies on its way to the frame limit.
